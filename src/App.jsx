@@ -14,9 +14,9 @@ const C = {
 };
 const s = {
   card: { background: C.card, borderRadius: 16, padding: 16, boxShadow: "0 2px 16px rgba(124,58,30,0.07)", border: `1px solid ${C.border}`, marginBottom: 12 },
-  input: { width: "100%", padding: "9px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, outline: "none", background: C.bg, color: C.text, boxSizing: "border-box", fontFamily: "Georgia, serif" },
-  btn: { padding: "9px 18px", borderRadius: 22, border: "none", background: `linear-gradient(135deg, ${C.dark}, ${C.accent})`, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "700", letterSpacing: 0.3, fontFamily: "Georgia, serif" },
-  btnSec: { padding: "9px 18px", borderRadius: 22, border: `1.5px solid #d4a07a`, background: "#fff", color: C.accent, cursor: "pointer", fontSize: 13, fontWeight: "600", fontFamily: "Georgia, serif" },
+  input: { width: "100%", padding: "9px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, outline: "none", background: C.bg, color: C.text, boxSizing: "border-box", fontFamily: "'Inter', sans-serif" },
+  btn: { padding: "9px 18px", borderRadius: 22, border: "none", background: `linear-gradient(135deg, ${C.dark}, ${C.accent})`, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "700", letterSpacing: 0.3, fontFamily: "'Inter', sans-serif" },
+  btnSec: { padding: "9px 18px", borderRadius: 22, border: `1.5px solid #d4a07a`, background: "#fff", color: C.accent, cursor: "pointer", fontSize: 13, fontWeight: "600", fontFamily: "'Inter', sans-serif" },
   label: { fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", display: "block", marginBottom: 4 },
   tag: (color) => ({ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: color + "22", color, fontWeight: "700", letterSpacing: 0.5, display: "inline-block" }),
 };
@@ -47,10 +47,10 @@ function generateTasksFromOrder(order) {
     return { date: d.toISOString().split("T")[0], task, done: false, auto: true, order_id: order.id };
   };
   return [
-    add(3, `Gather ingredients for "${order.item}" — ${order.customer}`),
-    add(2, `Prep batter/dough for "${order.item}" — ${order.customer}`),
-    add(1, `Bake "${order.item}" — ${order.customer}`),
-    add(1, `Decorate & finish "${order.item}" — ${order.customer}`),
+    add(5, `Gather ingredients for "${order.item}" — ${order.customer}`),
+    add(3, `Prep batter/dough for "${order.item}" — ${order.customer}`),
+    add(3, `Bake "${order.item}" — ${order.customer}`),
+    add(2, `Decorate & finish "${order.item}" — ${order.customer}`),
     add(0, `Package & deliver "${order.item}" to ${order.customer}`),
   ];
 }
@@ -136,11 +136,11 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${C.dark} 0%, ${C.accent} 60%, #d4722a 100%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Georgia, serif" }}>
+    <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${C.dark} 0%, ${C.accent} 60%, #d4722a 100%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Inter', sans-serif" }}>
       <div style={{ background: "#fff", borderRadius: 24, padding: 32, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>🧁</div>
-          <div style={{ fontSize: 22, fontWeight: "bold", color: C.dark }}>BakeFlo</div>
+          <div style={{ fontSize: 22, fontWeight: "bold", color: C.dark, fontFamily: "'Playfair Display', serif" }}>BakeFlo</div>
           <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Your home bakery business manager</div>
         </div>
 
@@ -167,17 +167,17 @@ function LoginScreen({ onLogin }) {
         <div style={{ marginTop: 20, textAlign: "center", fontSize: 13 }}>
           {mode === "login" && <>
             <span style={{ color: C.muted }}>New here? </span>
-            <button onClick={() => { setMode("signup"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "Georgia, serif" }}>Create account</button>
+            <button onClick={() => { setMode("signup"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>Create account</button>
             <div style={{ marginTop: 8 }}>
-              <button onClick={() => { setMode("reset"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "Georgia, serif" }}>Forgot password?</button>
+              <button onClick={() => { setMode("reset"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif" }}>Forgot password?</button>
             </div>
           </>}
           {mode === "signup" && <>
             <span style={{ color: C.muted }}>Already have an account? </span>
-            <button onClick={() => { setMode("login"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "Georgia, serif" }}>Log in</button>
+            <button onClick={() => { setMode("login"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>Log in</button>
           </>}
           {mode === "reset" && (
-            <button onClick={() => { setMode("login"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontFamily: "Georgia, serif" }}>Back to login</button>
+            <button onClick={() => { setMode("login"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Back to login</button>
           )}
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function BakersHubPro() {
   }, []);
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${C.dark}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia, serif", color: "#fff", fontSize: 18 }}>
+    <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${C.dark}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "#fff", fontSize: 18 }}>
       🧁 Loading...
     </div>
   );
@@ -343,6 +343,11 @@ function AppInner({ session }) {
     setEditingPantry(null);
   };
 
+  const deletePantryItem = async (id) => {
+    await supabase.from("pantry").delete().eq("id", id);
+    setPantry(p => p.filter(x => x.id !== id));
+  };
+
   // ── Recipes ──────────────────────────────────────────────────────────────
   const addRecipe = async () => {
     if (!newRec.name) return;
@@ -362,6 +367,11 @@ function AppInner({ session }) {
     if (!item) return;
     setNewRec(r => ({ ...r, ingredients: [...r.ingredients, { pantryId: pid, name: item.name, amount: parseFloat(recIngInput.amount) || 1, unit: recIngInput.unit || item.unit }] }));
     setRecIngInput({ pantryId: "", amount: "", unit: "cups" });
+  };
+
+  const deleteRecipe = async (id) => {
+    await supabase.from("recipes").delete().eq("id", id);
+    setRecipes(r => r.filter(x => x.id !== id));
   };
 
   // ── Pricing ──────────────────────────────────────────────────────────────
@@ -448,6 +458,11 @@ function AppInner({ session }) {
     setNewTask({ date: "", task: "" }); setShowNewTask(false);
   };
 
+  const deleteTask = async (id) => {
+    await supabase.from("schedule").delete().eq("id", id);
+    setSchedule(prev => prev.filter(t => t.id !== id));
+  };
+
   const getAiTasks = async () => {
     setAiTaskLoading(true);
     try {
@@ -503,13 +518,13 @@ function AppInner({ session }) {
   const groupedSched   = schedule.reduce((acc, t) => { const d = t.date || "Undated"; if (!acc[d]) acc[d] = []; acc[d].push(t); return acc; }, {});
 
   if (dbLoading) return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia, serif", color: C.muted, fontSize: 16 }}>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: C.muted, fontSize: 16 }}>
       🧁 Loading your bakery...
     </div>
   );
 
   return (
-    <div style={{ fontFamily: "Georgia, serif", minHeight: "100vh", background: C.bg, color: C.text }}>
+    <div style={{ fontFamily: "'Inter', sans-serif", minHeight: "100vh", background: C.bg, color: C.text }}>
 
       {/* HEADER */}
       <div style={{ background: "#152937", padding: "22px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
@@ -521,9 +536,9 @@ function AppInner({ session }) {
           }
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 10, letterSpacing: 4, opacity: 0.7, textTransform: "uppercase" }}>Home Bakery Business</div>
-            <div style={{ fontSize: 22, fontWeight: "bold", marginTop: 1 }}>{bakeryName}</div>
+            <div style={{ fontSize: 22, fontWeight: "bold", marginTop: 1, fontFamily: "'Playfair Display', serif" }}>{bakeryName}</div>
           </div>
-          <button onClick={() => supabase.auth.signOut()} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif" }}>Sign Out</button>
+          <button onClick={() => supabase.auth.signOut()} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Sign Out</button>
         </div>
         <div style={{ display: "flex", overflowX: "auto", marginTop: 16, gap: 2 }}>
           {TABS.map(t => (
@@ -532,7 +547,7 @@ function AppInner({ session }) {
               fontWeight: tab === t ? "700" : "400", borderRadius: "10px 10px 0 0", whiteSpace: "nowrap",
               background: tab === t ? "rgba(255,255,255,0.2)" : "transparent", color: "#fff",
               borderBottom: tab === t ? "3px solid #fff" : "3px solid transparent",
-              opacity: tab === t ? 1 : 0.72, fontFamily: "Georgia, serif",
+              opacity: tab === t ? 1 : 0.72, fontFamily: "'Inter', sans-serif",
             }}>{t}</button>
           ))}
         </div>
@@ -607,10 +622,13 @@ function AppInner({ session }) {
               <button onClick={() => setShowNewPantry(true)} style={s.btn}>+ Add Item</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Master cost list — update prices here and everything recalculates automatically.</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-              {["All", ...PANTRY_CATS].map(cat => (
-                <button key={cat} onClick={() => setPantryFilter(cat)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", border: `1px solid ${C.accent}`, background: pantryFilter === cat ? C.accent : "#fff", color: pantryFilter === cat ? "#fff" : C.accent, fontFamily: "Georgia, serif" }}>{cat}</button>
-              ))}
+            <div style={{ ...s.card, marginBottom: 14 }}>
+              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 10, fontSize: 13 }}>Filter Pantry</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {["All", ...PANTRY_CATS].map(cat => (
+                  <button key={cat} onClick={() => setPantryFilter(cat)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", border: `1px solid ${C.accent}`, background: pantryFilter === cat ? C.accent : "#fff", color: pantryFilter === cat ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>{cat}</button>
+                ))}
+              </div>
             </div>
             {showNewPantry && (
               <div style={s.card}>
@@ -625,7 +643,7 @@ function AppInner({ session }) {
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <div style={{ flex: 1 }}><label style={s.label}>Recipe unit</label><select value={newPantry.unit} onChange={e => setNewPantry(p => ({ ...p, unit: e.target.value }))} style={s.input}>{UNITS.map(u => <option key={u}>{u}</option>)}</select></div>
-                  <div style={{ flex: 1 }}><label style={s.label}>Yields ({newPantry.unit}s)</label><input type="number" step="0.1" value={newPantry.yields} onChange={e => setNewPantry(p => ({ ...p, yields: e.target.value }))} style={s.input} /></div>
+                  <div style={{ flex: 1 }}><label style={s.label}>Yields ({newPantry.unit})</label><input type="number" step="0.1" value={newPantry.yields} onChange={e => setNewPantry(p => ({ ...p, yields: e.target.value }))} style={s.input} /></div>
                 </div>
                 {newPantry.storeCost && newPantry.yields && <div style={{ background: C.light, borderRadius: 8, padding: "8px 12px", marginTop: 10, fontSize: 13, color: C.mid }}>💡 Cost per {newPantry.unit}: <strong>${(parseFloat(newPantry.storeCost) / parseFloat(newPantry.yields)).toFixed(3)}</strong></div>}
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
@@ -655,7 +673,10 @@ function AppInner({ session }) {
                             <button onClick={() => setEditingPantry(null)} style={{ ...s.btnSec, padding: "6px 12px", fontSize: 12 }}>✕</button>
                           </div>
                         </div>
-                      ) : <button onClick={() => setEditingPantry(item.id)} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12 }}>✏️ Update Price</button>}
+                      ) : <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => setEditingPantry(item.id)} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12 }}>✏️ Update Price</button>
+                        <button onClick={() => deletePantryItem(item.id)} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12, color: "#ef4444", border: "1px solid #ef4444" }}>🗑 Delete</button>
+                      </div>}
                     </div>
                   ))}
                 </div>
@@ -711,6 +732,7 @@ function AppInner({ session }) {
                       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                         <button onClick={() => { setSelRecipe(selRecipe?.id === r.id ? null : r); setScale(1); }} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12 }}>{selRecipe?.id === r.id ? "Close" : "View / Scale"}</button>
                         <button onClick={() => { setPricingRecId(String(r.id)); setPricingSvgs(r.servings); setSellQty(r.servings); setTab("Pricing"); }} style={{ ...s.btn, padding: "5px 12px", fontSize: 12 }}>→ Price It</button>
+                        <button onClick={() => deleteRecipe(r.id)} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12, color: "#ef4444", border: "1px solid #ef4444" }}>🗑</button>
                       </div>
                     </div>
                   </div>
@@ -718,7 +740,7 @@ function AppInner({ session }) {
                     <div style={{ marginTop: 14 }}>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
                         <span style={{ fontSize: 12, color: C.mid }}>Scale:</span>
-                        {[0.5, 1, 1.5, 2, 3].map(f => <button key={f} onClick={() => setScale(f)} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid #d4a07a`, background: scale === f ? C.accent : "#fff", color: scale === f ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "600", fontFamily: "Georgia, serif" }}>{f}×</button>)}
+                        {[0.5, 1, 1.5, 2, 3].map(f => <button key={f} onClick={() => setScale(f)} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid #d4a07a`, background: scale === f ? C.accent : "#fff", color: scale === f ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{f}×</button>)}
                       </div>
                       <div style={{ background: C.light, borderRadius: 10, padding: 12 }}>
                         <div style={{ fontWeight: "600", fontSize: 12, marginBottom: 6, color: C.dark }}>INGREDIENTS — {Math.round(r.servings * scale)} servings · ${(totalCost * scale).toFixed(2)}</div>
@@ -809,7 +831,7 @@ function AppInner({ session }) {
                     : <>
                       <div style={{ marginBottom: 8 }}><label style={s.label}>Subject line</label><div style={{ ...s.input, fontSize: 13, color: C.mid, background: C.light }}>Order Confirmed! {emailModal.item} — {emailModal.due}</div></div>
                       <label style={s.label}>Email body</label>
-                      <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} style={{ ...s.input, flex: 1, resize: "none", fontSize: 13, lineHeight: 1.7, minHeight: 220 }} />
+                      <textarea placeholder="Add your message to get started…" value={emailBody} onChange={e => setEmailBody(e.target.value)} style={{ ...s.input, flex: 1, resize: "none", fontSize: 13, lineHeight: 1.7, minHeight: 220 }} />
                       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                         <button onClick={copyEmail} style={{ ...s.btn, flex: 1 }}>{emailCopied ? "✓ Copied!" : "📋 Copy Email"}</button>
                         <button onClick={() => genEmail(emailModal)} style={{ ...s.btnSec, fontSize: 12 }}>↺ Regenerate</button>
@@ -874,7 +896,7 @@ function AppInner({ session }) {
                     </div>
                     {o.notes && <div style={{ background: C.light, borderRadius: 8, padding: "8px 10px", marginTop: 10, fontSize: 13, color: C.mid, fontStyle: "italic" }}>📝 {o.notes}</div>}
                     <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${STATUS_COLORS[st]}`, background: o.status === st ? STATUS_COLORS[st] : "#fff", color: o.status === st ? "#fff" : STATUS_COLORS[st], cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "Georgia, serif" }}>{st}</button>)}
+                      {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${STATUS_COLORS[st]}`, background: o.status === st ? STATUS_COLORS[st] : "#fff", color: o.status === st ? "#fff" : STATUS_COLORS[st], cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
                         <button onClick={() => genEmail(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11 }}>✉️ Email</button>
@@ -923,11 +945,12 @@ function AppInner({ session }) {
                   {date === "Undated" ? "Undated" : new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 </div>
                 {tasks.map(t => (
-                  <div key={t.id} onClick={() => toggleTask(t.id)} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11 }}>{t.done ? "✓" : ""}</div>
-                    <span style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none" }}>{t.task}</span>
+                  <div key={t.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
+                    <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, cursor: "pointer" }}>{t.done ? "✓" : ""}</div>
+                    <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none", cursor: "pointer" }}>{t.task}</span>
                     {t.auto && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700" }}>auto</span>}
                     {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
+                    <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
                   </div>
                 ))}
               </div>
@@ -983,11 +1006,11 @@ function AppInner({ session }) {
                       <span style={s.tag(post.status === "Posted" ? "#10b981" : post.status === "Scheduled" ? "#3b82f6" : "#9a7a65")}>{post.status}</span>
                     </div>
                     <div style={{ fontSize: 13, lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: expandedPost === post.id ? "unset" : 3, WebkitBoxOrient: "vertical" }}>{post.caption}</div>
-                    {post.caption?.length > 100 && <button onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)} style={{ background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", padding: 0, marginTop: 4, fontFamily: "Georgia, serif" }}>{expandedPost === post.id ? "Show less" : "Show more"}</button>}
+                    {post.caption?.length > 100 && <button onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)} style={{ background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", padding: 0, marginTop: 4, fontFamily: "'Inter', sans-serif" }}>{expandedPost === post.id ? "Show less" : "Show more"}</button>}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                  {["Draft", "Scheduled", "Posted"].map(st => <button key={st} onClick={() => updatePostStatus(post.id, st)} style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", fontFamily: "Georgia, serif", border: `1px solid ${st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65"}`, background: post.status === st ? (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") : "#fff", color: post.status === st ? "#fff" : (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") }}>{st}</button>)}
+                  {["Draft", "Scheduled", "Posted"].map(st => <button key={st} onClick={() => updatePostStatus(post.id, st)} style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif", border: `1px solid ${st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65"}`, background: post.status === st ? (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") : "#fff", color: post.status === st ? "#fff" : (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") }}>{st}</button>)}
                 </div>
               </div>
             ))}
@@ -1035,6 +1058,11 @@ function AppInner({ session }) {
               <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>👤 Account</div>
               <div style={{ fontSize: 13, color: C.mid, marginBottom: 12 }}>Signed in as <strong>{session.user.email}</strong></div>
               <button onClick={() => supabase.auth.signOut()} style={s.btnSec}>Sign Out</button>
+            </div>
+            <div style={s.card}>
+              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>📬 Contact Us</div>
+              <div style={{ fontSize: 13, color: C.mid }}>Questions or feedback? We'd love to hear from you.</div>
+              <a href="mailto:hello@bakeflo.io" style={{ display: "inline-block", marginTop: 10, color: C.accent, fontWeight: "600", fontSize: 14 }}>hello@bakeflo.io</a>
             </div>
           </div>
         )}
