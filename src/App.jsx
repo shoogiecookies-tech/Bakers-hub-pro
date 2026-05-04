@@ -9,8 +9,8 @@ const supabase = createClient(
 
 // ─── COLORS & STYLES ──────────────────────────────────────────────────────────
 const C = {
-  bg: "#fdf8f3", card: "#ffffff", accent: "#b5541a", dark: "#7c3a1e",
-  light: "#fdf0e4", border: "#f0e6d8", text: "#2c1a0e", muted: "#9a7a65", mid: "#6b4226",
+  bg: "#F9FAFB", card: "#ffffff", accent: "#C0653D", dark: "#152937",
+  light: "#f0f4f8", border: "#e2e8f0", text: "#152937", muted: "#6b7280", mid: "#374151",
 };
 const s = {
   card: { background: C.card, borderRadius: 16, padding: 16, boxShadow: "0 2px 16px rgba(124,58,30,0.07)", border: `1px solid ${C.border}`, marginBottom: 12 },
@@ -512,7 +512,7 @@ function AppInner({ session }) {
     <div style={{ fontFamily: "Georgia, serif", minHeight: "100vh", background: C.bg, color: C.text }}>
 
       {/* HEADER */}
-      <div style={{ background: `linear-gradient(135deg, ${C.dark} 0%, ${C.accent} 60%, #d4722a 100%)`, padding: "22px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: "#152937", padding: "22px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -30, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {bakeryLogo
