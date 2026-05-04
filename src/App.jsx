@@ -546,7 +546,7 @@ function AppInner({ session }) {
             <div style={{ fontSize: 22, fontWeight: "bold", marginTop: 1, fontFamily: "'Playfair Display', serif" }}>{bakeryName}</div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <a href="mailto:hello@bakeflo.io" style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, textDecoration: "none" }}>hello@bakeflo.io</a>
+            <a href="mailto:hello@bakeflo.io" style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, textDecoration: "none", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 20, padding: "6px 14px", fontFamily: "'Inter', sans-serif", opacity: 0.85 }}>Contact Us</a>
             <button onClick={() => supabase.auth.signOut()} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Sign Out</button>
           </div>
         </div>
