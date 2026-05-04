@@ -15,7 +15,7 @@ const C = {
 const s = {
   card: { background: C.card, borderRadius: 16, padding: 16, boxShadow: "0 2px 16px rgba(124,58,30,0.07)", border: `1px solid ${C.border}`, marginBottom: 12 },
   input: { width: "100%", padding: "9px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, outline: "none", background: C.bg, color: C.text, boxSizing: "border-box", fontFamily: "'Inter', sans-serif" },
-  btn: { padding: "9px 18px", borderRadius: 22, border: "none", background: `linear-gradient(135deg, ${C.dark}, ${C.accent})`, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "700", letterSpacing: 0.3, fontFamily: "'Inter', sans-serif" },
+  btn: { padding: "9px 18px", borderRadius: 22, border: "none", background: "#9CA3AF", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "700", letterSpacing: 0.3, fontFamily: "'Inter', sans-serif" },
   btnSec: { padding: "9px 18px", borderRadius: 22, border: `1.5px solid #d4a07a`, background: "#fff", color: C.accent, cursor: "pointer", fontSize: 13, fontWeight: "600", fontFamily: "'Inter', sans-serif" },
   label: { fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", display: "block", marginBottom: 4 },
   tag: (color) => ({ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: color + "22", color, fontWeight: "700", letterSpacing: 0.5, display: "inline-block" }),
@@ -197,7 +197,7 @@ export default function BakersHubPro() {
   }, []);
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${C.dark}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "#fff", fontSize: 18 }}>
+    <div style={{ minHeight: "100vh", background: "#9CA3AF", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "#fff", fontSize: 18 }}>
       🧁 Loading...
     </div>
   );
@@ -266,6 +266,7 @@ function AppInner({ session }) {
   const [showNewTask,   setShowNewTask]   = useState(false);
   const [newTask,       setNewTask]       = useState({ date: "", task: "" });
   const [aiTaskLoading, setAiTaskLoading] = useState(false);
+  const [aiTaskError, setAiTaskError] = useState("");
 
   // Social UI
   const [showNewPost,    setShowNewPost]    = useState(false);
@@ -416,6 +417,11 @@ function AppInner({ session }) {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
   };
 
+  const deleteOrder = async (id) => {
+    await supabase.from("orders").delete().eq("id", id);
+    setOrders(prev => prev.filter(o => o.id !== id));
+  };
+
   const saveEditOrder = async () => {
     if (!editOrder) return;
     const updates = {
@@ -465,6 +471,7 @@ function AppInner({ session }) {
 
   const getAiTasks = async () => {
     setAiTaskLoading(true);
+    setAiTaskError("");
     try {
       const suggestions = await aiScheduleSuggestions(orders);
       const today = new Date();
@@ -475,7 +482,7 @@ function AppInner({ session }) {
         if (data) setSchedule(prev => [...prev, { ...data, aiSuggested: true }]);
       }
     } catch (e) {
-      alert(e.message === "NO_KEY" ? "No API key set. Go to Settings to add your Anthropic API key." : "Error getting suggestions.");
+      setAiTaskError(e.message === "NO_KEY" ? "Add your Anthropic API key in Settings to use AI features." : "Error getting suggestions. Please try again.");
     }
     setAiTaskLoading(false);
   };
@@ -503,7 +510,7 @@ function AppInner({ session }) {
       const cap = await aiCaption(newPost.platform, newPost.type);
       setNewPost(p => ({ ...p, caption: cap }));
     } catch (e) {
-      setNewPost(p => ({ ...p, caption: e.message === "NO_KEY" ? "⚠️ Go to Settings to add your Anthropic API key." : "Error. Please try again." }));
+      setNewPost(p => ({ ...p, caption: e.message === "NO_KEY" ? "⚠️ Add your Anthropic API key in Settings to use AI features." : "Error. Please try again." }));
     }
     setCaptionLoading(false);
   };
@@ -538,7 +545,10 @@ function AppInner({ session }) {
             <div style={{ fontSize: 10, letterSpacing: 4, opacity: 0.7, textTransform: "uppercase" }}>Home Bakery Business</div>
             <div style={{ fontSize: 22, fontWeight: "bold", marginTop: 1, fontFamily: "'Playfair Display', serif" }}>{bakeryName}</div>
           </div>
-          <button onClick={() => supabase.auth.signOut()} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Sign Out</button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <a href="mailto:hello@bakeflo.io" style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, textDecoration: "none" }}>hello@bakeflo.io</a>
+            <button onClick={() => supabase.auth.signOut()} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Sign Out</button>
+          </div>
         </div>
         <div style={{ display: "flex", overflowX: "auto", marginTop: 16, gap: 2 }}>
           {TABS.map(t => (
@@ -575,7 +585,7 @@ function AppInner({ session }) {
                 </div>
               ))}
             </div>
-            <div style={{ ...s.card, background: `linear-gradient(135deg, ${C.dark}, ${C.accent})`, color: "#fff" }}>
+            <div style={{ ...s.card, background: "#9CA3AF", color: "#fff" }}>
               <div style={{ fontWeight: "bold", marginBottom: 10 }}>📊 P&L Snapshot</div>
               {[["Delivered Revenue", `$${deliveredRev.toFixed(2)}`], ["Pipeline (pending)", `$${pendingRev.toFixed(2)}`]].map(([l, v]) => (
                 <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.15)", fontSize: 13 }}>
@@ -622,7 +632,7 @@ function AppInner({ session }) {
               <button onClick={() => setShowNewPantry(true)} style={s.btn}>+ Add Item</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Master cost list — update prices here and everything recalculates automatically.</div>
-            <div style={{ ...s.card, marginBottom: 14 }}>
+            <div style={{ ...s.card, marginBottom: 14, background: "#E5E7EB" }}>
               <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 10, fontSize: 13 }}>Filter Pantry</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {["All", ...PANTRY_CATS].map(cat => (
@@ -802,7 +812,7 @@ function AppInner({ session }) {
               <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 14, padding: 12, fontSize: 14 }}>Calculate Price →</button>
             </div>
             {priceResult && (
-              <div style={{ ...s.card, background: `linear-gradient(135deg, ${C.dark}, ${C.accent})`, color: "#fff" }}>
+              <div style={{ ...s.card, background: "#9CA3AF", color: "#fff" }}>
                 <div style={{ fontWeight: "bold", fontSize: 15, marginBottom: 12 }}>💰 Pricing Breakdown</div>
                 {[["Ingredient Cost", `$${priceResult.ingCost.toFixed(2)}`], ["Labor Cost", `$${priceResult.labor.toFixed(2)}`], ["Subtotal", `$${priceResult.sub.toFixed(2)}`], [`+ ${overhead}% Overhead`, `$${priceResult.withOH.toFixed(2)}`], [`+ ${markup}% Markup`, `$${priceResult.final.toFixed(2)}`]].map(([label, val]) => (
                   <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.15)", fontSize: 13 }}><span style={{ opacity: 0.85 }}>{label}</span><span>{val}</span></div>
@@ -900,6 +910,7 @@ function AppInner({ session }) {
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
                         <button onClick={() => genEmail(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11 }}>✉️ Email</button>
+                        <button onClick={() => deleteOrder(o.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, color: "#ef4444", border: "1px solid #ef4444" }}>🗑</button>
                       </div>
                     </div>
                   </>
@@ -920,6 +931,7 @@ function AppInner({ session }) {
                 <button onClick={() => setShowNewTask(true)} style={s.btn}>+ Task</button>
               </div>
             </div>
+            {aiTaskError && <div style={{ background: "#fef3c7", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#92400e", marginBottom: 12 }}>{aiTaskError}</div>}
             <div style={{ ...s.card, background: C.light, marginBottom: 14 }}>
               <div style={{ height: 8, background: "#e8d5c0", borderRadius: 10, overflow: "hidden" }}>
                 <div style={{ height: "100%", borderRadius: 10, background: `linear-gradient(90deg, ${C.dark}, ${C.accent})`, width: `${schedule.length ? (schedule.filter(t => t.done).length / schedule.length) * 100 : 0}%`, transition: "width 0.4s" }} />
@@ -1058,11 +1070,6 @@ function AppInner({ session }) {
               <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>👤 Account</div>
               <div style={{ fontSize: 13, color: C.mid, marginBottom: 12 }}>Signed in as <strong>{session.user.email}</strong></div>
               <button onClick={() => supabase.auth.signOut()} style={s.btnSec}>Sign Out</button>
-            </div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>📬 Contact Us</div>
-              <div style={{ fontSize: 13, color: C.mid }}>Questions or feedback? We'd love to hear from you.</div>
-              <a href="mailto:hello@bakeflo.io" style={{ display: "inline-block", marginTop: 10, color: C.accent, fontWeight: "600", fontSize: 14 }}>hello@bakeflo.io</a>
             </div>
           </div>
         )}
