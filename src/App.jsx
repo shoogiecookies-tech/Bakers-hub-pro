@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ function LoginScreen({ onLogin }) {
       <div style={{ background: "#fff", borderRadius: 24, padding: 32, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>🧁</div>
-          <div style={{ fontSize: 22, fontWeight: "bold", color: C.dark }}>Baker's Hub Pro</div>
+          <div style={{ fontSize: 22, fontWeight: "bold", color: C.dark }}>BakeFlo</div>
           <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Your home bakery business manager</div>
         </div>
 
