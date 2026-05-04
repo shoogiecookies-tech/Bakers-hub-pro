@@ -546,6 +546,7 @@ function AppInner({ session }) {
             <div style={{ fontSize: 22, fontWeight: "bold", marginTop: 1, fontFamily: "'Playfair Display', serif" }}>{bakeryName}</div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <img src="https://i.imgur.com/PZIW1DS.png" alt="BakeFlo" style={{ width: 32, height: 32, borderRadius: 6, objectFit: "contain" }} />
             <a href="mailto:hello@bakeflo.io" style={{ color: "#fff", fontSize: 12, textDecoration: "none", background: "#C0653D", border: "none", borderRadius: 20, padding: "6px 14px", fontFamily: "'Inter', sans-serif", fontWeight: "600" }}>Contact Us</a>
             <button onClick={() => supabase.auth.signOut()} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Sign Out</button>
           </div>
@@ -1074,6 +1075,12 @@ function AppInner({ session }) {
           </div>
         )}
 
+      </div>
+
+      {/* FOOTER */}
+      <div style={{ background: "#F3F4F6", borderTop: `1px solid ${C.border}`, padding: "28px 20px", textAlign: "center", marginTop: 24 }}>
+        <img src="https://i.imgur.com/OV4RPtp.png" alt="BakeFlo" style={{ height: 36, objectFit: "contain", marginBottom: 10 }} />
+        <div style={{ fontSize: 13, color: C.muted, fontFamily: "'Playfair Display', serif", fontStyle: "italic" }}>From Recipe to Revenue.</div>
       </div>
     </div>
   );
