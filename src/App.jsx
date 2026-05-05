@@ -518,6 +518,10 @@ function AppInner({ session }) {
   // ── Dashboard metrics ─────────────────────────────────────────────────────
   const deliveredRev   = orders.filter(o => o.status === "Delivered").reduce((s, o) => s + (o.total || 0), 0);
   const pendingRev     = orders.filter(o => o.status !== "Delivered").reduce((s, o) => s + (o.total || 0), 0);
+  const totalRevenue   = deliveredRev + pendingRev;
+  const estTotalCosts  = totalRevenue * 0.50;
+  const netProfit      = totalRevenue - estTotalCosts;
+  const profitMarginPct = totalRevenue > 0 ? (netProfit / totalRevenue * 100).toFixed(1) : "0.0";
   const openOrders     = orders.filter(o => o.status !== "Delivered").length;
   const todayStr       = new Date().toISOString().split("T")[0];
   const todayTasks     = schedule.filter(t => !t.done && t.date === todayStr);
@@ -588,15 +592,16 @@ function AppInner({ session }) {
             </div>
             <div style={{ ...s.card, background: "#9CA3AF", color: "#fff" }}>
               <div style={{ fontWeight: "bold", marginBottom: 10 }}>📊 P&L Snapshot</div>
-              {[["Delivered Revenue", `$${deliveredRev.toFixed(2)}`], ["Pipeline (pending)", `$${pendingRev.toFixed(2)}`]].map(([l, v]) => (
+              {[["Total Revenue", `$${totalRevenue.toFixed(2)}`], ["Est. Total Costs (50%)", `$${estTotalCosts.toFixed(2)}`]].map(([l, v]) => (
                 <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.15)", fontSize: 13 }}>
                   <span style={{ opacity: 0.8 }}>{l}</span><span>{v}</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontWeight: "bold", fontSize: 16 }}>
-                <span>Total Pipeline</span>
-                <span style={{ background: "rgba(255,255,255,0.2)", padding: "2px 14px", borderRadius: 20 }}>${(deliveredRev + pendingRev).toFixed(2)}</span>
+                <span>NET PROFIT</span>
+                <span style={{ background: "#10b981", padding: "2px 14px", borderRadius: 20, color: "#fff" }}>${netProfit.toFixed(2)}</span>
               </div>
+              <div style={{ fontSize: 12, marginTop: 8, opacity: 0.9, textAlign: "right" }}>Profit Margin: <strong>{profitMarginPct}%</strong> <span style={{ opacity: 0.7 }}>(est. based on 50% cost rate)</span></div>
             </div>
             <div style={s.card}>
               <div style={{ fontWeight: "bold", marginBottom: 10, color: C.dark }}>📅 Today's Tasks ({todayTasks.length})</div>
@@ -740,6 +745,7 @@ function AppInner({ session }) {
                       <div style={{ fontWeight: "bold", fontSize: 15 }}>{r.name}</div>
                       <div style={{ fontSize: 12, color: C.accent, marginTop: 2 }}>{r.category} · {r.servings} servings</div>
                       <div style={{ fontSize: 12, color: C.mid, marginTop: 3 }}>Cost: <strong style={{ color: C.dark }}>${totalCost.toFixed(2)}</strong> · <span style={{ color: C.muted }}>${(totalCost / r.servings).toFixed(3)}/serving</span></div>
+                      {(() => { const sp = totalCost * 1.30; const profit = sp - totalCost; const margin = (profit / sp * 100).toFixed(0); return <div style={{ fontSize: 12, color: "#10b981", marginTop: 2 }}>Potential profit: <strong>${profit.toFixed(2)}</strong> <span style={{ color: "#6b7280" }}>({margin}% margin at 30% markup)</span></div>; })()}
                       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                         <button onClick={() => { setSelRecipe(selRecipe?.id === r.id ? null : r); setScale(1); }} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12 }}>{selRecipe?.id === r.id ? "Close" : "View / Scale"}</button>
                         <button onClick={() => { setPricingRecId(String(r.id)); setPricingSvgs(r.servings); setSellQty(r.servings); setTab("Pricing"); }} style={{ ...s.btn, padding: "5px 12px", fontSize: 12 }}>→ Price It</button>
@@ -822,6 +828,11 @@ function AppInner({ session }) {
                   <span>Price Per Unit</span><span style={{ background: "rgba(255,255,255,0.2)", padding: "4px 14px", borderRadius: 20 }}>${priceResult.perUnit.toFixed(2)}</span>
                 </div>
                 <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4, textAlign: "right" }}>Total for {sellQty}: ${priceResult.final.toFixed(2)}</div>
+                <div style={{ marginTop: 12, background: "#10b981", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: "700", fontSize: 14 }}>💚 Profit (after costs)</span>
+                  <span style={{ fontWeight: "bold", fontSize: 18 }}>${(priceResult.final - priceResult.withOH).toFixed(2)}</span>
+                </div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", marginTop: 6, textAlign: "right" }}>Margin: {priceResult.final > 0 ? ((priceResult.final - priceResult.withOH) / priceResult.final * 100).toFixed(1) : "0"}%</div>
               </div>
             )}
           </div>
@@ -906,6 +917,7 @@ function AppInner({ session }) {
                       <div style={{ textAlign: "right" }}><div style={{ fontWeight: "bold", fontSize: 18, color: C.dark }}>${o.total}</div><span style={s.tag(STATUS_COLORS[o.status])}>{o.status}</span></div>
                     </div>
                     {o.notes && <div style={{ background: C.light, borderRadius: 8, padding: "8px 10px", marginTop: 10, fontSize: 13, color: C.mid, fontStyle: "italic" }}>📝 {o.notes}</div>}
+                    {o.total > 0 && <div style={{ fontSize: 12, color: "#10b981", marginTop: 6 }}>Est. profit: <strong>${(o.total * 0.50).toFixed(2)}</strong> <span style={{ color: C.muted }}>(~50% margin estimate)</span></div>}
                     <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                       {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${STATUS_COLORS[st]}`, background: o.status === st ? STATUS_COLORS[st] : "#fff", color: o.status === st ? "#fff" : STATUS_COLORS[st], cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
