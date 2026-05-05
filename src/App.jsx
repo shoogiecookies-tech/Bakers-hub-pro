@@ -32,7 +32,7 @@ const UNITS = ["cups", "tbsp", "tsp", "oz", "lbs", "g", "kg", "ml", "l", "pcs", 
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function calcIngCost(ing, pantry) {
-  const item = pantry.find(p => p.id === ing.pantryId);
+  const item = pantry.find(p => Number(p.id) === Number(ing.pantryId));
   return item ? item.costPer * ing.amount : null;
 }
 function calcRecipeCost(recipe, pantry) {
@@ -340,7 +340,7 @@ function AppInner({ session }) {
   const updatePantryPrice = async (id, sc, sy) => {
     const costPer = parseFloat(sc) / parseFloat(sy);
     await supabase.from("pantry").update({ store_cost: parseFloat(sc), yields: parseFloat(sy), cost_per: costPer }).eq("id", id);
-    setPantry(p => p.map(x => x.id === id ? { ...x, storeCost: parseFloat(sc), yields: parseFloat(sy), costPer } : x));
+    setPantry(p => p.map(x => Number(x.id) === Number(id) ? { ...x, storeCost: parseFloat(sc), yields: parseFloat(sy), costPer } : x));
     setEditingPantry(null);
   };
 
@@ -364,7 +364,7 @@ function AppInner({ session }) {
 
   const addRecipeIng = () => {
     const pid = parseInt(recIngInput.pantryId);
-    const item = pantry.find(p => p.id === pid);
+    const item = pantry.find(p => Number(p.id) === Number(pid));
     if (!item) return;
     setNewRec(r => ({ ...r, ingredients: [...r.ingredients, { pantryId: pid, name: item.name, amount: parseFloat(recIngInput.amount) || 1, unit: recIngInput.unit || item.unit }] }));
     setRecIngInput({ pantryId: "", amount: "", unit: "cups" });
