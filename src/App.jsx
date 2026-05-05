@@ -259,6 +259,7 @@ function AppInner({ session }) {
   const [overhead,     setOverhead]     = useState(10);
   const [markup,       setMarkup]       = useState(30);
   const [sellQty,      setSellQty]      = useState(1);
+  const [sellingPrice, setSellingPrice] = useState(0);
   const [priceResult,  setPriceResult]  = useState(null);
 
   // Orders UI
@@ -867,17 +868,17 @@ function AppInner({ session }) {
               </div>
               <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, margin: "14px 0 8px" }}>STEP 3 — Labor & Margins</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                {[["Labor hrs", laborHrs, setLaborHrs, 0.5], ["$/hr", laborRate, setLaborRate, 1], ["Overhead %", overhead, setOverhead, 1], ["Markup %", markup, setMarkup, 1], ["Qty to sell", sellQty, setSellQty, 1]].map(([label, val, setter, step]) => (
+                {[["Labor hrs", laborHrs, setLaborHrs, 0.5], ["$/hr", laborRate, setLaborRate, 1], ["Overhead %", overhead, setOverhead, 1], ["Markup %", markup, setMarkup, 1], ["Selling Price $", sellingPrice, setSellingPrice, 0.01], ["Qty to sell", sellQty, setSellQty, 1]].map(([label, val, setter, step]) => (
                   <div key={label}><label style={s.label}>{label}</label><input type="number" step={step} value={val} onChange={e => setter(+e.target.value)} style={s.input} /></div>
                 ))}
               </div>
-              <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 14, padding: 12, fontSize: 14 }}>Calculate Price →</button>
+              <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 14, padding: 12, fontSize: 14, background: "#C0653D" }}>Calculate Price →</button>
             </div>
             {priceResult && (() => {
-              const profit = priceResult.final - priceResult.withOH;
-              const margin = priceResult.final > 0 ? (profit / priceResult.final * 100) : 0;
+              const profit = sellingPrice - priceResult.withOH;
+              const margin = sellingPrice > 0 ? (profit / sellingPrice * 100) : 0;
               const overheadAmt = priceResult.withOH - priceResult.sub;
-              const perUnitProfit = profit / sellQty;
+              const perUnitProfit = sellQty > 0 ? profit / sellQty : 0;
               return (
                 <div style={s.card}>
                   <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 14, color: C.dark }}>Your Numbers</div>
@@ -895,7 +896,7 @@ function AppInner({ session }) {
                     <span>Total Cost to Make</span><span>${priceResult.withOH.toFixed(2)}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-                    <span style={{ color: C.muted }}>Selling Price</span><span>${priceResult.perUnit.toFixed(2)}</span>
+                    <span style={{ color: C.muted }}>Selling Price</span><span>${sellingPrice.toFixed(2)}</span>
                   </div>
                   <div style={{ borderTop: `1.5px solid ${C.border}`, margin: "10px 0" }} />
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
