@@ -873,23 +873,55 @@ function AppInner({ session }) {
               </div>
               <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 14, padding: 12, fontSize: 14 }}>Calculate Price →</button>
             </div>
-            {priceResult && (
-              <div style={{ ...s.card, background: "#9CA3AF", color: "#fff" }}>
-                <div style={{ fontWeight: "bold", fontSize: 15, marginBottom: 12 }}>💰 Pricing Breakdown</div>
-                {[["Ingredient Cost", `$${priceResult.ingCost.toFixed(2)}`], ["Labor Cost", `$${priceResult.labor.toFixed(2)}`], ["Subtotal", `$${priceResult.sub.toFixed(2)}`], [`+ ${overhead}% Overhead`, `$${priceResult.withOH.toFixed(2)}`], [`+ ${markup}% Markup`, `$${priceResult.final.toFixed(2)}`]].map(([label, val]) => (
-                  <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.15)", fontSize: 13 }}><span style={{ opacity: 0.85 }}>{label}</span><span>{val}</span></div>
-                ))}
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, fontWeight: "bold", fontSize: 18 }}>
-                  <span>Price Per Unit</span><span style={{ background: "rgba(255,255,255,0.2)", padding: "4px 14px", borderRadius: 20 }}>${priceResult.perUnit.toFixed(2)}</span>
+            {priceResult && (() => {
+              const profit = priceResult.final - priceResult.withOH;
+              const margin = priceResult.final > 0 ? (profit / priceResult.final * 100) : 0;
+              const overheadAmt = priceResult.withOH - priceResult.sub;
+              const perUnitProfit = profit / sellQty;
+              return (
+                <div style={s.card}>
+                  <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 14, color: C.dark }}>Your Numbers</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
+                    <span style={{ color: C.muted }}>Ingredient Cost</span><span>${priceResult.ingCost.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
+                    <span style={{ color: C.muted }}>Labor Cost</span><span>${priceResult.labor.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
+                    <span style={{ color: C.muted }}>Overhead</span><span>${overheadAmt.toFixed(2)}</span>
+                  </div>
+                  <div style={{ borderTop: `1.5px solid ${C.border}`, margin: "10px 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 15, fontWeight: "bold", color: C.dark }}>
+                    <span>Total Cost to Make</span><span>${priceResult.withOH.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
+                    <span style={{ color: C.muted }}>Selling Price</span><span>${priceResult.perUnit.toFixed(2)}</span>
+                  </div>
+                  <div style={{ borderTop: `1.5px solid ${C.border}`, margin: "10px 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
+                    <span style={{ fontWeight: "800", fontSize: 20, color: "#10b981" }}>YOUR PROFIT</span>
+                    <span style={{ fontWeight: "800", fontSize: 32, color: "#10b981" }}>${profit.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: C.muted }}>
+                    <span>Profit Margin</span><span>{margin.toFixed(1)}%</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: C.muted }}>
+                    <span>Per unit profit</span><span>${perUnitProfit.toFixed(2)}</span>
+                  </div>
+                  <div style={{
+                    marginTop: 14, borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: "600",
+                    background: margin < 20 ? "#fee2e2" : margin < 40 ? "#fef3c7" : "#d1fae5",
+                    color: margin < 20 ? "#991b1b" : margin < 40 ? "#92400e" : "#065f46",
+                  }}>
+                    {margin < 20
+                      ? "⚠️ You may be underpricing — consider raising your rate"
+                      : margin < 40
+                      ? "👍 Decent margin — room to grow"
+                      : "🎉 Great margin — you're pricing well!"}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4, textAlign: "right" }}>Total for {sellQty}: ${priceResult.final.toFixed(2)}</div>
-                <div style={{ marginTop: 12, background: "#10b981", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "700", fontSize: 14 }}>💚 Profit (after costs)</span>
-                  <span style={{ fontWeight: "bold", fontSize: 18 }}>${(priceResult.final - priceResult.withOH).toFixed(2)}</span>
-                </div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", marginTop: 6, textAlign: "right" }}>Margin: {priceResult.final > 0 ? ((priceResult.final - priceResult.withOH) / priceResult.final * 100).toFixed(1) : "0"}%</div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
