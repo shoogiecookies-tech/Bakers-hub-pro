@@ -180,6 +180,7 @@ function LoginScreen({ onLogin }) {
             <button onClick={() => { setMode("login"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Back to login</button>
           )}
         </div>
+      </div>
     </div>
   );
 }
