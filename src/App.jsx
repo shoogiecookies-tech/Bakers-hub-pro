@@ -257,7 +257,6 @@ function AppInner({ session }) {
   const [laborHrs,     setLaborHrs]     = useState(1);
   const [laborRate,    setLaborRate]    = useState(20);
   const [overhead,     setOverhead]     = useState(10);
-  const [markup,       setMarkup]       = useState(30);
   const [sellQty,      setSellQty]      = useState(1);
   const [sellingPrice, setSellingPrice] = useState("");
   const [priceResult,  setPriceResult]  = useState(null);
@@ -409,8 +408,7 @@ function AppInner({ session }) {
     const labor  = laborHrs * laborRate;
     const sub    = ingCost + labor;
     const withOH = sub * (1 + overhead / 100);
-    const final  = withOH * (1 + markup / 100);
-    setPriceResult({ ingCost, labor, sub, withOH, final, perUnit: final / sellQty });
+    setPriceResult({ ingCost, labor, sub, withOH });
   };
 
   // ── Orders ────────────────────────────────────────────────────────────────
