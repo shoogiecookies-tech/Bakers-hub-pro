@@ -259,7 +259,7 @@ function AppInner({ session }) {
   const [overhead,     setOverhead]     = useState(10);
   const [markup,       setMarkup]       = useState(30);
   const [sellQty,      setSellQty]      = useState(1);
-  const [sellingPrice, setSellingPrice] = useState(0);
+  const [sellingPrice, setSellingPrice] = useState("");
   const [priceResult,  setPriceResult]  = useState(null);
 
   // Orders UI
@@ -867,58 +867,78 @@ function AppInner({ session }) {
                 <button onClick={() => { if (extraCostIn.name) { setExtraCosts(p => [...p, { ...extraCostIn }]); setExtraCostIn({ name: "", cost: "" }); } }} style={{ ...s.btn, padding: "8px 12px" }}>+</button>
               </div>
               <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, margin: "14px 0 8px" }}>STEP 3 — Labor & Margins</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                {[["Labor hrs", laborHrs, setLaborHrs, 0.5], ["$/hr", laborRate, setLaborRate, 1], ["Overhead %", overhead, setOverhead, 1], ["Markup %", markup, setMarkup, 1], ["Selling Price $", sellingPrice, setSellingPrice, 0.01], ["Qty to sell", sellQty, setSellQty, 1]].map(([label, val, setter, step]) => (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
+                {[["Labor hrs", laborHrs, setLaborHrs, 0.5], ["$/hr", laborRate, setLaborRate, 1], ["Overhead %", overhead, setOverhead, 1], ["Qty to sell", sellQty, setSellQty, 1]].map(([label, val, setter, step]) => (
                   <div key={label}><label style={s.label}>{label}</label><input type="number" step={step} value={val} onChange={e => setter(+e.target.value)} style={s.input} /></div>
                 ))}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <label style={s.label}>Your Selling Price $</label>
+                <input
+                  type="number" step="0.01" placeholder="0.00"
+                  value={sellingPrice}
+                  onChange={e => setSellingPrice(e.target.value)}
+                  style={{ ...s.input, fontSize: 16, fontWeight: "700" }}
+                />
               </div>
               <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 14, padding: 12, fontSize: 14, background: "#C0653D" }}>Calculate Price →</button>
             </div>
             {priceResult && (() => {
-              const profit = sellingPrice - priceResult.withOH;
-              const margin = sellingPrice > 0 ? (profit / sellingPrice * 100) : 0;
+              const sp = parseFloat(sellingPrice) || 0;
               const overheadAmt = priceResult.withOH - priceResult.sub;
-              const perUnitProfit = sellQty > 0 ? profit / sellQty : 0;
+              const hardCosts = priceResult.ingCost + overheadAmt;
+              const breakEven = priceResult.withOH;
+              const pureProfit = sp - breakEven;
+              const margin = sp > 0 ? (pureProfit / sp * 100) : 0;
+              const earnings = laborHrs > 0 ? (sp - hardCosts) / laborHrs : 0;
+              const row = (label, value, opts = {}) => (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: opts.size || 14, fontWeight: opts.bold ? "700" : "400", color: opts.color || C.dark }}>
+                  <span style={{ color: opts.labelColor || C.muted }}>{label}</span><span>{value}</span>
+                </div>
+              );
+              const divider = () => <div style={{ borderTop: `1.5px solid ${C.border}`, margin: "10px 0" }} />;
               return (
                 <div style={s.card}>
-                  <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 14, color: C.dark }}>Your Numbers</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-                    <span style={{ color: C.muted }}>Ingredient Cost</span><span>${priceResult.ingCost.toFixed(2)}</span>
+                  <div style={{ fontWeight: "800", fontSize: 17, marginBottom: 14, color: C.dark }}>💰 Your Complete Picture</div>
+
+                  <div style={{ fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 4 }}>What it costs you:</div>
+                  {row("Ingredients", `$${priceResult.ingCost.toFixed(2)}`)}
+                  {row(`Overhead (${overhead}%)`, `$${overheadAmt.toFixed(2)}`)}
+                  {divider()}
+                  {row("Hard Costs", `$${hardCosts.toFixed(2)}`, { bold: true, labelColor: C.dark })}
+
+                  <div style={{ fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", margin: "12px 0 4px" }}>Your time:</div>
+                  {row(`${laborHrs} hr${laborHrs !== 1 ? "s" : ""} @ $${laborRate}/hr`, `$${priceResult.labor.toFixed(2)}`)}
+
+                  {divider()}
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", fontSize: 15, fontWeight: "800", color: C.dark, borderTop: `2px solid ${C.dark}`, borderBottom: `2px solid ${C.dark}`, margin: "4px 0" }}>
+                    <span>TOTAL TO BREAK EVEN</span><span>${breakEven.toFixed(2)}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-                    <span style={{ color: C.muted }}>Labor Cost</span><span>${priceResult.labor.toFixed(2)}</span>
+                  {divider()}
+
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", fontSize: 15, fontWeight: "800", color: C.dark }}>
+                    <span>WHAT YOU CHARGE</span><span>${sp.toFixed(2)}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-                    <span style={{ color: C.muted }}>Overhead</span><span>${overheadAmt.toFixed(2)}</span>
+                  {divider()}
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+                    <span style={{ fontWeight: "800", fontSize: 16, color: "#10b981" }}>YOUR EARNINGS</span>
+                    <span style={{ fontWeight: "800", fontSize: 26, color: "#10b981" }}>${earnings.toFixed(2)}/hr</span>
                   </div>
-                  <div style={{ borderTop: `1.5px solid ${C.border}`, margin: "10px 0" }} />
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 15, fontWeight: "bold", color: C.dark }}>
-                    <span>Total Cost to Make</span><span>${priceResult.withOH.toFixed(2)}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-                    <span style={{ color: C.muted }}>Selling Price</span><span>${sellingPrice.toFixed(2)}</span>
-                  </div>
-                  <div style={{ borderTop: `1.5px solid ${C.border}`, margin: "10px 0" }} />
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
-                    <span style={{ fontWeight: "800", fontSize: 20, color: "#10b981" }}>YOUR PROFIT</span>
-                    <span style={{ fontWeight: "800", fontSize: 32, color: "#10b981" }}>${profit.toFixed(2)}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+                    <span style={{ fontWeight: "800", fontSize: 16, color: "#10b981" }}>PURE PROFIT</span>
+                    <span style={{ fontWeight: "800", fontSize: 26, color: "#10b981" }}>${pureProfit.toFixed(2)}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: C.muted }}>
-                    <span>Profit Margin</span><span>{margin.toFixed(1)}%</span>
+                    <span>PROFIT MARGIN</span><span style={{ fontWeight: "700" }}>{margin.toFixed(1)}%</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: C.muted }}>
-                    <span>Per unit profit</span><span>${perUnitProfit.toFixed(2)}</span>
-                  </div>
+
                   <div style={{
                     marginTop: 14, borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: "600",
                     background: margin < 20 ? "#fee2e2" : margin < 40 ? "#fef3c7" : "#d1fae5",
                     color: margin < 20 ? "#991b1b" : margin < 40 ? "#92400e" : "#065f46",
                   }}>
-                    {margin < 20
-                      ? "⚠️ You may be underpricing — consider raising your rate"
-                      : margin < 40
-                      ? "👍 Decent margin — room to grow"
-                      : "🎉 Great margin — you're pricing well!"}
+                    {margin < 20 ? "⚠️ You may be underpricing" : margin < 40 ? "👍 Decent margin — room to grow" : "🎉 Great margin — you're pricing well!"}
                   </div>
                 </div>
               );
