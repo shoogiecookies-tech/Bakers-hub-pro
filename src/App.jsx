@@ -32,7 +32,8 @@ const UNITS = ["cups", "tbsp", "tsp", "oz", "lbs", "g", "kg", "ml", "l", "pcs", 
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function calcIngCost(ing, pantry) {
-  const item = pantry.find(p => Number(p.id) === Number(ing.pantryId));
+  const item = pantry.find(p => Number(p.id) === Number(ing.pantryId))
+    || pantry.find(p => p.name && ing.name && p.name.trim().toLowerCase() === ing.name.trim().toLowerCase());
   return item ? item.costPer * ing.amount : null;
 }
 function calcRecipeCost(recipe, pantry) {
