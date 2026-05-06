@@ -659,8 +659,8 @@ function AppInner({ session }) {
               <button onClick={() => setShowNewPantry(true)} style={s.btn}>+ Add Item</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Master cost list — update prices here and everything recalculates automatically.</div>
-            <div style={{ ...s.card, marginBottom: 14, background: "#E5E7EB" }}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 10, fontSize: 13 }}>Filter Pantry</div>
+            <div style={{ ...s.card, marginBottom: 14, background: "#E5E7EB", border: `1.5px solid ${C.dark}` }}>
+              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 10, fontSize: 13 }}>Filter Existing Pantry Items Below</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {["All", ...PANTRY_CATS].map(cat => (
                   <button key={cat} onClick={() => setPantryFilter(cat)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", border: `1px solid ${C.accent}`, background: pantryFilter === cat ? C.accent : "#fff", color: pantryFilter === cat ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>{cat}</button>
