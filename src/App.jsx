@@ -241,6 +241,7 @@ function AppInner({ session }) {
   const [newPantry,     setNewPantry]     = useState({ name: "", category: "Flour & Grains", storeCost: "", yields: "", unit: "cups", storeUnit: "" });
 
   // Recipes UI
+  const [recipeSearch, setRecipeSearch] = useState("");
   const [selRecipe,   setSelRecipe]   = useState(null);
   const [scale,       setScale]       = useState(1);
   const [showNewRec,  setShowNewRec]  = useState(false);
@@ -262,6 +263,7 @@ function AppInner({ session }) {
   const [priceResult,  setPriceResult]  = useState(null);
 
   // Orders UI
+  const [orderSearch,  setOrderSearch]  = useState("");
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [newOrder,     setNewOrder]     = useState({ customer: "", item: "", due: "", status: "Pending", total: "", notes: "", phone: "" });
   const [editingOrder, setEditingOrder] = useState(null); // order being edited
@@ -731,6 +733,12 @@ function AppInner({ session }) {
               <div style={{ fontSize: 18, fontWeight: "bold" }}>Recipes</div>
               <button onClick={() => setShowNewRec(true)} style={s.btn}>+ Add Recipe</button>
             </div>
+            <input
+              placeholder="🔍 Search recipes..."
+              value={recipeSearch}
+              onChange={e => setRecipeSearch(e.target.value)}
+              style={{ ...s.input, marginBottom: 14 }}
+            />
             {showNewRec && (
               <div style={s.card}>
                 <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Recipe</div>
@@ -758,7 +766,7 @@ function AppInner({ session }) {
                 </div>
               </div>
             )}
-            {recipes.map(r => {
+            {recipes.filter(r => r.name.toLowerCase().includes(recipeSearch.toLowerCase())).map(r => {
               const totalCost = calcRecipeCost(r, pantry);
               return (
                 <div key={r.id} style={s.card}>
@@ -975,6 +983,12 @@ function AppInner({ session }) {
               <div style={{ fontSize: 18, fontWeight: "bold" }}>Orders</div>
               <button onClick={() => setShowNewOrder(true)} style={s.btn}>+ New Order</button>
             </div>
+            <input
+              placeholder="🔍 Search by customer or item..."
+              value={orderSearch}
+              onChange={e => setOrderSearch(e.target.value)}
+              style={{ ...s.input, marginBottom: 14 }}
+            />
             {showNewOrder && (
               <div style={s.card}>
                 <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Order</div>
@@ -996,7 +1010,10 @@ function AppInner({ session }) {
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>✨ Tasks will be auto-added to your schedule</div>
               </div>
             )}
-            {orders.map(o => (
+            {orders.filter(o => {
+                const q = orderSearch.toLowerCase();
+                return !q || o.customer?.toLowerCase().includes(q) || o.item?.toLowerCase().includes(q);
+              }).map(o => (
               <div key={o.id} style={{ ...s.card, borderLeft: `4px solid ${STATUS_COLORS[o.status] || "#ccc"}` }}>
                 {editingOrder === o.id ? (
                   <div>
