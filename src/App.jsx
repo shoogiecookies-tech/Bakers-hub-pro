@@ -284,6 +284,7 @@ function AppInner({ session }) {
   const [newPost,        setNewPost]        = useState({ platform: "Instagram", type: "Product Photo", caption: "", date: "", status: "Draft", photo: null });
   const [captionLoading, setCaptionLoading] = useState(false);
   const [expandedPost,   setExpandedPost]   = useState(null);
+  const [socialFilter,   setSocialFilter]   = useState("All");
 
   // ── Load all data from Supabase ──────────────────────────────────────────────
   useEffect(() => {
@@ -1123,6 +1124,14 @@ function AppInner({ session }) {
                 </div>
               ); })}
             </div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+              {["All", "Draft", "Scheduled", "Posted"].map(f => {
+                const color = f === "Posted" ? "#10b981" : f === "Scheduled" ? "#3b82f6" : f === "Draft" ? "#9a7a65" : C.dark;
+                return (
+                  <button key={f} onClick={() => setSocialFilter(f)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif", border: `1.5px solid ${color}`, background: socialFilter === f ? color : "#fff", color: socialFilter === f ? "#fff" : color }}>{f}</button>
+                );
+              })}
+            </div>
             {showNewPost && (
               <div style={s.card}>
                 <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Post</div>
@@ -1143,7 +1152,7 @@ function AppInner({ session }) {
                 </div>
               </div>
             )}
-            {social.map(post => (
+            {social.filter(post => socialFilter === "All" || post.status === socialFilter).map(post => (
               <div key={post.id} style={s.card}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                   {post.photo ? <img src={post.photo} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
