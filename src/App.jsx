@@ -237,6 +237,7 @@ function AppInner({ session }) {
   // Pantry UI
   const [showNewPantry, setShowNewPantry] = useState(false);
   const [editingPantry, setEditingPantry] = useState(null);
+  const [editPantryForm, setEditPantryForm] = useState({});
   const [pantryFilter,  setPantryFilter]  = useState("All");
   const [newPantry,     setNewPantry]     = useState({ name: "", category: "Flour & Grains", storeCost: "", yields: "", unit: "cups", storeUnit: "" });
 
@@ -349,11 +350,18 @@ function AppInner({ session }) {
     setShowNewPantry(false);
   };
 
-  const updatePantryPrice = async (id, sc, sy, cat) => {
-    const costPer = parseFloat(sc) / parseFloat(sy);
-    await supabase.from("pantry").update({ store_cost: parseFloat(sc), yields: parseFloat(sy), cost_per: costPer, category: cat }).eq("id", id);
-    setPantry(p => p.map(x => Number(x.id) === Number(id) ? { ...x, storeCost: parseFloat(sc), yields: parseFloat(sy), costPer, category: cat } : x));
+  const savePantryEdit = async () => {
+    const { id, name, category, storeCost, yields, unit, storeUnit } = editPantryForm;
+    const costPer = parseFloat(storeCost) / parseFloat(yields);
+    await supabase.from("pantry").update({
+      name, category, unit, store_unit: storeUnit,
+      store_cost: parseFloat(storeCost), yields: parseFloat(yields), cost_per: costPer,
+    }).eq("id", id);
+    setPantry(p => p.map(x => Number(x.id) === Number(id)
+      ? { ...x, name, category, unit, storeUnit, storeCost: parseFloat(storeCost), yields: parseFloat(yields), costPer }
+      : x));
     setEditingPantry(null);
+    setEditPantryForm({});
   };
 
   const deletePantryItem = async (id) => {
@@ -706,17 +714,24 @@ function AppInner({ session }) {
                         <div style={{ textAlign: "right" }}><div style={{ fontWeight: "bold", fontSize: 16, color: C.dark }}>${item.costPer?.toFixed(3)}</div><div style={{ fontSize: 11, color: C.muted }}>per {item.unit}</div></div>
                       </div>
                       {editingPantry === item.id ? (
-                        <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <div style={{ flex: 1, minWidth: 90 }}><label style={s.label}>New store cost $</label><input type="number" step="0.01" defaultValue={item.storeCost} id={`sc-${item.id}`} style={s.input} /></div>
-                          <div style={{ flex: 1, minWidth: 90 }}><label style={s.label}>Yields</label><input type="number" step="0.1" defaultValue={item.yields} id={`sy-${item.id}`} style={s.input} /></div>
-                          <div style={{ flex: 1, minWidth: 120 }}><label style={s.label}>Category</label><select defaultValue={item.category} id={`cat-${item.id}`} style={s.input}>{PANTRY_CATS.map(c => <option key={c}>{c}</option>)}</select></div>
-                          <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 4 }}>
-                            <button onClick={() => updatePantryPrice(item.id, document.getElementById(`sc-${item.id}`).value, document.getElementById(`sy-${item.id}`).value, document.getElementById(`cat-${item.id}`).value)} style={{ ...s.btn, padding: "7px 12px", fontSize: 12 }}>✓</button>
-                            <button onClick={() => setEditingPantry(null)} style={{ ...s.btnSec, padding: "6px 12px", fontSize: 12 }}>✕</button>
+                        <div style={{ marginTop: 10 }}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                            <div style={{ flex: 2, minWidth: 130 }}><label style={s.label}>Name</label><input value={editPantryForm.name || ""} onChange={e => setEditPantryForm(f => ({ ...f, name: e.target.value }))} style={s.input} /></div>
+                            <div style={{ flex: 1, minWidth: 120 }}><label style={s.label}>Category</label><select value={editPantryForm.category || ""} onChange={e => setEditPantryForm(f => ({ ...f, category: e.target.value }))} style={s.input}>{PANTRY_CATS.map(c => <option key={c}>{c}</option>)}</select></div>
+                          </div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                            <div style={{ flex: 1, minWidth: 90 }}><label style={s.label}>Store cost $</label><input type="number" step="0.01" value={editPantryForm.storeCost || ""} onChange={e => setEditPantryForm(f => ({ ...f, storeCost: e.target.value }))} style={s.input} /></div>
+                            <div style={{ flex: 1, minWidth: 90 }}><label style={s.label}>Yields</label><input type="number" step="0.1" value={editPantryForm.yields || ""} onChange={e => setEditPantryForm(f => ({ ...f, yields: e.target.value }))} style={s.input} /></div>
+                            <div style={{ flex: 1, minWidth: 90 }}><label style={s.label}>Unit</label><select value={editPantryForm.unit || ""} onChange={e => setEditPantryForm(f => ({ ...f, unit: e.target.value }))} style={s.input}>{UNITS.map(u => <option key={u}>{u}</option>)}</select></div>
+                            <div style={{ flex: 1, minWidth: 110 }}><label style={s.label}>Store unit</label><input value={editPantryForm.storeUnit || ""} onChange={e => setEditPantryForm(f => ({ ...f, storeUnit: e.target.value }))} placeholder="e.g. 5 lb bag" style={s.input} /></div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button onClick={savePantryEdit} style={{ ...s.btn, padding: "7px 14px", fontSize: 12 }}>Save</button>
+                            <button onClick={() => { setEditingPantry(null); setEditPantryForm({}); }} style={{ ...s.btnSec, padding: "6px 14px", fontSize: 12 }}>Cancel</button>
                           </div>
                         </div>
                       ) : <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => setEditingPantry(item.id)} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12 }}>✏️ Update Price</button>
+                        <button onClick={() => { setEditingPantry(item.id); setEditPantryForm({ id: item.id, name: item.name, category: item.category, storeCost: item.storeCost, yields: item.yields, unit: item.unit, storeUnit: item.storeUnit || "" }); }} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12 }}>✏️ Edit</button>
                         <button onClick={() => deletePantryItem(item.id)} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12, color: "#ef4444", border: "1px solid #ef4444" }}>🗑 Delete</button>
                       </div>}
                     </div>
