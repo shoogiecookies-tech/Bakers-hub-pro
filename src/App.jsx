@@ -775,6 +775,7 @@ function AppInner({ session }) {
                   <select value={recIngInput.unit} onChange={e => setRecIngInput(x => ({ ...x, unit: e.target.value }))} style={{ ...s.input, width: 80 }}>{UNITS.map(u => <option key={u}>{u}</option>)}</select>
                   <button onClick={addRecipeIng} style={{ ...s.btn, padding: "8px 12px" }}>+</button>
                 </div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 2 }}>💡 Fractions as decimals: 1/4 = 0.25 · 1/3 = 0.33 · 1/2 = 0.5 · 2/3 = 0.67 · 3/4 = 0.75</div>
                 <textarea placeholder="Notes / instructions" value={newRec.notes} onChange={e => setNewRec(r => ({ ...r, notes: e.target.value }))} style={{ ...s.input, marginTop: 8, height: 70, resize: "vertical" }} />
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={addRecipe} style={s.btn}>Save Recipe</button>
@@ -844,6 +845,7 @@ function AppInner({ session }) {
                         <select value={editIngInput.unit} onChange={e => setEditIngInput(x => ({ ...x, unit: e.target.value }))} style={{ ...s.input, width: 80 }}>{UNITS.map(u => <option key={u}>{u}</option>)}</select>
                         <button onClick={addEditRecipeIng} style={{ ...s.btn, padding: "8px 12px" }}>+</button>
                       </div>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 2 }}>💡 Fractions as decimals: 1/4 = 0.25 · 1/3 = 0.33 · 1/2 = 0.5 · 2/3 = 0.67 · 3/4 = 0.75</div>
                       <textarea placeholder="Notes / instructions" value={editRec.notes || ""} onChange={e => setEditRec(r => ({ ...r, notes: e.target.value }))} style={{ ...s.input, height: 60, resize: "vertical", marginBottom: 8 }} />
                       <div style={{ display: "flex", gap: 8 }}>
                         <button onClick={saveRecipeEdit} style={s.btn}>Save Changes</button>
