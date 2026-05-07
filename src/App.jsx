@@ -21,7 +21,7 @@ const s = {
   tag: (color) => ({ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: color + "22", color, fontWeight: "700", letterSpacing: 0.5, display: "inline-block" }),
 };
 
-const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Settings"];
+const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Settings", "Admin"];
 const STATUS_COLORS = { Pending: "#f59e0b", "In Progress": "#3b82f6", Complete: "#10b981", Delivered: "#8b5cf6" };
 const STATUS_LIST = ["Pending", "In Progress", "Complete", "Delivered"];
 const CATEGORIES = ["Cookies", "Cakes", "Bread", "Pastries", "Cupcakes", "Other"];
@@ -287,6 +287,14 @@ function AppInner({ session }) {
   const [expandedPost,   setExpandedPost]   = useState(null);
   const [socialFilter,   setSocialFilter]   = useState("All");
 
+  // Admin UI
+  const [giftEmail,    setGiftEmail]    = useState("");
+  const [giftPassword, setGiftPassword] = useState("");
+  const [giftNotes,    setGiftNotes]    = useState("");
+  const [giftedUsers,  setGiftedUsers]  = useState([]);
+  const [giftLoading,  setGiftLoading]  = useState(false);
+  const [giftMsg,      setGiftMsg]      = useState("");
+
   // ── Load all data from Supabase ──────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
@@ -334,6 +342,38 @@ function AppInner({ session }) {
     setApiKey(key);
     setApiKeySaved(true);
     setTimeout(() => setApiKeySaved(false), 2000);
+  };
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  const loadGiftedUsers = async () => {
+    const { data } = await supabase.from("gifted_users").select("*").order("created_at", { ascending: false });
+    setGiftedUsers(data || []);
+  };
+
+  const giftAccount = async () => {
+    if (!giftEmail || !giftPassword) return;
+    setGiftLoading(true);
+    setGiftMsg("");
+    const { error } = await supabase.auth.signUp({ email: giftEmail, password: giftPassword });
+    if (error) { setGiftMsg("Error: " + error.message); setGiftLoading(false); return; }
+    await supabase.from("gifted_users").insert([{ email: giftEmail, notes: giftNotes, created_by: uid }]);
+    setGiftMsg("Account created for " + giftEmail + "!");
+    setGiftEmail(""); setGiftPassword(""); setGiftNotes("");
+    loadGiftedUsers();
+    setGiftLoading(false);
+  };
+
+  const revokeGiftedUser = async (id) => {
+    await supabase.from("gifted_users").delete().eq("id", id);
+    setGiftedUsers(u => u.filter(x => x.id !== id));
+  };
+
+  const exportCSV = (data, filename) => {
+    if (!data.length) return;
+    const keys = Object.keys(data[0]);
+    const rows = [keys.join(","), ...data.map(row => keys.map(k => JSON.stringify(row[k] ?? "")).join(","))];
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
   };
 
   // ── Pantry ────────────────────────────────────────────────────────────────
@@ -589,7 +629,7 @@ function AppInner({ session }) {
           </div>
         </div>
         <div style={{ display: "flex", overflowX: "auto", marginTop: 16, gap: 2 }}>
-          {TABS.map(t => (
+          {TABS.filter(t => t !== "Admin" || session.user.email === "shoogiecookies@gmail.com").map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: "10px 13px", border: "none", cursor: "pointer", fontSize: 12,
               fontWeight: tab === t ? "700" : "400", borderRadius: "10px 10px 0 0", whiteSpace: "nowrap",
@@ -1239,6 +1279,95 @@ function AppInner({ session }) {
 
       </div>
 
+
+        {tab === "Admin" && session.user.email === "shoogiecookies@gmail.com" && (() => {
+          if (giftedUsers.length === 0 && tab === "Admin") loadGiftedUsers();
+          return (
+            <div>
+              <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>🔐 Admin Panel</div>
+
+              {/* Gift an Account */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🎁 Gift an Account</div>
+                <label style={s.label}>Email Address</label>
+                <input value={giftEmail} onChange={e => setGiftEmail(e.target.value)} placeholder="customer@email.com" style={s.input} />
+                <label style={{ ...s.label, marginTop: 10 }}>Temporary Password</label>
+                <input type="password" value={giftPassword} onChange={e => setGiftPassword(e.target.value)} placeholder="They can change this after login" style={s.input} />
+                <label style={{ ...s.label, marginTop: 10 }}>Notes (optional)</label>
+                <input value={giftNotes} onChange={e => setGiftNotes(e.target.value)} placeholder="e.g. Gift for holiday promo" style={s.input} />
+                {giftMsg && <div style={{ fontSize: 13, color: giftMsg.startsWith("Error") ? "#DC2626" : "#16A34A", marginTop: 8 }}>{giftMsg}</div>}
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 6, marginBottom: 10 }}>The new user will receive a confirmation email. They must confirm before logging in, unless email confirmation is disabled in your Supabase settings.</div>
+                <button onClick={giftAccount} disabled={giftLoading} style={{ ...s.btn, opacity: giftLoading ? 0.6 : 1 }}>{giftLoading ? "Creating..." : "Create Account"}</button>
+              </div>
+
+              {/* Gifted Accounts List */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>👥 Gifted Accounts</div>
+                {giftedUsers.length === 0
+                  ? <div style={{ fontSize: 13, color: C.muted }}>No gifted accounts yet. Create one above.</div>
+                  : giftedUsers.map(u => (
+                    <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
+                      <div>
+                        <div style={{ fontWeight: "600", fontSize: 14 }}>{u.email}</div>
+                        {u.notes && <div style={{ fontSize: 12, color: C.muted }}>{u.notes}</div>}
+                        <div style={{ fontSize: 11, color: C.muted }}>{new Date(u.created_at).toLocaleDateString()}</div>
+                      </div>
+                      <button onClick={() => revokeGiftedUser(u.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 12 }}>Remove</button>
+                    </div>
+                  ))
+                }
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Note: removing from this list does not delete the Supabase auth account. To fully revoke access, delete the user in your Supabase Auth dashboard.</div>
+              </div>
+
+              {/* Data Overview */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>📊 Data Overview</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {[
+                    { label: "Pantry Items", value: pantry.length, icon: "🧂" },
+                    { label: "Recipes", value: recipes.length, icon: "📖" },
+                    { label: "Orders", value: orders.length, icon: "📦" },
+                    { label: "Social Posts", value: social.length, icon: "📱" },
+                    { label: "Schedule Tasks", value: schedule.length, icon: "📅" },
+                    { label: "Gifted Accounts", value: giftedUsers.length, icon: "🎁" },
+                  ].map(item => (
+                    <div key={item.label} style={{ background: C.light, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+                      <div style={{ fontSize: 22 }}>{item.icon}</div>
+                      <div style={{ fontSize: 22, fontWeight: "bold", color: C.dark }}>{item.value}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Export */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>⬇️ Export Data</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button onClick={() => exportCSV(orders, "orders.csv")} style={s.btn}>Export Orders CSV</button>
+                  <button onClick={() => exportCSV(pantry, "pantry.csv")} style={{ ...s.btn, background: C.dark }}>Export Pantry CSV</button>
+                  <button onClick={() => exportCSV(recipes.map(r => ({ ...r, ingredients: JSON.stringify(r.ingredients) })), "recipes.csv")} style={{ ...s.btn, background: "#6B7280" }}>Export Recipes CSV</button>
+                </div>
+              </div>
+
+              {/* Supabase Setup Reminder */}
+              <div style={{ ...s.card, background: "#FEF3C7", border: "1px solid #F59E0B" }}>
+                <div style={{ fontWeight: "bold", color: "#92400E", marginBottom: 6 }}>⚙️ First-Time Setup</div>
+                <div style={{ fontSize: 12, color: "#78350F" }}>To enable gifted accounts tracking, run this SQL in your Supabase dashboard → SQL Editor:</div>
+                <pre style={{ background: "#FDE68A", borderRadius: 6, padding: 10, fontSize: 11, marginTop: 8, overflowX: "auto", whiteSpace: "pre-wrap" }}>{`CREATE TABLE IF NOT EXISTS gifted_users (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  email text NOT NULL,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id)
+);
+ALTER TABLE gifted_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "owner_only" ON gifted_users
+  USING (created_by = auth.uid());`}</pre>
+              </div>
+            </div>
+          );
+        })()}
 
       {/* WATERMARK */}
       <div className="watermark-logo" style={{ position: "fixed", bottom: 16, right: 16, zIndex: 51, pointerEvents: "none" }}>
