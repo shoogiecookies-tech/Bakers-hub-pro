@@ -72,7 +72,7 @@ async function callAI(messages, maxTokens = 1000) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: maxTokens, messages })
+    body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: maxTokens, messages })
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   const data = await res.json();
@@ -375,6 +375,14 @@ function AppInner({ session }) {
     const blob = new Blob([rows.join("\n")], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
   };
+
+  // ── Admin data loading ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (tab === "Admin" && session?.user?.email === "shoogiecookies@gmail.com") {
+      loadGiftedUsers();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   // ── Pantry ────────────────────────────────────────────────────────────────
   const addPantryItem = async () => {
@@ -1277,12 +1285,7 @@ function AppInner({ session }) {
           </div>
         )}
 
-      </div>
-
-
-        {tab === "Admin" && session.user.email === "shoogiecookies@gmail.com" && (() => {
-          if (giftedUsers.length === 0 && tab === "Admin") loadGiftedUsers();
-          return (
+        {tab === "Admin" && session.user.email === "shoogiecookies@gmail.com" && (
             <div>
               <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>🔐 Admin Panel</div>
 
@@ -1366,8 +1369,11 @@ CREATE POLICY "owner_only" ON gifted_users
   USING (created_by = auth.uid());`}</pre>
               </div>
             </div>
-          );
-        })()}
+          )}
+
+      </div>
+
+
 
       {/* WATERMARK */}
       <div className="watermark-logo" style={{ position: "fixed", bottom: 16, right: 16, zIndex: 51, pointerEvents: "none" }}>
