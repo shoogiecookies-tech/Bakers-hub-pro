@@ -273,6 +273,7 @@ function AppInner({ session }) {
   const [emailBody,    setEmailBody]    = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailCopied,  setEmailCopied]  = useState(false);
+  const [invoicePrintOrder, setInvoicePrintOrder] = useState(null);
 
 
 
@@ -533,93 +534,7 @@ function AppInner({ session }) {
   };
 
   // ── Invoice ──────────────────────────────────────────────────────────────
-  const printInvoice = (order) => {
-    const num = String(order.id || "").replace(/[^0-9]/g, "").slice(-4).padStart(4, "0");
-    const invoiceNum = "INV-" + num + "-" + new Date().getFullYear();
-    const issueDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const dueDate = order.due
-      ? new Date(order.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-      : "Upon delivery";
-    const logoBlock = bakeryLogo
-      ? '<img src="' + bakeryLogo + '" style="width:56px;height:56px;border-radius:10px;object-fit:contain;display:block;margin-bottom:6px" alt="logo" />'
-      : '<div style="width:56px;height:56px;border-radius:10px;background:#C0653D;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:6px">&#x1F9C1;</div>';
-    const phoneRow  = order.phone ? '<div class="cdet"><span class="icon">&#128222;</span>' + order.phone + '</div>' : "";
-    const emailRow  = order.email ? '<div class="cdet"><span class="icon">&#9993;</span>' + order.email + '</div>' : "";
-    const notesRow  = order.notes ? '<div class="dnote">' + order.notes + '</div>' : "";
-    const total     = parseFloat(order.total || 0).toFixed(2);
-
-    const html = [
-      '<!DOCTYPE html><html lang="en"><head>',
-      '<meta charset="utf-8">',
-      '<meta name="viewport" content="width=device-width,initial-scale=1">',
-      '<title>Invoice ' + invoiceNum + '</title>',
-      '<style>',
-      '*{box-sizing:border-box;margin:0;padding:0}',
-      'body{font-family:Georgia,serif;background:#F9FAFB;color:#152937;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
-      '.wrap{max-width:700px;margin:0 auto;background:#fff;padding:0;min-height:100vh}',
-      '.header{background:#152937;padding:24px 36px;display:flex;justify-content:space-between;align-items:center}',
-      '.bname{color:#fff;font-size:19px;font-weight:bold;letter-spacing:.4px;margin-top:4px}',
-      '.btag{color:#C0653D;font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-top:3px}',
-      '.logo-col{display:flex;align-items:center;gap:14px}',
-      '.inv-head{text-align:right}',
-      '.inv-word{font-size:30px;font-weight:bold;color:#C0653D;letter-spacing:-1px}',
-      '.inv-sub{font-size:12px;color:#94a3b8;margin-top:3px}',
-      '.body{padding:36px}',
-      '.meta{display:flex;justify-content:space-between;margin-bottom:32px;gap:24px}',
-      '.meta-col h3{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;margin-bottom:8px}',
-      '.cname{font-size:17px;font-weight:bold;color:#152937}',
-      '.cdet{font-size:13px;color:#6b7280;margin-top:4px}',
-      '.icon{margin-right:4px}',
-      '.issuer{font-size:13px;color:#6b7280;line-height:1.8}',
-      'table{width:100%;border-collapse:collapse;margin-bottom:0}',
-      'thead tr{background:#152937}',
-      'th{padding:11px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#f0f4f8;font-weight:600;text-align:left}',
-      'th.ra{text-align:right}',
-      'td{padding:16px;font-size:14px;vertical-align:top;color:#152937;border-bottom:1px solid #f0f4f8}',
-      'td.ra{text-align:right;font-weight:bold}',
-      '.dnote{font-size:12px;color:#9ca3af;margin-top:5px}',
-      '.tot-row td{background:#F9FAFB;border-top:2px solid #C0653D;border-bottom:none;font-size:16px;font-weight:bold;padding:18px 16px}',
-      '.status{display:inline-block;background:#fef0e8;color:#C0653D;padding:5px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;margin:20px 0 0 0}',
-      '.footer{margin-top:36px;padding-top:20px;border-top:1px solid #f0f4f8;text-align:center;color:#94a3b8;font-size:12px;line-height:2.2}',
-      '.footer b{color:#C0653D}',
-      '.btnbar{display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;background:#f0f4f8;border-bottom:1px solid #e2e8f0}',
-      '.btn{padding:9px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:Georgia,serif}',
-      '.bp{background:#C0653D;color:#fff;font-weight:bold}',
-      '.bs{background:#fff;color:#152937;border:1px solid #d1d5db}',
-      '@media print{.btnbar{display:none!important}body{background:#fff}.wrap{min-height:auto}}',
-      '</style></head><body>',
-      '<div class="wrap">',
-      '<div class="btnbar"><button class="btn bs" onclick="window.close()">&#10005; Close</button><button class="btn bp" onclick="window.print()">&#128438; Save as PDF</button></div>',
-      '<div class="header">',
-      '  <div class="logo-col">' + logoBlock + '<div><div class="bname">' + bakeryName + '</div><div class="btag">Invoice</div></div></div>',
-      '  <div class="inv-head"><div class="inv-word">INVOICE</div><div class="inv-sub">' + invoiceNum + '</div><div class="inv-sub">Issued ' + issueDate + '</div></div>',
-      '</div>',
-      '<div class="body">',
-      '<div class="meta">',
-      '  <div class="meta-col"><h3>Bill To</h3><div class="cname">' + (order.customer || "") + '</div>' + phoneRow + emailRow + '</div>',
-      '  <div class="meta-col" style="text-align:right"><h3>From</h3><div class="issuer"><b style="color:#152937">' + bakeryName + '</b><br>Powered by BakeFlo</div></div>',
-      '</div>',
-      '<table>',
-      '<thead><tr><th>Description</th><th>Due Date</th><th class="ra">Amount</th></tr></thead>',
-      '<tbody>',
-      '<tr><td><strong>' + (order.item || "") + '</strong>' + notesRow + '</td>',
-      '<td style="color:#6b7280">' + dueDate + '</td>',
-      '<td class="ra">$' + total + '</td></tr>',
-      '</tbody>',
-      '<tfoot><tr class="tot-row"><td colspan="2"><strong>Total Due</strong></td><td class="ra">$' + total + '</td></tr></tfoot>',
-      '</table>',
-      '<div><span class="status">' + (order.status || "") + '</span></div>',
-      '<div class="footer">Thank you for your order! &#x1F9C1;<br><b>' + bakeryName + '</b> &nbsp;&middot;&nbsp; Powered by BakeFlo</div>',
-      '</div></div>',
-      '</body></html>'
-    ].join('\n');
-
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const tab  = window.open(url, '_blank');
-    if (tab) tab.focus();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  };
+  const printInvoice = (order) => setInvoicePrintOrder(order);;
 
 
 
@@ -1471,6 +1386,115 @@ CREATE POLICY "owner_only" ON gifted_users
       </div>
 
 
+
+      {/* INVOICE PRINT OVERLAY */}
+      {invoicePrintOrder && (() => {
+        const ord = invoicePrintOrder;
+        const num = String(ord.id || "").replace(/[^0-9]/g, "").slice(-4).padStart(4, "0");
+        const invNum = "INV-" + num + "-" + new Date().getFullYear();
+        const issued = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+        const due = ord.due
+          ? new Date(ord.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+          : "Upon delivery";
+        const total = parseFloat(ord.total || 0).toFixed(2);
+        const NAVY = "#152937"; const RUST = "#C0653D"; const CREAM = "#F9FAFB"; const BORDER = "#e2e8f0";
+        return (
+          <div id="bfinv" style={{ position: "fixed", inset: 0, zIndex: 9999, background: CREAM, overflowY: "auto", fontFamily: "Georgia, serif", color: NAVY }}>
+            <style>{`@media print { body > *:not(#bfinv){display:none!important} #bfinv{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
+
+            {/* Toolbar */}
+            <div className="np" style={{ display: "flex", justifyContent: "flex-end", gap: 10, padding: "14px 24px", background: "#fff", borderBottom: "1px solid " + BORDER, position: "sticky", top: 0, zIndex: 1 }}>
+              <button onClick={() => setInvoicePrintOrder(null)} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid " + BORDER, background: "#fff", color: NAVY, cursor: "pointer", fontSize: 13, fontFamily: "Georgia, serif" }}>✕ Close</button>
+              <button onClick={() => window.print()} style={{ padding: "8px 22px", borderRadius: 8, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "bold", fontFamily: "Georgia, serif" }}>🖨️ Save as PDF</button>
+            </div>
+
+            {/* Invoice */}
+            <div style={{ maxWidth: 700, margin: "0 auto", background: "#fff", boxShadow: "0 4px 40px rgba(21,41,55,0.12)" }}>
+
+              {/* Navy header */}
+              <div style={{ background: NAVY, padding: "22px 36px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  {bakeryLogo
+                    ? <img src={bakeryLogo} alt="" style={{ width: 52, height: 52, borderRadius: 10, objectFit: "contain", flexShrink: 0 }} />
+                    : <div style={{ width: 52, height: 52, borderRadius: 10, background: RUST, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🧁</div>
+                  }
+                  <div>
+                    <div style={{ color: "#fff", fontSize: 18, fontWeight: "bold", letterSpacing: 0.4 }}>{bakeryName}</div>
+                    <div style={{ color: RUST, fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: "uppercase", marginTop: 3 }}>Invoice</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 28, fontWeight: "bold", color: RUST, letterSpacing: -1 }}>INVOICE</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 3 }}>{invNum}</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Issued {issued}</div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div style={{ padding: "32px 36px" }}>
+
+                {/* Bill To / From */}
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 32, gap: 24, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#94a3b8", marginBottom: 8 }}>Bill To</div>
+                    <div style={{ fontSize: 17, fontWeight: "bold", color: NAVY }}>{ord.customer}</div>
+                    {ord.phone && <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>📞 {ord.phone}</div>}
+                    {ord.email && <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>✉️ {ord.email}</div>}
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#94a3b8", marginBottom: 8 }}>From</div>
+                    <div style={{ fontSize: 14, fontWeight: "bold", color: NAVY }}>{bakeryName}</div>
+                    <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, fontStyle: "italic" }}>Powered by BakeFlo</div>
+                  </div>
+                </div>
+
+                {/* Items table */}
+                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 0 }}>
+                  <thead>
+                    <tr style={{ background: NAVY }}>
+                      <th style={{ padding: "11px 16px", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, color: CREAM, fontWeight: 600, textAlign: "left" }}>Description</th>
+                      <th style={{ padding: "11px 16px", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, color: CREAM, fontWeight: 600, textAlign: "left" }}>Due Date</th>
+                      <th style={{ padding: "11px 16px", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, color: CREAM, fontWeight: 600, textAlign: "right" }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, verticalAlign: "top" }}>
+                        <strong>{ord.item}</strong>
+                        {ord.notes && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 5 }}>{ord.notes}</div>}
+                      </td>
+                      <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 13, color: "#6b7280", verticalAlign: "top" }}>{due}</td>
+                      <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, fontWeight: "bold", textAlign: "right", verticalAlign: "top" }}>${total}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: CREAM }}>
+                      <td colSpan={2} style={{ padding: "18px 16px", borderTop: "2px solid " + RUST, fontSize: 16, fontWeight: "bold" }}><strong>Total Due</strong></td>
+                      <td style={{ padding: "18px 16px", borderTop: "2px solid " + RUST, fontSize: 16, fontWeight: "bold", textAlign: "right" }}>${total}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+
+                {/* Status badge */}
+                <div style={{ marginTop: 20, marginBottom: 36 }}>
+                  <span style={{ display: "inline-block", background: "#fef0e8", color: RUST, padding: "5px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{ord.status}</span>
+                </div>
+
+                {/* Footer */}
+                <div style={{ borderTop: "1px solid " + BORDER, paddingTop: 20, textAlign: "center", color: "#94a3b8", fontSize: 12, lineHeight: 2.2 }}>
+                  Thank you for your order! 🧁<br />
+                  <strong style={{ color: RUST }}>{bakeryName}</strong> &nbsp;·&nbsp; Powered by BakeFlo
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom print button */}
+            <div className="np" style={{ display: "flex", justifyContent: "center", padding: "24px 0 40px" }}>
+              <button onClick={() => window.print()} style={{ padding: "12px 36px", borderRadius: 10, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: "bold", fontFamily: "Georgia, serif" }}>🖨️ Save as PDF</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* WATERMARK */}
       <div className="watermark-logo" style={{ position: "fixed", bottom: 16, right: 16, zIndex: 51, pointerEvents: "none" }}>
