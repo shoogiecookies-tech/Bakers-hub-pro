@@ -22,8 +22,8 @@ const s = {
 };
 
 const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Settings", "Admin"];
-const STATUS_COLORS = { Pending: "#f59e0b", "In Progress": "#3b82f6", Complete: "#10b981", Delivered: "#8b5cf6" };
-const STATUS_LIST = ["Pending", "In Progress", "Complete", "Delivered"];
+const STATUS_COLORS = { Pending: "#f59e0b", "In Progress": "#3b82f6", Complete: "#10b981", Invoiced: "#0ea5e9", Delivered: "#8b5cf6" };
+const STATUS_LIST = ["Pending", "In Progress", "Complete", "Invoiced", "Delivered"];
 const CATEGORIES = ["Cookies", "Cakes", "Bread", "Pastries", "Cupcakes", "Other"];
 const PLATFORMS = ["Instagram", "Facebook", "TikTok", "Pinterest"];
 const POST_TYPES = ["Product Photo", "Behind the Scenes", "Recipe Tip", "Testimonial", "Promo/Sale", "Seasonal"];
@@ -282,7 +282,14 @@ function AppInner({ session }) {
   const [invoiceEmailAddr,   setInvoiceEmailAddr]   = useState("");
   const [invoiceEmailLoading,setInvoiceEmailLoading]= useState(false);
   const [invoiceEmailBody,   setInvoiceEmailBody]   = useState("");
-  const [invoiceEmailCopied, setInvoiceEmailCopied] = useState(false);
+  const [invoiceSending,     setInvoiceSending]     = useState(false);
+  const [invoiceSentMsg,     setInvoiceSentMsg]     = useState("");
+
+  // EmailJS settings
+  const [ejsServiceId,  setEjsServiceId]  = useState(() => localStorage.getItem("ejs_service")  || "");
+  const [ejsTemplateId, setEjsTemplateId] = useState(() => localStorage.getItem("ejs_template") || "");
+  const [ejsPublicKey,  setEjsPublicKey]  = useState(() => localStorage.getItem("ejs_pubkey")   || "");
+  const [ejsSaved,      setEjsSaved]      = useState(false);
 
   // Schedule UI
   const [showNewTask,   setShowNewTask]   = useState(false);
@@ -352,6 +359,14 @@ function AppInner({ session }) {
     setApiKey(key);
     setApiKeySaved(true);
     setTimeout(() => setApiKeySaved(false), 2000);
+  };
+
+  const saveEmailSettings = () => {
+    localStorage.setItem("ejs_service",  ejsServiceId);
+    localStorage.setItem("ejs_template", ejsTemplateId);
+    localStorage.setItem("ejs_pubkey",   ejsPublicKey);
+    setEjsSaved(true);
+    setTimeout(() => setEjsSaved(false), 2000);
   };
 
   // ── Admin ─────────────────────────────────────────────────────────────────
@@ -541,29 +556,70 @@ function AppInner({ session }) {
 
   // ── Invoice ──────────────────────────────────────────────────────────────
   const printInvoice = (order) => {
-    const num = String(order.id || "").replace(/\D/g, "").slice(-4).padStart(4, "0");
+    const num = String(order.id || "").replace(/[^0-9a-f]/gi, "").slice(-6).slice(-4).padStart(4, "0");
     const invoiceNum = `INV-${num}-${new Date().getFullYear()}`;
     const issueDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const dueDate = order.due
       ? new Date(order.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
       : "Upon delivery";
     const logoHtml = bakeryLogo
-      ? `<img src="${bakeryLogo}" style="width:56px;height:56px;border-radius:10px;object-fit:contain;display:block;margin-bottom:8px" alt="logo" />`
-      : "";
+      ? `<img src="${bakeryLogo}" style="width:60px;height:60px;border-radius:12px;object-fit:contain;display:block;margin-bottom:8px" alt="logo" />`
+      : `<div style="width:60px;height:60px;border-radius:12px;background:#C0653D;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:8px">🧁</div>`;
     const w = window.open("", "_blank");
     if (!w) return;
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${invoiceNum}</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;color:#2C1A0E;padding:48px;max-width:700px;margin:0 auto}@media print{.np{display:none!important}body{padding:24px}}.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:24px;border-bottom:3px solid #C0653D;margin-bottom:32px}.bname{font-size:20px;font-weight:bold}.inv{font-size:36px;font-weight:bold;color:#C0653D}.sub{font-size:13px;color:#9a7a65;margin-top:3px}.sec{margin-bottom:28px}.lbl{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#9a7a65;margin-bottom:6px}.cname{font-size:17px;font-weight:bold}.cdet{font-size:13px;color:#6B4C3B;margin-top:3px}table{width:100%;border-collapse:collapse}th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9a7a65;padding:10px 12px;border-bottom:2px solid #e5e7eb;text-align:left}td{padding:16px 12px;border-bottom:1px solid #f3f0eb;font-size:14px;vertical-align:top}.amt{text-align:right;font-weight:bold}th.amt{text-align:right}.tot td{border-top:2.5px solid #C0653D;border-bottom:none;font-weight:bold;font-size:16px;padding-top:18px}.badge{display:inline-block;background:#fef0e8;color:#C0653D;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:bold;margin-top:12px}.footer{margin-top:48px;padding-top:20px;border-top:1px solid #e5e7eb;font-size:12px;color:#9a7a65;text-align:center;line-height:2}.btn{padding:9px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:Georgia,serif;margin-left:8px}.bp{background:#C0653D;color:#fff}.bs{background:#f3f0eb;color:#2C1A0E}.bar{display:flex;justify-content:flex-end;margin-bottom:28px}</style>
-</head><body>
-<div class="bar np"><button class="btn bs" onclick="window.close()">✕ Close</button><button class="btn bp" onclick="window.print()">🖨️ Download / Print PDF</button></div>
-<div class="hdr"><div>${logoHtml}<div class="bname">${bakeryName}</div></div><div style="text-align:right"><div class="inv">INVOICE</div><div class="sub">${invoiceNum}</div><div class="sub">Issued: ${issueDate}</div></div></div>
-<div class="sec"><div class="lbl">Bill To</div><div class="cname">${order.customer}</div>${order.phone ? `<div class="cdet">📞 ${order.phone}</div>` : ""}${order.email ? `<div class="cdet">✉️ ${order.email}</div>` : ""}</div>
-<table><thead><tr><th>Description</th><th>Delivery / Due</th><th class="amt">Amount</th></tr></thead>
-<tbody><tr><td><strong>${order.item}</strong>${order.notes ? `<div style="font-size:12px;color:#9a7a65;margin-top:5px">${order.notes}</div>` : ""}</td><td style="color:#6B4C3B">${dueDate}</td><td class="amt">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tbody>
-<tfoot><tr class="tot"><td colspan="2">Total Due</td><td class="amt">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tfoot></table>
-<div><span class="badge">${order.status}</span></div>
-<div class="footer">Thank you for your order! 🧁<br/>${bakeryName} · Powered by BakeFlo</div>
-</body></html>`);
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Georgia',serif;background:#F9FAFB;color:#152937;padding:0;margin:0}
+.page{max-width:720px;margin:0 auto;background:#fff;padding:48px;min-height:100vh}
+@media print{.np{display:none!important}body{background:#fff}.page{padding:28px}}
+.topbar{background:#152937;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;border-radius:16px 16px 0 0;margin:-48px -48px 36px -48px}
+.topbar-logo{display:flex;align-items:center;gap:12px}
+.topbar-bname{color:#F9FAFB;font-size:18px;font-weight:bold;letter-spacing:.5px}
+.topbar-tag{color:#C0653D;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.inv-block{text-align:right}
+.inv-label{font-size:32px;font-weight:bold;color:#C0653D;letter-spacing:-1px}
+.inv-num{font-size:13px;color:#f0f4f8;margin-top:2px}
+.inv-date{font-size:12px;color:#94a3b8;margin-top:1px}
+.divider{border:none;border-top:2px solid #f0f4f8;margin:0 0 28px 0}
+.bill-sec{margin-bottom:28px}
+.sec-lbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;margin-bottom:8px}
+.bill-name{font-size:18px;font-weight:bold;color:#152937}
+.bill-detail{font-size:13px;color:#6b7280;margin-top:4px}
+table{width:100%;border-collapse:collapse;margin-bottom:4px}
+thead tr{background:#152937;color:#F9FAFB}
+th{padding:12px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;text-align:left}
+th.r{text-align:right}
+td{padding:16px;border-bottom:1px solid #f0f4f8;font-size:14px;vertical-align:top;color:#152937}
+td.r{text-align:right;font-weight:bold;color:#152937}
+.desc-note{font-size:12px;color:#9ca3af;margin-top:4px}
+.total-row{background:#F9FAFB}
+.total-row td{border-top:2px solid #C0653D;border-bottom:none;font-size:16px;font-weight:bold;padding:20px 16px;color:#152937}
+.status-badge{display:inline-block;background:#fef0e8;color:#C0653D;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;margin:16px 0}
+.footer{margin-top:40px;padding-top:20px;border-top:1px solid #f0f4f8;text-align:center;color:#94a3b8;font-size:12px;line-height:2}
+.footer strong{color:#C0653D}
+.btn{padding:9px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:Georgia,serif;margin-left:8px}
+.bp{background:#C0653D;color:#fff}
+.bs{background:#f0f4f8;color:#152937}
+.btnbar{display:flex;justify-content:flex-end;margin-bottom:24px}
+@media print{.topbar{border-radius:0;margin:-28px -28px 28px -28px}}
+</style>
+</head><body><div class="page">
+<div class="btnbar np"><button class="btn bs" onclick="window.close()">✕ Close</button><button class="btn bp" onclick="window.print()">🖨️ Save as PDF</button></div>
+<div class="topbar">
+  <div class="topbar-logo">${logoHtml}<div><div class="topbar-bname">${bakeryName}</div><div class="topbar-tag">Invoice</div></div></div>
+  <div class="inv-block"><div class="inv-label">INVOICE</div><div class="inv-num">${invoiceNum}</div><div class="inv-date">Issued ${issueDate}</div></div>
+</div>
+<hr class="divider"/>
+<div class="bill-sec"><div class="sec-lbl">Bill To</div><div class="bill-name">${order.customer}</div>${order.phone ? `<div class="bill-detail">📞 ${order.phone}</div>` : ""}${(order.email || invoiceEmailAddr) ? `<div class="bill-detail">✉️ ${order.email || invoiceEmailAddr}</div>` : ""}</div>
+<table>
+  <thead><tr><th>Description</th><th>Due Date</th><th class="r">Amount</th></tr></thead>
+  <tbody><tr><td><strong>${order.item}</strong>${order.notes ? `<div class="desc-note">${order.notes}</div>` : ""}</td><td style="color:#6b7280">${dueDate}</td><td class="r">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tbody>
+  <tfoot><tr class="total-row"><td colspan="2"><strong>Total Due</strong></td><td class="r">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tfoot>
+</table>
+<div><span class="status-badge">${order.status}</span></div>
+<div class="footer">Thank you for your order! 🧁<br/><strong>${bakeryName}</strong> · Powered by BakeFlo</div>
+</div></body></html>`);
     w.document.close();
     w.focus();
   };
@@ -583,8 +639,36 @@ function AppInner({ session }) {
     setInvoiceEmailLoading(false);
   };
 
-  const copyInvoiceEmail = () => {
-    navigator.clipboard.writeText(invoiceEmailBody).then(() => { setInvoiceEmailCopied(true); setTimeout(() => setInvoiceEmailCopied(false), 2000); });
+  const sendInvoiceEmail = async (order) => {
+    if (!invoiceEmailAddr) { setInvoiceSentMsg("error:Please enter the customer email address."); return; }
+    if (!ejsServiceId || !ejsPublicKey) { setInvoiceSentMsg("error:Set up EmailJS in Settings → Email Sending first."); return; }
+    setInvoiceSending(true);
+    setInvoiceSentMsg("");
+    try {
+      const num = String(order.id || "").replace(/[^0-9a-f]/gi, "").slice(-4).padStart(4, "0");
+      const invoiceNum = `INV-${num}-${new Date().getFullYear()}`;
+      const dueDate = order.due ? new Date(order.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "Upon delivery";
+      const messageText = (invoiceEmailBody ? invoiceEmailBody + "\n\n" : "") +
+        `────────────────\nINVOICE DETAILS\n────────────────\n` +
+        `Invoice #:  ${invoiceNum}\n` +
+        `Customer:   ${order.customer}\n` +
+        `Item:       ${order.item}\n` +
+        `Due:        ${dueDate}\n` +
+        `Total Due:  $${parseFloat(order.total || 0).toFixed(2)}\n` +
+        `Status:     ${order.status}\n────────────────\n\n` +
+        `Thank you for your business! 🧁\n${bakeryName} · Powered by BakeFlo`;
+      if (window.emailjs) window.emailjs.init(ejsPublicKey);
+      await (window.emailjs || { send: () => Promise.reject(new Error("EmailJS not loaded")) }).send(
+        ejsServiceId,
+        ejsTemplateId || "template_invoice",
+        { to_email: invoiceEmailAddr, to_name: order.customer, from_name: bakeryName, reply_to: session.user.email, subject: `Invoice from ${bakeryName} — ${invoiceNum}`, message: messageText }
+      );
+      setInvoiceSentMsg("success");
+      updateOrderStatus(order.id, "Invoiced");
+    } catch (e) {
+      setInvoiceSentMsg("error:" + (e.text || e.message || "Send failed. Check your EmailJS settings in Settings."));
+    }
+    setInvoiceSending(false);
   };
 
   // ── Schedule ──────────────────────────────────────────────────────────────
@@ -1081,41 +1165,64 @@ function AppInner({ session }) {
         {tab === "Orders" && (
           <div>
             {invoiceModal && (
-              <div style={{ position: "fixed", inset: 0, background: "rgba(44,26,14,0.55)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-                <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 20, width: "100%", maxWidth: 720, maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(0,0,0,0.2)" }}>
+              <div style={{ position: "fixed", inset: 0, background: "rgba(21,41,55,0.7)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 20, width: "100%", maxWidth: 720, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(21,41,55,0.25)" }}>
+                  {/* Header */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                     <div>
-                      <div style={{ fontWeight: "bold", fontSize: 16, color: C.dark }}>📄 Invoice</div>
-                      <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{invoiceModal.customer} · {invoiceModal.item} · ${parseFloat(invoiceModal.total || 0).toFixed(2)}</div>
+                      <div style={{ fontWeight: "bold", fontSize: 16, color: C.dark }}>📄 Invoice — {invoiceModal.customer}</div>
+                      <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{invoiceModal.item} · <strong style={{ color: C.dark }}>${parseFloat(invoiceModal.total || 0).toFixed(2)}</strong></div>
                     </div>
-                    <button onClick={() => setInvoiceModal(null)} style={{ background: C.light, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 16, color: C.mid }}>✕</button>
+                    <button onClick={() => { setInvoiceModal(null); setInvoiceSentMsg(""); }} style={{ background: C.light, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 16, color: C.mid }}>✕</button>
                   </div>
-                  <button onClick={() => printInvoice(invoiceModal)} style={{ ...s.btn, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🖨️ Download / Print PDF</button>
-                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, flex: 1, overflowY: "auto" }}>
-                    <div style={{ fontWeight: "bold", fontSize: 13, color: C.dark, marginBottom: 10 }}>✉️ Email Invoice to Customer</div>
+
+                  {/* PDF button */}
+                  <button onClick={() => printInvoice(invoiceModal)} style={{ ...s.btnSec, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderColor: C.dark, color: C.dark }}>🖨️ Open PDF (Save / Print)</button>
+
+                  {/* Email section */}
+                  <div style={{ borderTop: `2px solid ${C.light}`, paddingTop: 16, flex: 1, overflowY: "auto" }}>
+                    <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, marginBottom: 12 }}>✉️ Send Invoice by Email</div>
+
                     <label style={s.label}>Customer Email</label>
-                    <input value={invoiceEmailAddr} onChange={e => setInvoiceEmailAddr(e.target.value)} placeholder="customer@email.com" style={{ ...s.input, marginBottom: 10 }} />
-                    <label style={s.label}>Email Body</label>
+                    <input value={invoiceEmailAddr} onChange={e => setInvoiceEmailAddr(e.target.value)} placeholder="customer@email.com" style={{ ...s.input, marginBottom: 12 }} />
+
+                    <label style={s.label}>Message to Customer</label>
                     {invoiceEmailLoading
-                      ? <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 0", fontSize: 13, color: C.muted }}>✨ Writing invoice email...</div>
-                      : <textarea value={invoiceEmailBody} onChange={e => setInvoiceEmailBody(e.target.value)} style={{ ...s.input, height: 160, resize: "vertical", fontSize: 13, lineHeight: 1.7 }} placeholder="Your AI-generated email will appear here..." />
+                      ? <div style={{ padding: "12px 0", fontSize: 13, color: C.muted }}>✨ Writing message...</div>
+                      : <textarea value={invoiceEmailBody} onChange={e => setInvoiceEmailBody(e.target.value)} rows={4} style={{ ...s.input, resize: "vertical", fontSize: 13, lineHeight: 1.7, marginBottom: 12 }} placeholder="A personal message will appear here (AI-generated)..." />
                     }
-                    <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                      <button
-                        onClick={() => { if (invoiceEmailAddr) { window.location.href = `mailto:${invoiceEmailAddr}?subject=${encodeURIComponent("Your Invoice from " + bakeryName)}&body=${encodeURIComponent(invoiceEmailBody)}`; } }}
-                        disabled={!invoiceEmailAddr}
-                        style={{ ...s.btn, flex: 1, opacity: invoiceEmailAddr ? 1 : 0.5 }}
-                      >📧 Open Email App</button>
-                      <button onClick={copyInvoiceEmail} style={s.btnSec}>{invoiceEmailCopied ? "✓ Copied!" : "📋 Copy"}</button>
-                      <button onClick={() => openInvoiceModal(invoiceModal)} style={s.btnSec}>↺ Regenerate</button>
-                      <button onClick={() => setInvoiceModal(null)} style={s.btnSec}>Close</button>
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>💡 "Open Email App" will pre-fill your email client. The PDF opens separately — attach it from your Downloads.</div>
+
+                    {/* Status feedback */}
+                    {invoiceSentMsg === "success" && (
+                      <div style={{ background: "#d1fae5", color: "#065f46", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 12, fontWeight: "600" }}>
+                        ✅ Invoice sent to {invoiceEmailAddr}! Order marked as Invoiced.
+                      </div>
+                    )}
+                    {invoiceSentMsg.startsWith("error:") && (
+                      <div style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 12 }}>
+                        ⚠️ {invoiceSentMsg.slice(6)}
+                      </div>
+                    )}
+
+                    {/* Send button */}
+                    <button
+                      onClick={() => sendInvoiceEmail(invoiceModal)}
+                      disabled={invoiceSending || invoiceEmailLoading}
+                      style={{ ...s.btn, width: "100%", background: invoiceSentMsg === "success" ? "#10b981" : C.accent, opacity: (invoiceSending || invoiceEmailLoading) ? 0.6 : 1, marginBottom: 8 }}
+                    >
+                      {invoiceSending ? "📤 Sending..." : invoiceSentMsg === "success" ? "✅ Sent!" : "📧 Send Invoice Email"}
+                    </button>
+
+                    {!ejsServiceId && (
+                      <div style={{ fontSize: 12, color: "#92400e", background: "#fef3c7", borderRadius: 8, padding: "8px 12px", marginTop: 4 }}>
+                        ⚙️ Email sending not configured. Go to <strong>Settings → Email Sending</strong> to set up EmailJS (free).
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             )}
-            {emailModal && (
+                        {emailModal && (
               <div style={{ position: "fixed", inset: 0, background: "rgba(44,26,14,0.55)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
                 <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 20, width: "100%", maxWidth: 720, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(0,0,0,0.2)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -1371,6 +1478,24 @@ function AppInner({ session }) {
               <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} style={s.input} />
               <button onClick={() => saveApiKey(apiKey)} style={{ ...s.btn, marginTop: 10 }}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
               {apiKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ AI features enabled!</div>}
+            </div>
+            <div style={s.card}>
+              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>📧 Email Sending</div>
+              <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.7 }}>
+                <strong style={{ color: C.dark }}>Set up free email sending via EmailJS:</strong><br />
+                1. Go to <strong>emailjs.com</strong> → sign up free<br />
+                2. Add a Service (Gmail, Outlook, etc.) → copy <strong>Service ID</strong><br />
+                3. Create a Template with variables: <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 4 }}>{"{{to_email}}"}</code> <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 4 }}>{"{{subject}}"}</code> <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 4 }}>{"{{message}}"}</code> → copy <strong>Template ID</strong><br />
+                4. Account → API Keys → copy <strong>Public Key</strong>
+              </div>
+              <label style={s.label}>Service ID</label>
+              <input placeholder="service_xxxxxxx" value={ejsServiceId} onChange={e => setEjsServiceId(e.target.value)} style={s.input} />
+              <label style={{ ...s.label, marginTop: 10 }}>Template ID</label>
+              <input placeholder="template_xxxxxxx" value={ejsTemplateId} onChange={e => setEjsTemplateId(e.target.value)} style={s.input} />
+              <label style={{ ...s.label, marginTop: 10 }}>Public Key</label>
+              <input placeholder="xxxxxxxxxxxxxxxxxxxx" value={ejsPublicKey} onChange={e => setEjsPublicKey(e.target.value)} style={s.input} />
+              <button onClick={saveEmailSettings} style={{ ...s.btn, marginTop: 10 }}>{ejsSaved ? "✓ Saved!" : "Save Email Settings"}</button>
+              {ejsServiceId && ejsPublicKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ Email sending enabled!</div>}
             </div>
             <div style={s.card}>
               <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>👤 Account</div>
