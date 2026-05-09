@@ -90,9 +90,6 @@ async function aiScheduleSuggestions(orders) {
 async function aiOrderConfirmation(order, bakeryName) {
   return callAI([{ role: "user", content: `You are a warm, professional home baker writing a customer order confirmation email.\nBakery: ${bakeryName}\nCustomer: ${order.customer}\nItem: ${order.item}\nDue: ${order.due}\nTotal: $${order.total}\nNotes: ${order.notes || "none"}\nWrite a friendly confirmation email. Return ONLY the email body, no subject line.` }]);
 }
-async function aiInvoiceEmail(order, bakeryName) {
-  return callAI([{ role: "user", content: `You are a professional home baker emailing a customer their invoice. Bakery: ${bakeryName}. Customer: ${order.customer}. Item: ${order.item}. Due: ${order.due}. Total: $${order.total}. Write a short (3-4 sentence) friendly, warm email letting them know their invoice is included below. Professional yet personal. Return ONLY the email body, no subject line.` }]);
-}
 
 // ─── PHOTO UPLOAD ─────────────────────────────────────────────────────────────
 function PhotoUpload({ value, onChange, small }) {
@@ -277,19 +274,7 @@ function AppInner({ session }) {
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailCopied,  setEmailCopied]  = useState(false);
 
-  // Invoice
-  const [invoiceModal,       setInvoiceModal]       = useState(null);
-  const [invoiceEmailAddr,   setInvoiceEmailAddr]   = useState("");
-  const [invoiceEmailLoading,setInvoiceEmailLoading]= useState(false);
-  const [invoiceEmailBody,   setInvoiceEmailBody]   = useState("");
-  const [invoiceSending,     setInvoiceSending]     = useState(false);
-  const [invoiceSentMsg,     setInvoiceSentMsg]     = useState("");
 
-  // EmailJS settings
-  const [ejsServiceId,  setEjsServiceId]  = useState(() => localStorage.getItem("ejs_service")  || "");
-  const [ejsTemplateId, setEjsTemplateId] = useState(() => localStorage.getItem("ejs_template") || "");
-  const [ejsPublicKey,  setEjsPublicKey]  = useState(() => localStorage.getItem("ejs_pubkey")   || "");
-  const [ejsSaved,      setEjsSaved]      = useState(false);
 
   // Schedule UI
   const [showNewTask,   setShowNewTask]   = useState(false);
@@ -361,13 +346,6 @@ function AppInner({ session }) {
     setTimeout(() => setApiKeySaved(false), 2000);
   };
 
-  const saveEmailSettings = () => {
-    localStorage.setItem("ejs_service",  ejsServiceId);
-    localStorage.setItem("ejs_template", ejsTemplateId);
-    localStorage.setItem("ejs_pubkey",   ejsPublicKey);
-    setEjsSaved(true);
-    setTimeout(() => setEjsSaved(false), 2000);
-  };
 
   // ── Admin ─────────────────────────────────────────────────────────────────
   const loadGiftedUsers = async () => {
@@ -611,7 +589,7 @@ td.r{text-align:right;font-weight:bold;color:#152937}
   <div class="inv-block"><div class="inv-label">INVOICE</div><div class="inv-num">${invoiceNum}</div><div class="inv-date">Issued ${issueDate}</div></div>
 </div>
 <hr class="divider"/>
-<div class="bill-sec"><div class="sec-lbl">Bill To</div><div class="bill-name">${order.customer}</div>${order.phone ? `<div class="bill-detail">📞 ${order.phone}</div>` : ""}${(order.email || invoiceEmailAddr) ? `<div class="bill-detail">✉️ ${order.email || invoiceEmailAddr}</div>` : ""}</div>
+<div class="bill-sec"><div class="sec-lbl">Bill To</div><div class="bill-name">${order.customer}</div>${order.phone ? `<div class="bill-detail">📞 ${order.phone}</div>` : ""}${order.email ? `<div class="bill-detail">✉️ ${order.email}</div>` : ""}</div>
 <table>
   <thead><tr><th>Description</th><th>Due Date</th><th class="r">Amount</th></tr></thead>
   <tbody><tr><td><strong>${order.item}</strong>${order.notes ? `<div class="desc-note">${order.notes}</div>` : ""}</td><td style="color:#6b7280">${dueDate}</td><td class="r">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tbody>
@@ -624,52 +602,7 @@ td.r{text-align:right;font-weight:bold;color:#152937}
     w.focus();
   };
 
-  const openInvoiceModal = async (order) => {
-    setInvoiceModal(order);
-    setInvoiceEmailAddr(order.email || "");
-    setInvoiceEmailBody("");
-    setInvoiceSentMsg("");
-    setInvoiceEmailLoading(true);
-    try {
-      const body = await aiInvoiceEmail(order, bakeryName);
-      setInvoiceEmailBody(body);
-    } catch (e) {
-      setInvoiceEmailBody(e.message === "NO_KEY" ? "⚠️ Add your Anthropic API key in Settings to generate email." : "Error generating email. Please try again.");
-    }
-    setInvoiceEmailLoading(false);
-  };
 
-  const sendInvoiceEmail = async (order) => {
-    if (!invoiceEmailAddr) { setInvoiceSentMsg("error:Please enter the customer email address."); return; }
-    if (!ejsServiceId || !ejsPublicKey) { setInvoiceSentMsg("error:Set up EmailJS in Settings → Email Sending first."); return; }
-    setInvoiceSending(true);
-    setInvoiceSentMsg("");
-    try {
-      const num = String(order.id || "").replace(/[^0-9a-f]/gi, "").slice(-4).padStart(4, "0");
-      const invoiceNum = `INV-${num}-${new Date().getFullYear()}`;
-      const dueDate = order.due ? new Date(order.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "Upon delivery";
-      const messageText = (invoiceEmailBody ? invoiceEmailBody + "\n\n" : "") +
-        `────────────────\nINVOICE DETAILS\n────────────────\n` +
-        `Invoice #:  ${invoiceNum}\n` +
-        `Customer:   ${order.customer}\n` +
-        `Item:       ${order.item}\n` +
-        `Due:        ${dueDate}\n` +
-        `Total Due:  $${parseFloat(order.total || 0).toFixed(2)}\n` +
-        `Status:     ${order.status}\n────────────────\n\n` +
-        `Thank you for your business! 🧁\n${bakeryName} · Powered by BakeFlo`;
-      if (window.emailjs) window.emailjs.init(ejsPublicKey);
-      await (window.emailjs || { send: () => Promise.reject(new Error("EmailJS not loaded")) }).send(
-        ejsServiceId,
-        ejsTemplateId || "template_invoice",
-        { to_email: invoiceEmailAddr, to_name: order.customer, from_name: bakeryName, reply_to: session.user.email, subject: `Invoice from ${bakeryName} — ${invoiceNum}`, message: messageText }
-      );
-      setInvoiceSentMsg("success");
-      updateOrderStatus(order.id, "Invoiced");
-    } catch (e) {
-      setInvoiceSentMsg("error:" + (e.text || e.message || "Send failed. Check your EmailJS settings in Settings."));
-    }
-    setInvoiceSending(false);
-  };
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   const toggleTask = async (id) => {
@@ -1164,65 +1097,7 @@ td.r{text-align:right;font-weight:bold;color:#152937}
         {/* ══════════ ORDERS ══════════ */}
         {tab === "Orders" && (
           <div>
-            {invoiceModal && (
-              <div style={{ position: "fixed", inset: 0, background: "rgba(21,41,55,0.7)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-                <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 20, width: "100%", maxWidth: 720, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(21,41,55,0.25)" }}>
-                  {/* Header */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                    <div>
-                      <div style={{ fontWeight: "bold", fontSize: 16, color: C.dark }}>📄 Invoice — {invoiceModal.customer}</div>
-                      <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{invoiceModal.item} · <strong style={{ color: C.dark }}>${parseFloat(invoiceModal.total || 0).toFixed(2)}</strong></div>
-                    </div>
-                    <button onClick={() => { setInvoiceModal(null); setInvoiceSentMsg(""); }} style={{ background: C.light, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 16, color: C.mid }}>✕</button>
-                  </div>
-
-                  {/* PDF button */}
-                  <button onClick={() => printInvoice(invoiceModal)} style={{ ...s.btnSec, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderColor: C.dark, color: C.dark }}>🖨️ Open PDF (Save / Print)</button>
-
-                  {/* Email section */}
-                  <div style={{ borderTop: `2px solid ${C.light}`, paddingTop: 16, flex: 1, overflowY: "auto" }}>
-                    <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, marginBottom: 12 }}>✉️ Send Invoice by Email</div>
-
-                    <label style={s.label}>Customer Email</label>
-                    <input value={invoiceEmailAddr} onChange={e => setInvoiceEmailAddr(e.target.value)} placeholder="customer@email.com" style={{ ...s.input, marginBottom: 12 }} />
-
-                    <label style={s.label}>Message to Customer</label>
-                    {invoiceEmailLoading
-                      ? <div style={{ padding: "12px 0", fontSize: 13, color: C.muted }}>✨ Writing message...</div>
-                      : <textarea value={invoiceEmailBody} onChange={e => setInvoiceEmailBody(e.target.value)} rows={4} style={{ ...s.input, resize: "vertical", fontSize: 13, lineHeight: 1.7, marginBottom: 12 }} placeholder="A personal message will appear here (AI-generated)..." />
-                    }
-
-                    {/* Status feedback */}
-                    {invoiceSentMsg === "success" && (
-                      <div style={{ background: "#d1fae5", color: "#065f46", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 12, fontWeight: "600" }}>
-                        ✅ Invoice sent to {invoiceEmailAddr}! Order marked as Invoiced.
-                      </div>
-                    )}
-                    {invoiceSentMsg.startsWith("error:") && (
-                      <div style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 12 }}>
-                        ⚠️ {invoiceSentMsg.slice(6)}
-                      </div>
-                    )}
-
-                    {/* Send button */}
-                    <button
-                      onClick={() => sendInvoiceEmail(invoiceModal)}
-                      disabled={invoiceSending || invoiceEmailLoading}
-                      style={{ ...s.btn, width: "100%", background: invoiceSentMsg === "success" ? "#10b981" : C.accent, opacity: (invoiceSending || invoiceEmailLoading) ? 0.6 : 1, marginBottom: 8 }}
-                    >
-                      {invoiceSending ? "📤 Sending..." : invoiceSentMsg === "success" ? "✅ Sent!" : "📧 Send Invoice Email"}
-                    </button>
-
-                    {!ejsServiceId && (
-                      <div style={{ fontSize: 12, color: "#92400e", background: "#fef3c7", borderRadius: 8, padding: "8px 12px", marginTop: 4 }}>
-                        ⚙️ Email sending not configured. Go to <strong>Settings → Email Sending</strong> to set up EmailJS (free).
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-                        {emailModal && (
+            {emailModal && (
               <div style={{ position: "fixed", inset: 0, background: "rgba(44,26,14,0.55)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
                 <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 20, width: "100%", maxWidth: 720, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(0,0,0,0.2)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -1314,7 +1189,7 @@ td.r{text-align:right;font-weight:bold;color:#152937}
                       {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${STATUS_COLORS[st]}`, background: o.status === st ? STATUS_COLORS[st] : "#fff", color: o.status === st ? "#fff" : STATUS_COLORS[st], cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
-                        <button onClick={() => openInvoiceModal(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11, background: "#FEF0E8", color: C.accent, border: `1px solid ${C.accent}` }}>📄 Invoice</button>
+                        <button onClick={() => printInvoice(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11, background: "#FEF0E8", color: C.accent, border: `1px solid ${C.accent}` }}>📄 Invoice</button>
                         <button onClick={() => genEmail(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11 }}>✉️ Email</button>
                         <button onClick={() => deleteOrder(o.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, color: "#ef4444", border: "1px solid #ef4444" }}>🗑</button>
                       </div>
@@ -1479,24 +1354,6 @@ td.r{text-align:right;font-weight:bold;color:#152937}
               <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} style={s.input} />
               <button onClick={() => saveApiKey(apiKey)} style={{ ...s.btn, marginTop: 10 }}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
               {apiKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ AI features enabled!</div>}
-            </div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>📧 Email Sending</div>
-              <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.7 }}>
-                <strong style={{ color: C.dark }}>Set up free email sending via EmailJS:</strong><br />
-                1. Go to <strong>emailjs.com</strong> → sign up free<br />
-                2. Add a Service (Gmail, Outlook, etc.) → copy <strong>Service ID</strong><br />
-                3. Create a Template with variables: <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 4 }}>{"{{to_email}}"}</code> <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 4 }}>{"{{subject}}"}</code> <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 4 }}>{"{{message}}"}</code> → copy <strong>Template ID</strong><br />
-                4. Account → API Keys → copy <strong>Public Key</strong>
-              </div>
-              <label style={s.label}>Service ID</label>
-              <input placeholder="service_xxxxxxx" value={ejsServiceId} onChange={e => setEjsServiceId(e.target.value)} style={s.input} />
-              <label style={{ ...s.label, marginTop: 10 }}>Template ID</label>
-              <input placeholder="template_xxxxxxx" value={ejsTemplateId} onChange={e => setEjsTemplateId(e.target.value)} style={s.input} />
-              <label style={{ ...s.label, marginTop: 10 }}>Public Key</label>
-              <input placeholder="xxxxxxxxxxxxxxxxxxxx" value={ejsPublicKey} onChange={e => setEjsPublicKey(e.target.value)} style={s.input} />
-              <button onClick={saveEmailSettings} style={{ ...s.btn, marginTop: 10 }}>{ejsSaved ? "✓ Saved!" : "Save Email Settings"}</button>
-              {ejsServiceId && ejsPublicKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ Email sending enabled!</div>}
             </div>
             <div style={s.card}>
               <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>👤 Account</div>
