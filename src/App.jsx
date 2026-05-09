@@ -274,6 +274,7 @@ function AppInner({ session }) {
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailCopied,  setEmailCopied]  = useState(false);
   const [invoicePrintOrder, setInvoicePrintOrder] = useState(null);
+  const [pdfGenerating,     setPdfGenerating]     = useState(false);
 
 
 
@@ -534,7 +535,39 @@ function AppInner({ session }) {
   };
 
   // ── Invoice ──────────────────────────────────────────────────────────────
-  const printInvoice = (order) => setInvoicePrintOrder(order);;
+  const printInvoice = (order) => setInvoicePrintOrder(order);
+
+  const downloadInvoicePdf = async () => {
+    const el = document.getElementById("bfinv-content");
+    if (!el || !window.html2canvas || !window.jspdf) return;
+    setPdfGenerating(true);
+    try {
+      const canvas = await window.html2canvas(el, {
+        scale: 2, useCORS: true, backgroundColor: "#ffffff",
+        ignoreElements: (node) => node.classList && node.classList.contains("np"),
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = 210;
+      const imgH = (canvas.height * pageW) / canvas.width;
+      if (imgH <= 297) {
+        pdf.addImage(imgData, "PNG", 0, 0, pageW, imgH);
+      } else {
+        let yPos = 0;
+        while (yPos < imgH) {
+          if (yPos > 0) pdf.addPage();
+          pdf.addImage(imgData, "PNG", 0, -yPos, pageW, imgH);
+          yPos += 297;
+        }
+      }
+      const safeName = (invoicePrintOrder?.customer || "invoice").replace(/[^a-z0-9]/gi, "_");
+      pdf.save("Invoice_" + safeName + ".pdf");
+    } catch (e) {
+      console.error("PDF generation failed:", e);
+    }
+    setPdfGenerating(false);
+  };;
 
 
 
@@ -1405,11 +1438,11 @@ CREATE POLICY "owner_only" ON gifted_users
             {/* Toolbar */}
             <div className="np" style={{ display: "flex", justifyContent: "flex-end", gap: 10, padding: "14px 24px", background: "#fff", borderBottom: "1px solid " + BORDER, position: "sticky", top: 0, zIndex: 1 }}>
               <button onClick={() => setInvoicePrintOrder(null)} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid " + BORDER, background: "#fff", color: NAVY, cursor: "pointer", fontSize: 13, fontFamily: "Georgia, serif" }}>✕ Close</button>
-              <button onClick={() => window.print()} style={{ padding: "8px 22px", borderRadius: 8, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "bold", fontFamily: "Georgia, serif" }}>🖨️ Save as PDF</button>
+              {pdfGenerating ? <button disabled style={{ padding: "8px 22px", borderRadius: 8, border: "none", background: "#9ca3af", color: "#fff", cursor: "not-allowed", fontSize: 13, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⏳ Generating...</button> : <button onClick={downloadInvoicePdf} style={{ padding: "8px 22px", borderRadius: 8, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⬇️ Download PDF</button>}
             </div>
 
             {/* Invoice */}
-            <div style={{ maxWidth: 700, margin: "0 auto", background: "#fff", boxShadow: "0 4px 40px rgba(21,41,55,0.12)" }}>
+            <div id="bfinv-content" style={{ maxWidth: 700, margin: "0 auto", background: "#fff", boxShadow: "0 4px 40px rgba(21,41,55,0.12)" }}>
 
               {/* Navy header */}
               <div style={{ background: NAVY, padding: "22px 36px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1490,7 +1523,7 @@ CREATE POLICY "owner_only" ON gifted_users
 
             {/* Bottom print button */}
             <div className="np" style={{ display: "flex", justifyContent: "center", padding: "24px 0 40px" }}>
-              <button onClick={() => window.print()} style={{ padding: "12px 36px", borderRadius: 10, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: "bold", fontFamily: "Georgia, serif" }}>🖨️ Save as PDF</button>
+              {pdfGenerating ? <button disabled style={{ padding: "12px 36px", borderRadius: 10, border: "none", background: "#9ca3af", color: "#fff", cursor: "not-allowed", fontSize: 15, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⏳ Generating PDF...</button> : <button onClick={downloadInvoicePdf} style={{ padding: "12px 36px", borderRadius: 10, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⬇️ Download PDF</button>}
             </div>
           </div>
         );
