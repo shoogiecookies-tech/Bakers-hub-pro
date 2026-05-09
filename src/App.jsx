@@ -90,6 +90,9 @@ async function aiScheduleSuggestions(orders) {
 async function aiOrderConfirmation(order, bakeryName) {
   return callAI([{ role: "user", content: `You are a warm, professional home baker writing a customer order confirmation email.\nBakery: ${bakeryName}\nCustomer: ${order.customer}\nItem: ${order.item}\nDue: ${order.due}\nTotal: $${order.total}\nNotes: ${order.notes || "none"}\nWrite a friendly confirmation email. Return ONLY the email body, no subject line.` }]);
 }
+async function aiInvoiceEmail(order, bakeryName) {
+  return callAI([{ role: "user", content: `You are a professional home baker emailing a customer their invoice. Bakery: ${bakeryName}. Customer: ${order.customer}. Item: ${order.item}. Due: ${order.due}. Total: $${order.total}. Write a short (3-4 sentence) friendly, warm email letting them know their invoice is included below. Professional yet personal. Return ONLY the email body, no subject line.` }]);
+}
 
 // ─── PHOTO UPLOAD ─────────────────────────────────────────────────────────────
 function PhotoUpload({ value, onChange, small }) {
@@ -266,13 +269,20 @@ function AppInner({ session }) {
   // Orders UI
   const [orderSearch,  setOrderSearch]  = useState("");
   const [showNewOrder, setShowNewOrder] = useState(false);
-  const [newOrder,     setNewOrder]     = useState({ customer: "", item: "", due: "", status: "Pending", total: "", notes: "", phone: "" });
+  const [newOrder,     setNewOrder]     = useState({ customer: "", item: "", due: "", status: "Pending", total: "", notes: "", phone: "", email: "" });
   const [editingOrder, setEditingOrder] = useState(null); // order being edited
   const [editOrder,    setEditOrder]    = useState(null); // edit form state
   const [emailModal,   setEmailModal]   = useState(null);
   const [emailBody,    setEmailBody]    = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailCopied,  setEmailCopied]  = useState(false);
+
+  // Invoice
+  const [invoiceModal,       setInvoiceModal]       = useState(null);
+  const [invoiceEmailAddr,   setInvoiceEmailAddr]   = useState("");
+  const [invoiceEmailLoading,setInvoiceEmailLoading]= useState(false);
+  const [invoiceEmailBody,   setInvoiceEmailBody]   = useState("");
+  const [invoiceEmailCopied, setInvoiceEmailCopied] = useState(false);
 
   // Schedule UI
   const [showNewTask,   setShowNewTask]   = useState(false);
@@ -476,7 +486,7 @@ function AppInner({ session }) {
     const { data } = await supabase.from("orders").insert([{
       user_id: uid, customer: newOrder.customer, item: newOrder.item,
       due: newOrder.due || null, status: newOrder.status,
-      total: parseFloat(newOrder.total) || 0, notes: newOrder.notes, phone: newOrder.phone
+      total: parseFloat(newOrder.total) || 0, notes: newOrder.notes, phone: newOrder.phone, email: newOrder.email || null
     }]).select().single();
     if (data) {
       const updatedOrders = [...orders, data];
@@ -488,7 +498,7 @@ function AppInner({ session }) {
         if (taskData) setSchedule(prev => [...prev, { ...taskData, auto: true, aiSuggested: false }]);
       }
     }
-    setNewOrder({ customer: "", item: "", due: "", status: "Pending", total: "", notes: "", phone: "" });
+    setNewOrder({ customer: "", item: "", due: "", status: "Pending", total: "", notes: "", phone: "", email: "" });
     setShowNewOrder(false);
   };
 
@@ -507,7 +517,7 @@ function AppInner({ session }) {
     const updates = {
       customer: editOrder.customer, item: editOrder.item,
       due: editOrder.due || null, status: editOrder.status,
-      total: parseFloat(editOrder.total) || 0, notes: editOrder.notes, phone: editOrder.phone
+      total: parseFloat(editOrder.total) || 0, notes: editOrder.notes, phone: editOrder.phone, email: editOrder.email || null
     };
     await supabase.from("orders").update(updates).eq("id", editingOrder);
     setOrders(prev => prev.map(o => o.id === editingOrder ? { ...o, ...updates } : o));
@@ -527,6 +537,54 @@ function AppInner({ session }) {
   };
   const copyEmail = () => {
     navigator.clipboard.writeText(emailBody).then(() => { setEmailCopied(true); setTimeout(() => setEmailCopied(false), 2000); });
+  };
+
+  // ── Invoice ──────────────────────────────────────────────────────────────
+  const printInvoice = (order) => {
+    const num = String(order.id || "").replace(/\D/g, "").slice(-4).padStart(4, "0");
+    const invoiceNum = `INV-${num}-${new Date().getFullYear()}`;
+    const issueDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    const dueDate = order.due
+      ? new Date(order.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+      : "Upon delivery";
+    const logoHtml = bakeryLogo
+      ? `<img src="${bakeryLogo}" style="width:56px;height:56px;border-radius:10px;object-fit:contain;display:block;margin-bottom:8px" alt="logo" />`
+      : "";
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${invoiceNum}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;color:#2C1A0E;padding:48px;max-width:700px;margin:0 auto}@media print{.np{display:none!important}body{padding:24px}}.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:24px;border-bottom:3px solid #C0653D;margin-bottom:32px}.bname{font-size:20px;font-weight:bold}.inv{font-size:36px;font-weight:bold;color:#C0653D}.sub{font-size:13px;color:#9a7a65;margin-top:3px}.sec{margin-bottom:28px}.lbl{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#9a7a65;margin-bottom:6px}.cname{font-size:17px;font-weight:bold}.cdet{font-size:13px;color:#6B4C3B;margin-top:3px}table{width:100%;border-collapse:collapse}th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9a7a65;padding:10px 12px;border-bottom:2px solid #e5e7eb;text-align:left}td{padding:16px 12px;border-bottom:1px solid #f3f0eb;font-size:14px;vertical-align:top}.amt{text-align:right;font-weight:bold}th.amt{text-align:right}.tot td{border-top:2.5px solid #C0653D;border-bottom:none;font-weight:bold;font-size:16px;padding-top:18px}.badge{display:inline-block;background:#fef0e8;color:#C0653D;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:bold;margin-top:12px}.footer{margin-top:48px;padding-top:20px;border-top:1px solid #e5e7eb;font-size:12px;color:#9a7a65;text-align:center;line-height:2}.btn{padding:9px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:Georgia,serif;margin-left:8px}.bp{background:#C0653D;color:#fff}.bs{background:#f3f0eb;color:#2C1A0E}.bar{display:flex;justify-content:flex-end;margin-bottom:28px}</style>
+</head><body>
+<div class="bar np"><button class="btn bs" onclick="window.close()">✕ Close</button><button class="btn bp" onclick="window.print()">🖨️ Download / Print PDF</button></div>
+<div class="hdr"><div>${logoHtml}<div class="bname">${bakeryName}</div></div><div style="text-align:right"><div class="inv">INVOICE</div><div class="sub">${invoiceNum}</div><div class="sub">Issued: ${issueDate}</div></div></div>
+<div class="sec"><div class="lbl">Bill To</div><div class="cname">${order.customer}</div>${order.phone ? `<div class="cdet">📞 ${order.phone}</div>` : ""}${order.email ? `<div class="cdet">✉️ ${order.email}</div>` : ""}</div>
+<table><thead><tr><th>Description</th><th>Delivery / Due</th><th class="amt">Amount</th></tr></thead>
+<tbody><tr><td><strong>${order.item}</strong>${order.notes ? `<div style="font-size:12px;color:#9a7a65;margin-top:5px">${order.notes}</div>` : ""}</td><td style="color:#6B4C3B">${dueDate}</td><td class="amt">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tbody>
+<tfoot><tr class="tot"><td colspan="2">Total Due</td><td class="amt">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tfoot></table>
+<div><span class="badge">${order.status}</span></div>
+<div class="footer">Thank you for your order! 🧁<br/>${bakeryName} · Powered by BakeFlo</div>
+</body></html>`);
+    w.document.close();
+    w.focus();
+  };
+
+  const openInvoiceModal = async (order) => {
+    setInvoiceModal(order);
+    setInvoiceEmailAddr(order.email || "");
+    setInvoiceEmailBody("");
+    setInvoiceEmailCopied(false);
+    setInvoiceEmailLoading(true);
+    try {
+      const body = await aiInvoiceEmail(order, bakeryName);
+      setInvoiceEmailBody(body);
+    } catch (e) {
+      setInvoiceEmailBody(e.message === "NO_KEY" ? "⚠️ Add your Anthropic API key in Settings to generate email." : "Error generating email. Please try again.");
+    }
+    setInvoiceEmailLoading(false);
+  };
+
+  const copyInvoiceEmail = () => {
+    navigator.clipboard.writeText(invoiceEmailBody).then(() => { setInvoiceEmailCopied(true); setTimeout(() => setInvoiceEmailCopied(false), 2000); });
   };
 
   // ── Schedule ──────────────────────────────────────────────────────────────
@@ -1022,6 +1080,41 @@ function AppInner({ session }) {
         {/* ══════════ ORDERS ══════════ */}
         {tab === "Orders" && (
           <div>
+            {invoiceModal && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(44,26,14,0.55)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 20, width: "100%", maxWidth: 720, maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(0,0,0,0.2)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontWeight: "bold", fontSize: 16, color: C.dark }}>📄 Invoice</div>
+                      <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{invoiceModal.customer} · {invoiceModal.item} · ${parseFloat(invoiceModal.total || 0).toFixed(2)}</div>
+                    </div>
+                    <button onClick={() => setInvoiceModal(null)} style={{ background: C.light, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 16, color: C.mid }}>✕</button>
+                  </div>
+                  <button onClick={() => printInvoice(invoiceModal)} style={{ ...s.btn, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🖨️ Download / Print PDF</button>
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, flex: 1, overflowY: "auto" }}>
+                    <div style={{ fontWeight: "bold", fontSize: 13, color: C.dark, marginBottom: 10 }}>✉️ Email Invoice to Customer</div>
+                    <label style={s.label}>Customer Email</label>
+                    <input value={invoiceEmailAddr} onChange={e => setInvoiceEmailAddr(e.target.value)} placeholder="customer@email.com" style={{ ...s.input, marginBottom: 10 }} />
+                    <label style={s.label}>Email Body</label>
+                    {invoiceEmailLoading
+                      ? <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 0", fontSize: 13, color: C.muted }}>✨ Writing invoice email...</div>
+                      : <textarea value={invoiceEmailBody} onChange={e => setInvoiceEmailBody(e.target.value)} style={{ ...s.input, height: 160, resize: "vertical", fontSize: 13, lineHeight: 1.7 }} placeholder="Your AI-generated email will appear here..." />
+                    }
+                    <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                      <button
+                        onClick={() => { if (invoiceEmailAddr) { window.location.href = `mailto:${invoiceEmailAddr}?subject=${encodeURIComponent("Your Invoice from " + bakeryName)}&body=${encodeURIComponent(invoiceEmailBody)}`; } }}
+                        disabled={!invoiceEmailAddr}
+                        style={{ ...s.btn, flex: 1, opacity: invoiceEmailAddr ? 1 : 0.5 }}
+                      >📧 Open Email App</button>
+                      <button onClick={copyInvoiceEmail} style={s.btnSec}>{invoiceEmailCopied ? "✓ Copied!" : "📋 Copy"}</button>
+                      <button onClick={() => openInvoiceModal(invoiceModal)} style={s.btnSec}>↺ Regenerate</button>
+                      <button onClick={() => setInvoiceModal(null)} style={s.btnSec}>Close</button>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>💡 "Open Email App" will pre-fill your email client. The PDF opens separately — attach it from your Downloads.</div>
+                  </div>
+                </div>
+              </div>
+            )}
             {emailModal && (
               <div style={{ position: "fixed", inset: 0, background: "rgba(44,26,14,0.55)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
                 <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 20, width: "100%", maxWidth: 720, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(0,0,0,0.2)" }}>
@@ -1062,6 +1155,7 @@ function AppInner({ session }) {
                   <input placeholder="Customer name" value={newOrder.customer} onChange={e => setNewOrder(o => ({ ...o, customer: e.target.value }))} style={{ ...s.input, flex: 1 }} />
                   <input placeholder="Phone" value={newOrder.phone} onChange={e => setNewOrder(o => ({ ...o, phone: formatPhone(e.target.value) }))} style={{ ...s.input, width: 110 }} />
                 </div>
+                <input placeholder="Customer email (for invoicing)" value={newOrder.email} onChange={e => setNewOrder(o => ({ ...o, email: e.target.value }))} style={{ ...s.input, marginTop: 8 }} />
                 <input placeholder="Item(s) ordered" value={newOrder.item} onChange={e => setNewOrder(o => ({ ...o, item: e.target.value }))} style={{ ...s.input, marginTop: 8 }} />
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <input type="date" value={newOrder.due} onChange={e => setNewOrder(o => ({ ...o, due: e.target.value }))} style={{ ...s.input, flex: 1 }} />
@@ -1088,6 +1182,7 @@ function AppInner({ session }) {
                       <input placeholder="Customer name" value={editOrder.customer} onChange={e => setEditOrder(x => ({ ...x, customer: e.target.value }))} style={{ ...s.input, flex: 1 }} />
                       <input placeholder="Phone" value={editOrder.phone} onChange={e => setEditOrder(x => ({ ...x, phone: formatPhone(e.target.value) }))} style={{ ...s.input, width: 110 }} />
                     </div>
+                    <input placeholder="Customer email (for invoicing)" value={editOrder.email || ""} onChange={e => setEditOrder(x => ({ ...x, email: e.target.value }))} style={{ ...s.input, marginTop: 8 }} />
                     <input placeholder="Item(s)" value={editOrder.item} onChange={e => setEditOrder(x => ({ ...x, item: e.target.value }))} style={{ ...s.input, marginTop: 8 }} />
                     <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                       <input type="date" value={editOrder.due} onChange={e => setEditOrder(x => ({ ...x, due: e.target.value }))} style={{ ...s.input, flex: 1 }} />
@@ -1111,7 +1206,7 @@ function AppInner({ session }) {
                     <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                       {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${STATUS_COLORS[st]}`, background: o.status === st ? STATUS_COLORS[st] : "#fff", color: o.status === st ? "#fff" : STATUS_COLORS[st], cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
+                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
                         <button onClick={() => genEmail(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11 }}>✉️ Email</button>
                         <button onClick={() => deleteOrder(o.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, color: "#ef4444", border: "1px solid #ef4444" }}>🗑</button>
                       </div>
