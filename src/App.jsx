@@ -534,72 +534,91 @@ function AppInner({ session }) {
 
   // ── Invoice ──────────────────────────────────────────────────────────────
   const printInvoice = (order) => {
-    const num = String(order.id || "").replace(/[^0-9a-f]/gi, "").slice(-6).slice(-4).padStart(4, "0");
-    const invoiceNum = `INV-${num}-${new Date().getFullYear()}`;
+    const num = String(order.id || "").replace(/[^0-9]/g, "").slice(-4).padStart(4, "0");
+    const invoiceNum = "INV-" + num + "-" + new Date().getFullYear();
     const issueDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const dueDate = order.due
       ? new Date(order.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
       : "Upon delivery";
-    const logoHtml = bakeryLogo
-      ? `<img src="${bakeryLogo}" style="width:60px;height:60px;border-radius:12px;object-fit:contain;display:block;margin-bottom:8px" alt="logo" />`
-      : `<div style="width:60px;height:60px;border-radius:12px;background:#C0653D;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:8px">🧁</div>`;
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${invoiceNum}</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Georgia',serif;background:#F9FAFB;color:#152937;padding:0;margin:0}
-.page{max-width:720px;margin:0 auto;background:#fff;padding:48px;min-height:100vh}
-@media print{.np{display:none!important}body{background:#fff}.page{padding:28px}}
-.topbar{background:#152937;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;border-radius:16px 16px 0 0;margin:-48px -48px 36px -48px}
-.topbar-logo{display:flex;align-items:center;gap:12px}
-.topbar-bname{color:#F9FAFB;font-size:18px;font-weight:bold;letter-spacing:.5px}
-.topbar-tag{color:#C0653D;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
-.inv-block{text-align:right}
-.inv-label{font-size:32px;font-weight:bold;color:#C0653D;letter-spacing:-1px}
-.inv-num{font-size:13px;color:#f0f4f8;margin-top:2px}
-.inv-date{font-size:12px;color:#94a3b8;margin-top:1px}
-.divider{border:none;border-top:2px solid #f0f4f8;margin:0 0 28px 0}
-.bill-sec{margin-bottom:28px}
-.sec-lbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;margin-bottom:8px}
-.bill-name{font-size:18px;font-weight:bold;color:#152937}
-.bill-detail{font-size:13px;color:#6b7280;margin-top:4px}
-table{width:100%;border-collapse:collapse;margin-bottom:4px}
-thead tr{background:#152937;color:#F9FAFB}
-th{padding:12px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;text-align:left}
-th.r{text-align:right}
-td{padding:16px;border-bottom:1px solid #f0f4f8;font-size:14px;vertical-align:top;color:#152937}
-td.r{text-align:right;font-weight:bold;color:#152937}
-.desc-note{font-size:12px;color:#9ca3af;margin-top:4px}
-.total-row{background:#F9FAFB}
-.total-row td{border-top:2px solid #C0653D;border-bottom:none;font-size:16px;font-weight:bold;padding:20px 16px;color:#152937}
-.status-badge{display:inline-block;background:#fef0e8;color:#C0653D;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;margin:16px 0}
-.footer{margin-top:40px;padding-top:20px;border-top:1px solid #f0f4f8;text-align:center;color:#94a3b8;font-size:12px;line-height:2}
-.footer strong{color:#C0653D}
-.btn{padding:9px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:Georgia,serif;margin-left:8px}
-.bp{background:#C0653D;color:#fff}
-.bs{background:#f0f4f8;color:#152937}
-.btnbar{display:flex;justify-content:flex-end;margin-bottom:24px}
-@media print{.topbar{border-radius:0;margin:-28px -28px 28px -28px}}
-</style>
-</head><body><div class="page">
-<div class="btnbar np"><button class="btn bs" onclick="window.close()">✕ Close</button><button class="btn bp" onclick="window.print()">🖨️ Save as PDF</button></div>
-<div class="topbar">
-  <div class="topbar-logo">${logoHtml}<div><div class="topbar-bname">${bakeryName}</div><div class="topbar-tag">Invoice</div></div></div>
-  <div class="inv-block"><div class="inv-label">INVOICE</div><div class="inv-num">${invoiceNum}</div><div class="inv-date">Issued ${issueDate}</div></div>
-</div>
-<hr class="divider"/>
-<div class="bill-sec"><div class="sec-lbl">Bill To</div><div class="bill-name">${order.customer}</div>${order.phone ? `<div class="bill-detail">📞 ${order.phone}</div>` : ""}${order.email ? `<div class="bill-detail">✉️ ${order.email}</div>` : ""}</div>
-<table>
-  <thead><tr><th>Description</th><th>Due Date</th><th class="r">Amount</th></tr></thead>
-  <tbody><tr><td><strong>${order.item}</strong>${order.notes ? `<div class="desc-note">${order.notes}</div>` : ""}</td><td style="color:#6b7280">${dueDate}</td><td class="r">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tbody>
-  <tfoot><tr class="total-row"><td colspan="2"><strong>Total Due</strong></td><td class="r">$${parseFloat(order.total || 0).toFixed(2)}</td></tr></tfoot>
-</table>
-<div><span class="status-badge">${order.status}</span></div>
-<div class="footer">Thank you for your order! 🧁<br/><strong>${bakeryName}</strong> · Powered by BakeFlo</div>
-</div></body></html>`);
-    w.document.close();
-    w.focus();
+    const logoBlock = bakeryLogo
+      ? '<img src="' + bakeryLogo + '" style="width:56px;height:56px;border-radius:10px;object-fit:contain;display:block;margin-bottom:6px" alt="logo" />'
+      : '<div style="width:56px;height:56px;border-radius:10px;background:#C0653D;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:6px">&#x1F9C1;</div>';
+    const phoneRow  = order.phone ? '<div class="cdet"><span class="icon">&#128222;</span>' + order.phone + '</div>' : "";
+    const emailRow  = order.email ? '<div class="cdet"><span class="icon">&#9993;</span>' + order.email + '</div>' : "";
+    const notesRow  = order.notes ? '<div class="dnote">' + order.notes + '</div>' : "";
+    const total     = parseFloat(order.total || 0).toFixed(2);
+
+    const html = [
+      '<!DOCTYPE html><html lang="en"><head>',
+      '<meta charset="utf-8">',
+      '<meta name="viewport" content="width=device-width,initial-scale=1">',
+      '<title>Invoice ' + invoiceNum + '</title>',
+      '<style>',
+      '*{box-sizing:border-box;margin:0;padding:0}',
+      'body{font-family:Georgia,serif;background:#F9FAFB;color:#152937;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+      '.wrap{max-width:700px;margin:0 auto;background:#fff;padding:0;min-height:100vh}',
+      '.header{background:#152937;padding:24px 36px;display:flex;justify-content:space-between;align-items:center}',
+      '.bname{color:#fff;font-size:19px;font-weight:bold;letter-spacing:.4px;margin-top:4px}',
+      '.btag{color:#C0653D;font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-top:3px}',
+      '.logo-col{display:flex;align-items:center;gap:14px}',
+      '.inv-head{text-align:right}',
+      '.inv-word{font-size:30px;font-weight:bold;color:#C0653D;letter-spacing:-1px}',
+      '.inv-sub{font-size:12px;color:#94a3b8;margin-top:3px}',
+      '.body{padding:36px}',
+      '.meta{display:flex;justify-content:space-between;margin-bottom:32px;gap:24px}',
+      '.meta-col h3{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;margin-bottom:8px}',
+      '.cname{font-size:17px;font-weight:bold;color:#152937}',
+      '.cdet{font-size:13px;color:#6b7280;margin-top:4px}',
+      '.icon{margin-right:4px}',
+      '.issuer{font-size:13px;color:#6b7280;line-height:1.8}',
+      'table{width:100%;border-collapse:collapse;margin-bottom:0}',
+      'thead tr{background:#152937}',
+      'th{padding:11px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#f0f4f8;font-weight:600;text-align:left}',
+      'th.ra{text-align:right}',
+      'td{padding:16px;font-size:14px;vertical-align:top;color:#152937;border-bottom:1px solid #f0f4f8}',
+      'td.ra{text-align:right;font-weight:bold}',
+      '.dnote{font-size:12px;color:#9ca3af;margin-top:5px}',
+      '.tot-row td{background:#F9FAFB;border-top:2px solid #C0653D;border-bottom:none;font-size:16px;font-weight:bold;padding:18px 16px}',
+      '.status{display:inline-block;background:#fef0e8;color:#C0653D;padding:5px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;margin:20px 0 0 0}',
+      '.footer{margin-top:36px;padding-top:20px;border-top:1px solid #f0f4f8;text-align:center;color:#94a3b8;font-size:12px;line-height:2.2}',
+      '.footer b{color:#C0653D}',
+      '.btnbar{display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;background:#f0f4f8;border-bottom:1px solid #e2e8f0}',
+      '.btn{padding:9px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:Georgia,serif}',
+      '.bp{background:#C0653D;color:#fff;font-weight:bold}',
+      '.bs{background:#fff;color:#152937;border:1px solid #d1d5db}',
+      '@media print{.btnbar{display:none!important}body{background:#fff}.wrap{min-height:auto}}',
+      '</style></head><body>',
+      '<div class="wrap">',
+      '<div class="btnbar"><button class="btn bs" onclick="window.close()">&#10005; Close</button><button class="btn bp" onclick="window.print()">&#128438; Save as PDF</button></div>',
+      '<div class="header">',
+      '  <div class="logo-col">' + logoBlock + '<div><div class="bname">' + bakeryName + '</div><div class="btag">Invoice</div></div></div>',
+      '  <div class="inv-head"><div class="inv-word">INVOICE</div><div class="inv-sub">' + invoiceNum + '</div><div class="inv-sub">Issued ' + issueDate + '</div></div>',
+      '</div>',
+      '<div class="body">',
+      '<div class="meta">',
+      '  <div class="meta-col"><h3>Bill To</h3><div class="cname">' + (order.customer || "") + '</div>' + phoneRow + emailRow + '</div>',
+      '  <div class="meta-col" style="text-align:right"><h3>From</h3><div class="issuer"><b style="color:#152937">' + bakeryName + '</b><br>Powered by BakeFlo</div></div>',
+      '</div>',
+      '<table>',
+      '<thead><tr><th>Description</th><th>Due Date</th><th class="ra">Amount</th></tr></thead>',
+      '<tbody>',
+      '<tr><td><strong>' + (order.item || "") + '</strong>' + notesRow + '</td>',
+      '<td style="color:#6b7280">' + dueDate + '</td>',
+      '<td class="ra">$' + total + '</td></tr>',
+      '</tbody>',
+      '<tfoot><tr class="tot-row"><td colspan="2"><strong>Total Due</strong></td><td class="ra">$' + total + '</td></tr></tfoot>',
+      '</table>',
+      '<div><span class="status">' + (order.status || "") + '</span></div>',
+      '<div class="footer">Thank you for your order! &#x1F9C1;<br><b>' + bakeryName + '</b> &nbsp;&middot;&nbsp; Powered by BakeFlo</div>',
+      '</div></div>',
+      '</body></html>'
+    ].join('\n');
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const tab  = window.open(url, '_blank');
+    if (tab) tab.focus();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
 
