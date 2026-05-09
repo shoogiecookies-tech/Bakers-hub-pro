@@ -628,7 +628,7 @@ td.r{text-align:right;font-weight:bold;color:#152937}
     setInvoiceModal(order);
     setInvoiceEmailAddr(order.email || "");
     setInvoiceEmailBody("");
-    setInvoiceEmailCopied(false);
+    setInvoiceSentMsg("");
     setInvoiceEmailLoading(true);
     try {
       const body = await aiInvoiceEmail(order, bakeryName);
