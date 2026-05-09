@@ -1314,6 +1314,7 @@ td.r{text-align:right;font-weight:bold;color:#152937}
                       {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${STATUS_COLORS[st]}`, background: o.status === st ? STATUS_COLORS[st] : "#fff", color: o.status === st ? "#fff" : STATUS_COLORS[st], cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
+                        <button onClick={() => openInvoiceModal(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11, background: "#FEF0E8", color: C.accent, border: `1px solid ${C.accent}` }}>📄 Invoice</button>
                         <button onClick={() => genEmail(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11 }}>✉️ Email</button>
                         <button onClick={() => deleteOrder(o.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, color: "#ef4444", border: "1px solid #ef4444" }}>🗑</button>
                       </div>
