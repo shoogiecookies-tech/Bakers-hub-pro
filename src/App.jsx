@@ -9,8 +9,8 @@ const supabase = createClient(
 
 // ─── COLORS & STYLES ──────────────────────────────────────────────────────────
 const C = {
-  bg: "#faf5ee", card: "#ffffff", accent: "#a84e18", dark: "#6b3218", caramel: "#b8702e",
-  light: "#f0f4f8", border: "#e2e8f0", text: "#152937", muted: "#6b7280", mid: "#374151",
+  bg: "#faf5ee", card: "#fffcf7", accent: "#b85c38", dark: "#152937",
+  caramel: "#c8935a", light: "#f5ede0", border: "#e8dfd0", text: "#152937", muted: "#7a6a58", mid: "#3d2e1e",
 };
 const s = {
   card: { background: C.card, borderRadius: 16, padding: 16, boxShadow: "0 2px 16px rgba(124,58,30,0.07)", border: `1px solid ${C.border}`, marginBottom: 12 },
@@ -661,8 +661,9 @@ function AppInner({ session }) {
       <style>{`@media (max-width: 768px) { .watermark-logo { display: none !important; } }`}</style>
 
       {/* HEADER */}
-      <div style={{ background: "#152937", padding: "22px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -30, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+      <div style={{ background: "linear-gradient(135deg, #152937 0%, #1f3d50 45%, #2c4a38 100%)", padding: "26px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -30, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(200,147,90,0.08)" }} />
+        <div style={{ position: "absolute", bottom: 10, left: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.03)" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {bakeryLogo
             ? <img src={bakeryLogo} alt="logo" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover", border: "2px solid rgba(255,255,255,0.3)" }} />
@@ -683,9 +684,9 @@ function AppInner({ session }) {
             <button key={t} onClick={() => setTab(t)} style={{
               padding: "10px 13px", border: "none", cursor: "pointer", fontSize: 12,
               fontWeight: tab === t ? "700" : "400", borderRadius: "10px 10px 0 0", whiteSpace: "nowrap",
-              background: tab === t ? "rgba(255,255,255,0.2)" : "transparent", color: "#fff",
+              background: tab === t ? "rgba(255,255,255,0.18)" : "transparent", color: "#fff",
               borderBottom: tab === t ? "3px solid #fff" : "3px solid transparent",
-              opacity: tab === t ? 1 : 0.72, fontFamily: "'Inter', sans-serif",
+              opacity: tab === t ? 1 : 0.55, transition: "all 0.18s", fontFamily: "'Inter', sans-serif",
             }}>{t}</button>
           ))}
         </div>
@@ -694,65 +695,101 @@ function AppInner({ session }) {
       <div style={{ padding: "18px 16px", maxWidth: 720, margin: "0 auto" }}>
 
         {/* ══════════ DASHBOARD ══════════ */}
-        {tab === "Dashboard" && (
-          <div>
-            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>Good morning! ☀️</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-              {[
-                { label: "Delivered Revenue", value: `$${deliveredRev.toFixed(2)}`, icon: "💰", color: "#10b981" },
-                { label: "Pending Revenue",   value: `$${pendingRev.toFixed(2)}`,   icon: "⏳", color: "#f59e0b" },
-                { label: "Open Orders",       value: openOrders,                    icon: "📦", color: "#3b82f6" },
-                { label: "Scheduled Posts",   value: scheduledPosts,                icon: "📱", color: "#8b5cf6" },
-              ].map(k => (
-                <div key={k.label} style={{ ...s.card, display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ fontSize: 24 }}>{k.icon}</div>
-                  <div>
-                    <div style={{ fontSize: 20, fontWeight: "bold", color: k.color }}>{k.value}</div>
-                    <div style={{ fontSize: 11, color: C.muted }}>{k.label}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ ...s.card, background: "#9CA3AF", color: "#fff" }}>
-              <div style={{ fontWeight: "bold", marginBottom: 10 }}>📊 P&L Snapshot</div>
-              {[["Total Revenue", `$${totalRevenue.toFixed(2)}`], ["Est. Total Costs (50%)", `$${estTotalCosts.toFixed(2)}`]].map(([l, v]) => (
-                <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.15)", fontSize: 13 }}>
-                  <span style={{ opacity: 0.8 }}>{l}</span><span>{v}</span>
-                </div>
-              ))}
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontWeight: "bold", fontSize: 16 }}>
-                <span>NET PROFIT</span>
-                <span style={{ background: "#10b981", padding: "2px 14px", borderRadius: 20, color: "#fff" }}>${netProfit.toFixed(2)}</span>
-              </div>
-              <div style={{ fontSize: 12, marginTop: 8, opacity: 0.9, textAlign: "right" }}>Profit Margin: <strong>{profitMarginPct}%</strong> <span style={{ opacity: 0.7 }}>(est. based on 50% cost rate)</span></div>
-            </div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", marginBottom: 10, color: C.dark }}>📅 Today's Tasks ({todayTasks.length})</div>
-              {todayTasks.length === 0
-                ? <div style={{ color: C.muted, fontSize: 13 }}>No tasks today — enjoy! 🎉</div>
-                : todayTasks.map(t => (
-                  <div key={t.id} onClick={() => toggleTask(t.id)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "5px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
-                    <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, marginTop: 1 }} />
-                    <span style={{ fontSize: 13 }}>{t.task}</span>
-                  </div>
-                ))}
-            </div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", marginBottom: 10, color: C.dark }}>🚨 Upcoming Orders</div>
-              {orders.filter(o => o.status !== "Delivered").slice(0, 4).map(o => (
-                <div key={o.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
-                  <div><span style={{ fontWeight: "600" }}>{o.customer}</span><span style={{ color: C.muted }}> · {o.item}</span></div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ color: C.muted }}>{o.due}</span>
-                    <span style={s.tag(STATUS_COLORS[o.status])}>{o.status}</span>
-                  </div>
-                </div>
-              ))}
-              {orders.filter(o => o.status !== "Delivered").length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>No open orders 🎉</div>}
-            </div>
-          </div>
-        )}
-
+        {tab === "Dashboard" && (() => {
+           const hour = new Date().getHours();
+           const dow  = new Date().getDay();
+           const timeGreet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+           const dayMessages = [
+             "Let's set a sweet tone for the week 🍞",
+             "Fresh week, fresh bakes! Let's do this 🧁",
+             "Tuesday is a great day to prep ahead 🥄",
+             "Midweek momentum — keep it rolling 🎂",
+             "Almost to the weekend rush 🍰",
+             "Weekend orders are almost here! 🎉",
+             "Saturday hustle — your busiest day 🔥",
+           ];
+           return (
+           <div>
+             <div style={{ marginBottom: 18 }}>
+               <div style={{ fontSize: 22, fontWeight: "700", color: C.dark, letterSpacing: "-0.3px" }}>{timeGreet}, {bakeryName.split(" ")[0]}! 👋</div>
+               <div style={{ fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>{dayMessages[dow]}</div>
+             </div>
+             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+               {[
+                 { label: "DELIVERED", sub: "revenue", value: `$${deliveredRev.toFixed(2)}`, icon: "💰", color: "#059669", bg: "#f0fdf4", iconBg: "#dcfce7" },
+                 { label: "PENDING",   sub: "revenue", value: `$${pendingRev.toFixed(2)}`,   icon: "⏳", color: "#d97706", bg: "#fffbeb", iconBg: "#fef3c7" },
+                 { label: "OPEN",      sub: "orders",  value: openOrders,                    icon: "📦", color: "#2563eb", bg: "#eff6ff", iconBg: "#dbeafe" },
+                 { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                icon: "📱", color: "#7c3aed", bg: "#f5f3ff", iconBg: "#ede9fe" },
+               ].map(k => (
+                 <div key={k.label} style={{ background: k.bg, borderRadius: 16, padding: "14px 14px 12px", border: `1px solid ${k.color}18`, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+                   <div style={{ width: 36, height: 36, borderRadius: 10, background: k.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 10 }}>{k.icon}</div>
+                   <div style={{ fontSize: 26, fontWeight: "700", color: k.color, lineHeight: 1 }}>{k.value}</div>
+                   <div style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase", color: k.color, opacity: 0.75, marginTop: 4 }}>{k.label} <span style={{ opacity: 0.6 }}>{k.sub}</span></div>
+                 </div>
+               ))}
+             </div>
+             <div style={{ ...s.card, background: C.card, padding: 18 }}>
+               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.caramel, flexShrink: 0 }} />
+                 <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>P&amp;L Snapshot</div>
+               </div>
+               {[["Total Revenue", `$${totalRevenue.toFixed(2)}`], ["Est. Costs (50%)", `$${estTotalCosts.toFixed(2)}`]].map(([l, v]) => (
+                 <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
+                   <span style={{ color: C.muted }}>{l}</span><span style={{ fontWeight: "600", color: C.dark }}>{v}</span>
+                 </div>
+               ))}
+               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+                 <span style={{ fontSize: 13, fontWeight: "600", color: C.dark }}>Net Profit</span>
+                 <span style={{ background: "#059669", color: "#fff", padding: "3px 16px", borderRadius: 20, fontSize: 14, fontWeight: "700" }}>${netProfit.toFixed(2)}</span>
+               </div>
+               <div style={{ fontSize: 11, color: C.muted, marginTop: 8, textAlign: "right" }}>Margin: <strong style={{ color: C.dark }}>{profitMarginPct}%</strong> &middot; est. 50% cost rate</div>
+             </div>
+             <div style={{ ...s.card, padding: 18 }}>
+               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                 <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>📅 Today's Tasks</div>
+                 {todayTasks.length > 0 && <span style={{ background: C.accent, color: "#fff", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: "700" }}>{todayTasks.length}</span>}
+               </div>
+               {todayTasks.length === 0
+                 ? <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>No tasks today — enjoy the day! 🎉</div>
+                 : todayTasks.map(t => (
+                   <div key={t.id} onClick={() => toggleTask(t.id)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
+                     <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${t.done ? "#059669" : C.accent}`, background: t.done ? "#059669" : "transparent", flexShrink: 0, marginTop: 1 }} />
+                     <span style={{ fontSize: 13, lineHeight: 1.5, color: t.done ? C.muted : C.text, textDecoration: t.done ? "line-through" : "none" }}>{t.task}</span>
+                   </div>
+                 ))
+               }
+             </div>
+             <div style={{ ...s.card, padding: 18 }}>
+               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                 <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>🚨 Upcoming Orders</div>
+                 {orders.filter(o => o.status !== "Delivered").length > 0 && (
+                   <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: "700" }}>{orders.filter(o => o.status !== "Delivered").length}</span>
+                 )}
+               </div>
+               {orders.filter(o => o.status !== "Delivered").length === 0
+                 ? <div style={{ color: C.muted, fontSize: 13 }}>No open orders 🎉</div>
+                 : orders.filter(o => o.status !== "Delivered").slice(0, 5).map(o => {
+                     const initials = (o.customer || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+                     const sc = STATUS_COLORS[o.status] || C.accent;
+                     return (
+                       <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
+                         <div style={{ width: 36, height: 36, borderRadius: "50%", background: sc + "22", color: sc, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "800", flexShrink: 0, letterSpacing: 0.5 }}>{initials}</div>
+                         <div style={{ flex: 1, minWidth: 0 }}>
+                           <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.customer}</div>
+                           <div style={{ fontSize: 12, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.item}</div>
+                         </div>
+                         <div style={{ textAlign: "right", flexShrink: 0 }}>
+                           {o.due && <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{o.due}</div>}
+                           <span style={s.tag(sc)}>{o.status}</span>
+                         </div>
+                       </div>
+                     );
+                   })
+               }
+             </div>
+           </div>
+           );
+         })()}
         {/* ══════════ PANTRY ══════════ */}
         {tab === "Pantry" && (
           <div>
