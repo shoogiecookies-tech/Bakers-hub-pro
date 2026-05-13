@@ -648,6 +648,15 @@ function AppInner({ session }) {
   const todayStr       = new Date().toISOString().split("T")[0];
   const todayTasks     = schedule.filter(t => !t.done && t.date === todayStr);
   const scheduledPosts = social.filter(p => p.status === "Scheduled").length;
+  const thisMonth      = new Date().toISOString().slice(0, 7);
+  const monthOrders    = orders.filter(o => (o.created_at || "").startsWith(thisMonth));
+  const monthRev       = monthOrders.reduce((s, o) => s + (o.total || 0), 0);
+  const estMonthProfit = monthRev * 0.50;
+  const itemRevMap     = {};
+  orders.forEach(o => { if (o.item) itemRevMap[o.item] = (itemRevMap[o.item] || 0) + (o.total || 0); });
+  const itemRevEntries = Object.entries(itemRevMap).sort((a, b) => b[1] - a[1]);
+  const topItem        = itemRevEntries[0] || null;
+  const topItemPct     = totalRevenue > 0 && topItem ? Math.round(topItem[1] / totalRevenue * 100) : null;
   const groupedSched   = schedule.reduce((acc, t) => { const d = t.date || "Undated"; if (!acc[d]) acc[d] = []; acc[d].push(t); return acc; }, {});
 
   if (dbLoading) return (
@@ -658,7 +667,16 @@ function AppInner({ session }) {
 
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", minHeight: "100vh", background: C.bg, color: C.text }}>
-      <style>{`@media (max-width: 768px) { .watermark-logo { display: none !important; } }`}</style>
+      <style>{`
+        @media (max-width: 768px) { .watermark-logo { display: none !important; } }
+        .bf-card { transition: box-shadow 200ms ease, transform 200ms ease; }
+        .bf-card:hover { box-shadow: 0 6px 28px rgba(124,58,30,0.13) !important; transform: translateY(-2px); }
+        .bf-btn { transition: opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease; }
+        .bf-btn:hover { opacity: 0.88; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+        .bf-btn:active { transform: translateY(0); opacity: 1; }
+        .bf-kpi { transition: box-shadow 180ms ease, transform 180ms ease; }
+        .bf-kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.10) !important; transform: translateY(-2px); }
+      `}</style>
 
       {/* HEADER */}
       <div style={{ background: "linear-gradient(135deg, #152937 0%, #1f3d50 45%, #2c4a38 100%)", padding: "26px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
@@ -721,14 +739,14 @@ function AppInner({ session }) {
                  { label: "OPEN",      sub: "orders",  value: openOrders,                    icon: "📦", color: "#2563eb", bg: "#eff6ff", iconBg: "#dbeafe" },
                  { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                icon: "📱", color: "#7c3aed", bg: "#f5f3ff", iconBg: "#ede9fe" },
                ].map(k => (
-                 <div key={k.label} style={{ background: k.bg, borderRadius: 16, padding: "14px 14px 12px", border: `1px solid ${k.color}18`, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+                 <div key={k.label} className="bf-kpi" style={{ background: k.bg, borderRadius: 16, padding: "14px 14px 12px", border: `1px solid ${k.color}18`, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
                    <div style={{ width: 36, height: 36, borderRadius: 10, background: k.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 10 }}>{k.icon}</div>
                    <div style={{ fontSize: 26, fontWeight: "700", color: k.color, lineHeight: 1 }}>{k.value}</div>
                    <div style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase", color: k.color, opacity: 0.75, marginTop: 4 }}>{k.label} <span style={{ opacity: 0.6 }}>{k.sub}</span></div>
                  </div>
                ))}
              </div>
-             <div style={{ ...s.card, background: C.card, padding: 18 }}>
+             <div className="bf-card" style={{ ...s.card, background: C.card, padding: 18 }}>
                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.caramel, flexShrink: 0 }} />
                  <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>P&amp;L Snapshot</div>
@@ -744,6 +762,44 @@ function AppInner({ session }) {
                </div>
                <div style={{ fontSize: 11, color: C.muted, marginTop: 8, textAlign: "right" }}>Margin: <strong style={{ color: C.dark }}>{profitMarginPct}%</strong> &middot; est. 50% cost rate</div>
              </div>
+             {(topItem || monthRev > 0) && (
+               <div className="bf-card" style={{ ...s.card, padding: 18, background: "#fffbf5", border: `1px solid ${C.caramel}30` }}>
+                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                   <div style={{ fontSize: 18 }}>📊</div>
+                   <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
+                 </div>
+                 {topItem && (
+                   <div style={{ background: "#f0fdf4", borderRadius: 12, padding: "12px 14px", marginBottom: 10, border: "1px solid #bbf7d0" }}>
+                     <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Most Profitable Item</div>
+                     <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topItem[0]}</div>
+                     <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
+                       {topItemPct !== null
+                         ? `${topItem[0]} generated ${topItemPct}% of your total revenue — your top earner! 🎉`
+                         : `Your top revenue generator — keep it on the menu!`}
+                     </div>
+                   </div>
+                 )}
+                 <div style={{ background: "#eff6ff", borderRadius: 12, padding: "12px 14px", marginBottom: 10, border: "1px solid #bfdbfe" }}>
+                   <div style={{ fontSize: 12, fontWeight: "700", color: "#1e40af", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>This Month's Est. Profit</div>
+                   <div style={{ fontSize: 22, fontWeight: "800", color: "#2563eb" }}>${estMonthProfit.toFixed(2)}</div>
+                   <div style={{ fontSize: 12, color: "#3b82f6", marginTop: 4, lineHeight: 1.5 }}>
+                     {monthRev > 0
+                       ? `From $${monthRev.toFixed(2)} in orders this month — you're keeping about half 💪`
+                       : "No orders tracked this month yet"}
+                   </div>
+                 </div>
+                 {parseFloat(profitMarginPct) >= 40 && (
+                   <div style={{ background: "#fef3c7", borderRadius: 10, padding: "10px 14px", border: "1px solid #fde68a", fontSize: 13, color: "#92400e", fontWeight: "600" }}>
+                     ✨ Strong margins — your pricing is working!
+                   </div>
+                 )}
+                 {parseFloat(profitMarginPct) > 0 && parseFloat(profitMarginPct) < 30 && (
+                   <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", border: "1px solid #fca5a5", fontSize: 13, color: "#991b1b", fontWeight: "600" }}>
+                     ⚠️ Your margin is below 30% — consider raising prices on your most popular items.
+                   </div>
+                 )}
+               </div>
+             )}
              <div style={{ ...s.card, padding: 18 }}>
                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                  <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>📅 Today's Tasks</div>
@@ -1092,6 +1148,46 @@ function AppInner({ session }) {
                   }}>
                     {margin < 20 ? "⚠️ You may be underpricing" : margin < 40 ? "👍 Decent margin — room to grow" : "🎉 Great margin — you're pricing well!"}
                   </div>
+
+                  {(() => {
+                    const targetMarginPrice40 = breakEven > 0 ? +(breakEven / 0.60).toFixed(2) : null;
+                    const targetMarginPrice50 = breakEven > 0 ? +(breakEven / 0.50).toFixed(2) : null;
+                    return (
+                      <div style={{ marginTop: 14 }}>
+                        {margin < 20 && sp > 0 && targetMarginPrice40 && (
+                          <div style={{ background: "#fef3c7", borderRadius: 10, padding: "12px 14px", marginBottom: 10, border: "1px solid #fde68a" }}>
+                            <div style={{ fontSize: 12, fontWeight: "700", color: "#92400e", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>Pricing Suggestion</div>
+                            <div style={{ fontSize: 13, color: "#78350f", lineHeight: 1.6 }}>
+                              At your current price of <strong>${sp.toFixed(2)}</strong>, you're only making {margin.toFixed(1)}% margin.
+                              To reach a healthy <strong>40% margin</strong>, consider charging <strong>${targetMarginPrice40.toFixed(2)}</strong>.
+                            </div>
+                          </div>
+                        )}
+                        {margin >= 20 && margin < 40 && targetMarginPrice40 && sp < targetMarginPrice40 && (
+                          <div style={{ background: "#eff6ff", borderRadius: 10, padding: "12px 14px", marginBottom: 10, border: "1px solid #bfdbfe" }}>
+                            <div style={{ fontSize: 12, fontWeight: "700", color: "#1e40af", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>Room to Grow</div>
+                            <div style={{ fontSize: 13, color: "#1e3a8a", lineHeight: 1.6 }}>
+                              You could raise your price to <strong>${targetMarginPrice40.toFixed(2)}</strong> to hit a 40% margin.
+                              {targetMarginPrice50 && ` At 50% margin that's $${targetMarginPrice50.toFixed(2)} — still competitive for home bakers.`}
+                            </div>
+                          </div>
+                        )}
+                        {margin >= 40 && (
+                          <div style={{ background: "#f0fdf4", borderRadius: 10, padding: "12px 14px", marginBottom: 10, border: "1px solid #bbf7d0" }}>
+                            <div style={{ fontSize: 13, color: "#065f46", fontWeight: "600", lineHeight: 1.6 }}>
+                              🎉 This item has strong margins — you're pricing confidently and profitably!
+                              {margin >= 50 && " Your top earners like this one are the backbone of your bakery."}
+                            </div>
+                          </div>
+                        )}
+                        {laborHrs > 0 && earnings < laborRate && sp > 0 && (
+                          <div style={{ background: "#fdf2f8", borderRadius: 10, padding: "12px 14px", border: "1px solid #f0abfc", fontSize: 13, color: "#7e22ce", lineHeight: 1.6 }}>
+                            <strong>Your time matters.</strong> You're currently earning <strong>${earnings.toFixed(2)}/hr</strong>, which is below your target rate of ${laborRate}/hr. Consider adjusting your price or reducing prep time.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}
