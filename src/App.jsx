@@ -114,21 +114,39 @@ function PhotoUpload({ value, onChange, small }) {
 
 // ─── LOGIN SCREEN ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const [mode,     setMode]     = useState("login"); // login | signup | reset
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [msg,      setMsg]      = useState("");
-  const [error,    setError]    = useState("");
+  const [mode,           setMode]           = useState("login"); // login | signup | reset
+  const [email,          setEmail]          = useState("");
+  const [password,       setPassword]       = useState("");
+  const [loading,        setLoading]        = useState(false);
+  const [msg,            setMsg]            = useState("");
+  const [error,          setError]          = useState("");
+  const [gateError,      setGateError]      = useState(false);
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      setCheckoutSuccess(true);
+      setMode("signup");
+    }
+  }, []);
+
+  const clearAlerts = () => { setError(""); setMsg(""); setGateError(false); };
 
   const handle = async () => {
-    setLoading(true); setError(""); setMsg("");
+    setLoading(true); clearAlerts();
     try {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         onLogin();
       } else if (mode === "signup") {
+        const { data: paidUser } = await supabase.from("paid_users").select("id").eq("email", email).maybeSingle();
+        if (!paidUser) {
+          setGateError(true);
+          setLoading(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setMsg("Account created! Check your email to confirm, then log in.");
@@ -151,12 +169,27 @@ function LoginScreen({ onLogin }) {
           <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Your home bakery business manager</div>
         </div>
 
-        {msg   && <div style={{ background: "#d1fae5", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#065f46", marginBottom: 14 }}>{msg}</div>}
-        {error && <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 14 }}>{error}</div>}
+        {checkoutSuccess && (
+          <div style={{ background: "#dbeafe", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#1e40af", marginBottom: 14 }}>
+            <strong>Important:</strong> When creating your account, use this email address. Sign up at bakeflo.co
+          </div>
+        )}
+        {msg      && <div style={{ background: "#d1fae5", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#065f46", marginBottom: 14 }}>{msg}</div>}
+        {error    && <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 14 }}>{error}</div>}
+        {gateError && (
+          <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 14 }}>
+            This email hasn't been used to purchase BakeFlo. Please{" "}
+            <a href="https://buy.stripe.com/aFaaEWeHvaRT1aq7w04ko00" target="_blank" rel="noopener noreferrer" style={{ color: "#991b1b", fontWeight: "700" }}>purchase at bakeflo.io</a>
+            , then sign up using the same email.
+          </div>
+        )}
 
         <div style={{ marginBottom: 12 }}>
           <label style={s.label}>Email</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={s.input} />
+          {mode === "signup" && (
+            <p style={{ fontSize: 12, color: C.muted, margin: "4px 0 0", fontFamily: "'Inter', sans-serif" }}>Use the email address you purchased with</p>
+          )}
         </div>
 
         {mode !== "reset" && (
@@ -174,17 +207,17 @@ function LoginScreen({ onLogin }) {
         <div style={{ marginTop: 20, textAlign: "center", fontSize: 13 }}>
           {mode === "login" && <>
             <span style={{ color: C.muted }}>New here? </span>
-            <button onClick={() => { setMode("signup"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>Create account</button>
+            <button onClick={() => { setMode("signup"); clearAlerts(); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>Create account</button>
             <div style={{ marginTop: 8 }}>
-              <button onClick={() => { setMode("reset"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif" }}>Forgot password?</button>
+              <button onClick={() => { setMode("reset"); clearAlerts(); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif" }}>Forgot password?</button>
             </div>
           </>}
           {mode === "signup" && <>
             <span style={{ color: C.muted }}>Already have an account? </span>
-            <button onClick={() => { setMode("login"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>Log in</button>
+            <button onClick={() => { setMode("login"); clearAlerts(); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>Log in</button>
           </>}
           {mode === "reset" && (
-            <button onClick={() => { setMode("login"); setError(""); setMsg(""); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Back to login</button>
+            <button onClick={() => { setMode("login"); clearAlerts(); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Back to login</button>
           )}
         </div>
       </div>
