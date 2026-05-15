@@ -15,6 +15,15 @@ function getRawBody(req) {
   });
 }
 
+async function removeFromPaidUsers(customerId) {
+  const { error } = await supabase
+    .from("paid_users")
+    .delete()
+    .eq("stripe_customer_id", customerId);
+  if (error) console.error("paid_users delete error:", error);
+  return error;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).end("Method Not Allowed");
@@ -37,8 +46,7 @@ module.exports = async function handler(req, res) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const email =
-      session.customer_details?.email || session.customer_email;
+    const email = session.customer_details?.email || session.customer_email;
     const customerId = session.customer;
 
     if (email) {
@@ -51,9 +59,35 @@ module.exports = async function handler(req, res) {
         { onConflict: "email" }
       );
       if (error) {
-        console.error("Supabase insert error:", error);
+        console.error("Supabase upsert error:", error);
         return res.status(500).json({ error: "Database error" });
       }
+      console.log("paid_users: added", email);
+    }
+  }
+
+  // Subscription cancelled or deleted — revoke access immediately.
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object;
+    const customerId = subscription.customer;
+    console.log("Subscription deleted for customer:", customerId);
+    const err = await removeFromPaidUsers(customerId);
+    if (err) return res.status(500).json({ error: "Database error" });
+    console.log("paid_users: removed customer", customerId);
+  }
+
+  // Payment failed — remove after 3 consecutive failed attempts.
+  // Stripe retries automatically; by attempt 3 the subscription will typically cancel anyway.
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object;
+    const customerId = invoice.customer;
+    const attemptCount = invoice.attempt_count || 0;
+    console.log(`Payment failed for customer ${customerId} (attempt ${attemptCount})`);
+
+    if (attemptCount >= 3) {
+      console.log("3+ failed payments — revoking access for customer:", customerId);
+      const err = await removeFromPaidUsers(customerId);
+      if (err) return res.status(500).json({ error: "Database error" });
     }
   }
 
