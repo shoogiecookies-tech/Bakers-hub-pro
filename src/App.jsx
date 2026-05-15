@@ -172,14 +172,11 @@ function LoginScreen({ onLogin }) {
 
   return (
     <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${C.dark} 0%, ${C.accent} 60%, #d4722a 100%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Inter', sans-serif", position: "relative" }}>
-      {mode !== "login" && (
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "14px 24px" }}>
-          <button onClick={() => { setMode("login"); clearAlerts(); }} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: 13, fontFamily: "'Inter', sans-serif", padding: 0 }}>
-            Already a member?{" "}
-            <span style={{ color: "#fff", fontWeight: "600", textDecoration: "underline", textUnderlineOffset: 3 }}>Log in</span>
-          </button>
-        </div>
-      )}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "14px 24px" }}>
+        <button onClick={() => { setMode("login"); clearAlerts(); }} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif", fontWeight: "600" }}>
+          Log In
+        </button>
+      </div>
       <div style={{ background: "#fff", borderRadius: 24, padding: 32, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>🧁</div>
