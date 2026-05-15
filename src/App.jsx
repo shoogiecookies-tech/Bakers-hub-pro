@@ -141,13 +141,19 @@ function LoginScreen({ onLogin }) {
         if (error) throw error;
         onLogin();
       } else if (mode === "signup") {
-        const { data: paidUser } = await supabase.from("paid_users").select("id").eq("email", email).maybeSingle();
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: rows, error: lookupError } = await supabase
+          .from("paid_users")
+          .select("id")
+          .eq("email", normalizedEmail)
+          .limit(1);
+        const paidUser = !lookupError && rows && rows.length > 0 ? rows[0] : null;
         if (!paidUser) {
           setGateError(true);
           setLoading(false);
           return;
         }
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ email: normalizedEmail, password });
         if (error) throw error;
         setMsg("Account created! Check your email to confirm, then log in.");
         setMode("login");
