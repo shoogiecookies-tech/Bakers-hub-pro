@@ -142,17 +142,21 @@ function LoginScreen({ onLogin }) {
         onLogin();
       } else if (mode === "signup") {
         const normalizedEmail = email.trim().toLowerCase();
+        console.log("[BakeFlo signup] checking paid_users for:", normalizedEmail);
         const { data: rows, error: lookupError } = await supabase
           .from("paid_users")
           .select("id")
           .eq("email", normalizedEmail)
           .limit(1);
+        console.log("[BakeFlo signup] paid_users result:", { rows, lookupError });
         const paidUser = !lookupError && rows && rows.length > 0 ? rows[0] : null;
+        console.log("[BakeFlo signup] paidUser:", paidUser, "→ gate blocks:", !paidUser);
         if (!paidUser) {
           setGateError(true);
           setLoading(false);
           return;
         }
+        console.log("[BakeFlo signup] gate passed — calling signUp");
         const { error } = await supabase.auth.signUp({ email: normalizedEmail, password });
         if (error) throw error;
         setMsg("Account created! Check your email to confirm, then log in.");
