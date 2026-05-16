@@ -840,7 +840,7 @@ function AppInner({ session, onSignOut }) {
       `}</style>
 
       {/* HEADER */}
-      <div style={{ background: "linear-gradient(135deg, #1e2d4a 0%, #1f3d50 45%, #2c4a38 100%)", padding: "26px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: "#1e2d4a", padding: "26px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -30, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(200,147,90,0.08)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: 10, left: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
