@@ -389,6 +389,9 @@ function AppInner({ session, onSignOut }) {
       const loadedPantry = (pantryData || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost }));
       const loadedRecipes = (recipesData || []).map(r => ({ ...r, ingredients: r.ingredients || [] }));
 
+      // If pantry is empty, clear any stale seeded flag so we always retry
+      if (loadedPantry.length === 0) localStorage.removeItem(`seeded_${uid}`);
+
       if (loadedPantry.length === 0 && !localStorage.getItem(`seeded_${uid}`)) {
         const starterItems = [
           { name: "All-Purpose Flour",       unit: "cup",  store_unit: "5 lb bag",         store_cost: 4.98, yields: 18   },
