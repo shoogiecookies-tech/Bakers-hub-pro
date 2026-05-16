@@ -400,6 +400,7 @@ function AppInner({ session, onSignOut }) {
           { name: "Semi-Sweet Chocolate Chips", unit: "cup", store_unit: "12 oz bag",       store_cost: 4.99, yields: 2    },
           { name: "Cocoa Powder",             unit: "cup",  store_unit: "8 oz can",         store_cost: 5.99, yields: 2.25 },
           { name: "Heavy Cream",              unit: "cup",  store_unit: "pint",             store_cost: 3.99, yields: 2    },
+          { name: "Meringue Powder",           unit: "tbsp", store_unit: "4 oz can",         store_cost: 7.99, yields: 12   },
         ];
         const { data: seededPantry } = await supabase.from("pantry").insert(
           starterItems.map(item => ({
