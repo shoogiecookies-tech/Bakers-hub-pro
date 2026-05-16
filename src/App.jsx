@@ -271,9 +271,9 @@ function AppInner({ session, onSignOut }) {
   const uid = session.user.id;
   const [tab, setTab] = useState("Dashboard");
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  const handleSignOut = () => {
     onSignOut();
+    supabase.auth.signOut();
   };
 
   // Data
