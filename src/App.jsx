@@ -142,23 +142,24 @@ function LoginScreen({ onLogin }) {
         onLogin();
       } else if (mode === "signup") {
         const normalizedEmail = email.trim().toLowerCase();
-        console.log("[BakeFlo signup] checking paid_users for:", normalizedEmail);
         const { data: rows, error: lookupError } = await supabase
           .from("paid_users")
           .select("id")
           .eq("email", normalizedEmail)
           .limit(1);
-        console.log("[BakeFlo signup] paid_users result:", { rows, lookupError });
         const paidUser = !lookupError && rows && rows.length > 0 ? rows[0] : null;
-        console.log("[BakeFlo signup] paidUser:", paidUser, "→ gate blocks:", !paidUser);
         if (!paidUser) {
           setGateError(true);
           setLoading(false);
           return;
         }
-        console.log("[BakeFlo signup] gate passed — calling signUp");
         const { error } = await supabase.auth.signUp({ email: normalizedEmail, password });
         if (error) throw error;
+        fetch("/api/send-welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: normalizedEmail }),
+        }).catch(() => {});
         setMsg("Account created! Check your email to confirm, then log in.");
         setMode("login");
       } else {
@@ -276,6 +277,8 @@ function AppInner({ session, onSignOut }) {
     onSignOut();
     supabase.auth.signOut();
   };
+
+  const [guideVisible, setGuideVisible] = useState(() => !localStorage.getItem("qsg_dismissed"));
 
   // Data
   const [pantry,   setPantry]   = useState([]);
@@ -790,6 +793,19 @@ function AppInner({ session, onSignOut }) {
                <div style={{ fontSize: 22, fontWeight: "700", color: C.dark, letterSpacing: "-0.3px" }}>{timeGreet}, {bakeryName.split(" ")[0]}! 👋</div>
                <div style={{ fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>{dayMessages[dow]}</div>
              </div>
+             {guideVisible ? (
+               <div style={{ background: "linear-gradient(135deg, #b85c38 0%, #c8935a 100%)", borderRadius: 14, padding: "16px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 3px 14px rgba(184,92,56,0.28)" }}>
+                 <div style={{ fontSize: 26, flexShrink: 0 }}>📖</div>
+                 <div style={{ flex: 1, minWidth: 0 }}>
+                   <div style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Quick Start Guide</div>
+                   <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>New to BakeFlo? Set up your bakery in minutes.</div>
+                 </div>
+                 <a href="https://drive.google.com/file/d/1DYqWp_448JEVRwi6NC_sI8fbRsQGgZwI/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#b85c38", borderRadius: 20, padding: "7px 16px", fontSize: 13, fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>Open Guide</a>
+                 <button onClick={() => { localStorage.setItem("qsg_dismissed", "1"); setGuideVisible(false); }} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", width: 26, height: 26, borderRadius: "50%", cursor: "pointer", fontSize: 15, lineHeight: "26px", flexShrink: 0, fontFamily: "'Inter', sans-serif" }}>×</button>
+               </div>
+             ) : (
+               <a href="https://drive.google.com/file/d/1DYqWp_448JEVRwi6NC_sI8fbRsQGgZwI/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.accent, textDecoration: "none", fontWeight: "600", marginBottom: 14 }}>📖 Quick Start Guide</a>
+             )}
              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
                {[
                  { label: "DELIVERED", sub: "revenue", value: `$${deliveredRev.toFixed(2)}`, icon: "💰", color: "#059669", bg: "#f0fdf4", iconBg: "#dcfce7" },
