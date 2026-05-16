@@ -186,6 +186,7 @@ function LoginScreen({ onLogin }) {
           <div style={{ fontSize: 48, marginBottom: 8 }}>🧁</div>
           <div style={{ fontSize: 22, fontWeight: "bold", color: C.dark, fontFamily: "'Playfair Display', serif" }}>BakeFlo</div>
           <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Your home bakery business manager</div>
+          {mode === "login" && <div style={{ fontSize: 14, color: C.dark, marginTop: 10, fontWeight: "500" }}>Welcome back! Log in to your account.</div>}
         </div>
 
         {checkoutSuccess && (
