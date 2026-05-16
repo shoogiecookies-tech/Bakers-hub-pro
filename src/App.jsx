@@ -359,6 +359,11 @@ function AppInner({ session, onSignOut }) {
   const [giftedUsers,  setGiftedUsers]  = useState([]);
   const [giftLoading,  setGiftLoading]  = useState(false);
   const [giftMsg,      setGiftMsg]      = useState("");
+  const [pwCurrent,    setPwCurrent]    = useState("");
+  const [pwNew,        setPwNew]        = useState("");
+  const [pwConfirm,    setPwConfirm]    = useState("");
+  const [pwMsg,        setPwMsg]        = useState("");
+  const [pwLoading,    setPwLoading]    = useState(false);
 
   // ── Load all data from Supabase ──────────────────────────────────────────────
   useEffect(() => {
@@ -525,13 +530,32 @@ function AppInner({ session, onSignOut }) {
     if (!giftEmail || !giftPassword) return;
     setGiftLoading(true);
     setGiftMsg("");
-    const { error } = await supabase.auth.signUp({ email: giftEmail, password: giftPassword });
-    if (error) { setGiftMsg("Error: " + error.message); setGiftLoading(false); return; }
-    await supabase.from("gifted_users").insert([{ email: giftEmail, notes: giftNotes, created_by: uid }]);
-    setGiftMsg("Account created for " + giftEmail + "!");
-    setGiftEmail(""); setGiftPassword(""); setGiftNotes("");
-    loadGiftedUsers();
+    try {
+      const res = await fetch("/api/gift-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: giftEmail, password: giftPassword, notes: giftNotes, created_by: uid }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setGiftMsg("Error: " + (json.error || "Unknown error")); setGiftLoading(false); return; }
+      setGiftMsg("Account created for " + giftEmail + " — they can log in immediately, no email confirmation needed.");
+      setGiftEmail(""); setGiftPassword(""); setGiftNotes("");
+      loadGiftedUsers();
+    } catch (e) {
+      setGiftMsg("Error: " + e.message);
+    }
     setGiftLoading(false);
+  };
+
+  const changePassword = async () => {
+    setPwMsg("");
+    if (!pwNew || pwNew.length < 6) { setPwMsg("Password must be at least 6 characters."); return; }
+    if (pwNew !== pwConfirm) { setPwMsg("Passwords do not match."); return; }
+    setPwLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: pwNew });
+    if (error) { setPwMsg("Error: " + error.message); }
+    else { setPwMsg("✓ Password updated successfully!"); setPwNew(""); setPwConfirm(""); setPwCurrent(""); }
+    setPwLoading(false);
   };
 
   const revokeGiftedUser = async (id) => {
@@ -1639,6 +1663,15 @@ function AppInner({ session, onSignOut }) {
               <div style={{ fontSize: 13, color: C.mid, marginBottom: 12 }}>Signed in as <strong>{session.user.email}</strong></div>
               <button onClick={handleSignOut} style={s.btnSec}>Sign Out</button>
             </div>
+            <div style={s.card}>
+              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🔑 Change Password</div>
+              <label style={s.label}>New Password</label>
+              <input type="password" placeholder="At least 6 characters" value={pwNew} onChange={e => setPwNew(e.target.value)} style={s.input} />
+              <label style={{ ...s.label, marginTop: 10 }}>Confirm New Password</label>
+              <input type="password" placeholder="Repeat new password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} style={s.input} />
+              {pwMsg && <div style={{ fontSize: 13, color: pwMsg.startsWith("✓") ? "#16A34A" : "#DC2626", marginTop: 8 }}>{pwMsg}</div>}
+              <button onClick={changePassword} disabled={pwLoading} style={{ ...s.btn, marginTop: 12, opacity: pwLoading ? 0.6 : 1 }}>{pwLoading ? "Saving..." : "Update Password"}</button>
+            </div>
           </div>
         )}
 
@@ -1656,7 +1689,7 @@ function AppInner({ session, onSignOut }) {
                 <label style={{ ...s.label, marginTop: 10 }}>Notes (optional)</label>
                 <input value={giftNotes} onChange={e => setGiftNotes(e.target.value)} placeholder="e.g. Gift for holiday promo" style={s.input} />
                 {giftMsg && <div style={{ fontSize: 13, color: giftMsg.startsWith("Error") ? "#DC2626" : "#16A34A", marginTop: 8 }}>{giftMsg}</div>}
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 6, marginBottom: 10 }}>The new user will receive a confirmation email. They must confirm before logging in, unless email confirmation is disabled in your Supabase settings.</div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 6, marginBottom: 10 }}>Account is created server-side with email pre-confirmed — the user can log in immediately with these credentials. Share the password with them directly; they can change it in Settings.</div>
                 <button onClick={giftAccount} disabled={giftLoading} style={{ ...s.btn, opacity: giftLoading ? 0.6 : 1 }}>{giftLoading ? "Creating..." : "Create Account"}</button>
               </div>
 
