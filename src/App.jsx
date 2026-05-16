@@ -9,8 +9,8 @@ const supabase = createClient(
 
 // ─── COLORS & STYLES ──────────────────────────────────────────────────────────
 const C = {
-  bg: "#faf5ee", card: "#fffcf7", accent: "#b85c38", dark: "#152937",
-  caramel: "#c8935a", light: "#f5ede0", border: "#e8dfd0", text: "#152937", muted: "#7a6a58", mid: "#3d2e1e",
+  bg: "#faf5ee", card: "#fffcf7", accent: "#c0653d", dark: "#1e2d4a",
+  caramel: "#c8935a", light: "#f5ede0", border: "#e8dfd0", text: "#1e2d4a", muted: "#7a6a58", mid: "#3d2e1e",
 };
 const s = {
   card: { background: C.card, borderRadius: 16, padding: 16, boxShadow: "0 2px 16px rgba(124,58,30,0.07)", border: `1px solid ${C.border}`, marginBottom: 12 },
@@ -840,7 +840,7 @@ function AppInner({ session, onSignOut }) {
       `}</style>
 
       {/* HEADER */}
-      <div style={{ background: "linear-gradient(135deg, #152937 0%, #1f3d50 45%, #2c4a38 100%)", padding: "26px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: "linear-gradient(135deg, #1e2d4a 0%, #1f3d50 45%, #2c4a38 100%)", padding: "26px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -30, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(200,147,90,0.08)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: 10, left: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -894,13 +894,13 @@ function AppInner({ session, onSignOut }) {
                <div style={{ fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>{dayMessages[dow]}</div>
              </div>
              {guideVisible ? (
-               <div style={{ background: "linear-gradient(135deg, #b85c38 0%, #c8935a 100%)", borderRadius: 14, padding: "16px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 3px 14px rgba(184,92,56,0.28)" }}>
+               <div style={{ background: "linear-gradient(135deg, #c0653d 0%, #d4814f 100%)", borderRadius: 14, padding: "16px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 3px 14px rgba(192,101,61,0.28)" }}>
                  <div style={{ fontSize: 26, flexShrink: 0 }}>📖</div>
                  <div style={{ flex: 1, minWidth: 0 }}>
                    <div style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Quick Start Guide</div>
                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>New to BakeFlo? Set up your bakery in minutes.</div>
                  </div>
-                 <a href="https://drive.google.com/file/d/1DYqWp_448JEVRwi6NC_sI8fbRsQGgZwI/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#b85c38", borderRadius: 20, padding: "7px 16px", fontSize: 13, fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>Open Guide</a>
+                 <a href="https://drive.google.com/file/d/1DYqWp_448JEVRwi6NC_sI8fbRsQGgZwI/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#c0653d", borderRadius: 20, padding: "7px 16px", fontSize: 13, fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>Open Guide</a>
                  <button onClick={() => { localStorage.setItem("qsg_dismissed", "1"); setGuideVisible(false); }} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", width: 26, height: 26, borderRadius: "50%", cursor: "pointer", fontSize: 15, lineHeight: "26px", flexShrink: 0, fontFamily: "'Inter', sans-serif" }}>×</button>
                </div>
              ) : (
@@ -1737,7 +1737,7 @@ CREATE POLICY "owner_only" ON gifted_users
           ? new Date(ord.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
           : "Upon delivery";
         const total = parseFloat(ord.total || 0).toFixed(2);
-        const NAVY = "#152937"; const RUST = "#C0653D"; const CREAM = "#F9FAFB"; const BORDER = "#e2e8f0";
+        const NAVY = "#1e2d4a"; const RUST = "#C0653D"; const CREAM = "#F9FAFB"; const BORDER = "#e2e8f0";
         return (
           <div id="bfinv" style={{ position: "fixed", inset: 0, zIndex: 9999, background: CREAM, overflowY: "auto", fontFamily: "Georgia, serif", color: NAVY }}>
             <style>{`@media print { body > *:not(#bfinv){display:none!important} #bfinv{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
