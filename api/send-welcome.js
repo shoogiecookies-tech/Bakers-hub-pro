@@ -86,24 +86,40 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: "Email service not configured" });
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "BakeFlo <hello@bakeflo.io>",
-      to: email,
-      subject: "Welcome to BakeFlo! 🍪 Here's how to get started.",
-      html: buildHtml(email),
-    }),
-  });
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    console.error("Resend error:", err);
+  const [emailRes, audienceRes] = await Promise.all([
+    fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        from: "BakeFlo <hello@bakeflo.io>",
+        to: email,
+        subject: "Welcome to BakeFlo! 🍪 Here's how to get started.",
+        html: buildHtml(email),
+      }),
+    }),
+    process.env.RESEND_AUDIENCE_ID
+      ? fetch(`https://api.resend.com/audiences/${process.env.RESEND_AUDIENCE_ID}/contacts`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ email, unsubscribed: false }),
+        })
+      : Promise.resolve(null),
+  ]);
+
+  if (!emailRes.ok) {
+    const err = await emailRes.json().catch(() => ({}));
+    console.error("Resend email error:", err);
     return res.status(500).json({ error: "Failed to send email" });
+  }
+
+  if (audienceRes && !audienceRes.ok) {
+    const err = await audienceRes.json().catch(() => ({}));
+    console.error("Resend audience error (non-fatal):", err);
   }
 
   return res.status(200).json({ sent: true });
