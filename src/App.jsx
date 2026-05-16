@@ -737,8 +737,8 @@ function AppInner({ session, onSignOut }) {
 
       {/* HEADER */}
       <div style={{ background: "linear-gradient(135deg, #152937 0%, #1f3d50 45%, #2c4a38 100%)", padding: "26px 20px 0", color: "#fff", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -30, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(200,147,90,0.08)" }} />
-        <div style={{ position: "absolute", bottom: 10, left: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.03)" }} />
+        <div style={{ position: "absolute", top: -30, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(200,147,90,0.08)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: 10, left: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {bakeryLogo
             ? <img src={bakeryLogo} alt="logo" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover", border: "2px solid rgba(255,255,255,0.3)" }} />
