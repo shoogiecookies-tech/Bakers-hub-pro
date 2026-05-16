@@ -402,7 +402,7 @@ function AppInner({ session, onSignOut }) {
           { name: "Heavy Cream",              unit: "cup",  store_unit: "pint",             store_cost: 3.99, yields: 2    },
           { name: "Meringue Powder",           unit: "tbsp", store_unit: "4 oz can",         store_cost: 7.99, yields: 12   },
         ];
-        const { data: seededPantry } = await supabase.from("pantry").insert(
+        const { data: seededPantry, error: pantryErr } = await supabase.from("pantry").insert(
           starterItems.map(item => ({
             user_id:    uid,
             name:       item.name,
@@ -413,68 +413,72 @@ function AppInner({ session, onSignOut }) {
           }))
         ).select();
 
-        const idOf = name => (seededPantry || []).find(p => p.name === name)?.id || null;
+        if (pantryErr || !seededPantry?.length) {
+          console.error("Starter pantry insert failed:", pantryErr);
+        } else {
+          const idOf = name => seededPantry.find(p => p.name === name)?.id || null;
 
-        const starterRecipes = [
-          {
-            name: "Classic Chocolate Chip Cookies",
-            servings: 24,
-            notes: "Crispy edges, chewy centers — a crowd favorite.",
-            ingredients: [
-              { pantryId: idOf("All-Purpose Flour"),        qty: 2.25, unit: "cup"  },
-              { pantryId: idOf("Baking Soda"),              qty: 1,    unit: "tsp"  },
-              { pantryId: idOf("Salt"),                     qty: 1,    unit: "tsp"  },
-              { pantryId: idOf("Unsalted Butter"),          qty: 16,   unit: "tbsp" },
-              { pantryId: idOf("Granulated Sugar"),         qty: 0.75, unit: "cup"  },
-              { pantryId: idOf("Brown Sugar"),              qty: 0.75, unit: "cup"  },
-              { pantryId: idOf("Large Eggs"),               qty: 2,    unit: "pc"   },
-              { pantryId: idOf("Vanilla Extract"),          qty: 1,    unit: "tsp"  },
-              { pantryId: idOf("Semi-Sweet Chocolate Chips"), qty: 2,  unit: "cup"  },
-            ],
-          },
-          {
-            name: "Classic Vanilla Birthday Cake",
-            servings: 12,
-            notes: "Fluffy two-layer vanilla cake with buttercream frosting.",
-            ingredients: [
-              { pantryId: idOf("All-Purpose Flour"),  qty: 3,    unit: "cup"  },
-              { pantryId: idOf("Baking Powder"),      qty: 3,    unit: "tsp"  },
-              { pantryId: idOf("Salt"),               qty: 0.5,  unit: "tsp"  },
-              { pantryId: idOf("Unsalted Butter"),    qty: 16,   unit: "tbsp" },
-              { pantryId: idOf("Granulated Sugar"),   qty: 2,    unit: "cup"  },
-              { pantryId: idOf("Large Eggs"),         qty: 4,    unit: "pc"   },
-              { pantryId: idOf("Vanilla Extract"),    qty: 2,    unit: "tsp"  },
-              { pantryId: idOf("Whole Milk"),         qty: 1,    unit: "cup"  },
-              { pantryId: idOf("Powdered Sugar"),     qty: 4,    unit: "cup"  },
-              { pantryId: idOf("Heavy Cream"),        qty: 0.25, unit: "cup"  },
-            ],
-          },
-          {
-            name: "Fudgy Brownies",
-            servings: 16,
-            notes: "Dense, rich, and intensely chocolatey — baked in a 9×13 pan.",
-            ingredients: [
-              { pantryId: idOf("Unsalted Butter"),    qty: 16,   unit: "tbsp" },
-              { pantryId: idOf("Granulated Sugar"),   qty: 2,    unit: "cup"  },
-              { pantryId: idOf("Large Eggs"),         qty: 4,    unit: "pc"   },
-              { pantryId: idOf("Vanilla Extract"),    qty: 2,    unit: "tsp"  },
-              { pantryId: idOf("Cocoa Powder"),       qty: 0.75, unit: "cup"  },
-              { pantryId: idOf("All-Purpose Flour"),  qty: 1,    unit: "cup"  },
-              { pantryId: idOf("Salt"),               qty: 0.5,  unit: "tsp"  },
-              { pantryId: idOf("Baking Powder"),      qty: 0.5,  unit: "tsp"  },
-            ],
-          },
-        ];
-        await supabase.from("recipes").insert(
-          starterRecipes.map(r => ({
-            user_id:     uid,
-            name:        r.name,
-            servings:    r.servings,
-            notes:       r.notes,
-            ingredients: r.ingredients,
-          }))
-        );
-        localStorage.setItem(`seeded_${uid}`, "1");
+          const starterRecipes = [
+            {
+              name: "Classic Chocolate Chip Cookies",
+              servings: 24,
+              notes: "Crispy edges, chewy centers — a crowd favorite.",
+              ingredients: [
+                { pantryId: idOf("All-Purpose Flour"),          amount: 2.25, unit: "cup"  },
+                { pantryId: idOf("Baking Soda"),                amount: 1,    unit: "tsp"  },
+                { pantryId: idOf("Salt"),                       amount: 1,    unit: "tsp"  },
+                { pantryId: idOf("Unsalted Butter"),            amount: 16,   unit: "tbsp" },
+                { pantryId: idOf("Granulated Sugar"),           amount: 0.75, unit: "cup"  },
+                { pantryId: idOf("Brown Sugar"),                amount: 0.75, unit: "cup"  },
+                { pantryId: idOf("Large Eggs"),                 amount: 2,    unit: "pc"   },
+                { pantryId: idOf("Vanilla Extract"),            amount: 1,    unit: "tsp"  },
+                { pantryId: idOf("Semi-Sweet Chocolate Chips"), amount: 2,    unit: "cup"  },
+              ],
+            },
+            {
+              name: "Classic Vanilla Birthday Cake",
+              servings: 12,
+              notes: "Fluffy two-layer vanilla cake with buttercream frosting.",
+              ingredients: [
+                { pantryId: idOf("All-Purpose Flour"),  amount: 3,    unit: "cup"  },
+                { pantryId: idOf("Baking Powder"),      amount: 3,    unit: "tsp"  },
+                { pantryId: idOf("Salt"),               amount: 0.5,  unit: "tsp"  },
+                { pantryId: idOf("Unsalted Butter"),    amount: 16,   unit: "tbsp" },
+                { pantryId: idOf("Granulated Sugar"),   amount: 2,    unit: "cup"  },
+                { pantryId: idOf("Large Eggs"),         amount: 4,    unit: "pc"   },
+                { pantryId: idOf("Vanilla Extract"),    amount: 2,    unit: "tsp"  },
+                { pantryId: idOf("Whole Milk"),         amount: 1,    unit: "cup"  },
+                { pantryId: idOf("Powdered Sugar"),     amount: 4,    unit: "cup"  },
+                { pantryId: idOf("Heavy Cream"),        amount: 0.25, unit: "cup"  },
+              ],
+            },
+            {
+              name: "Fudgy Brownies",
+              servings: 16,
+              notes: "Dense, rich, and intensely chocolatey — baked in a 9×13 pan.",
+              ingredients: [
+                { pantryId: idOf("Unsalted Butter"),    amount: 16,   unit: "tbsp" },
+                { pantryId: idOf("Granulated Sugar"),   amount: 2,    unit: "cup"  },
+                { pantryId: idOf("Large Eggs"),         amount: 4,    unit: "pc"   },
+                { pantryId: idOf("Vanilla Extract"),    amount: 2,    unit: "tsp"  },
+                { pantryId: idOf("Cocoa Powder"),       amount: 0.75, unit: "cup"  },
+                { pantryId: idOf("All-Purpose Flour"),  amount: 1,    unit: "cup"  },
+                { pantryId: idOf("Salt"),               amount: 0.5,  unit: "tsp"  },
+                { pantryId: idOf("Baking Powder"),      amount: 0.5,  unit: "tsp"  },
+              ],
+            },
+          ];
+          await supabase.from("recipes").insert(
+            starterRecipes.map(r => ({
+              user_id:     uid,
+              name:        r.name,
+              servings:    r.servings,
+              notes:       r.notes,
+              ingredients: r.ingredients,
+            }))
+          );
+          localStorage.setItem(`seeded_${uid}`, "1");
+        }
 
         const { data: freshPantry }   = await supabase.from("pantry").select("*").eq("user_id", uid).order("name");
         const { data: freshRecipes }  = await supabase.from("recipes").select("*").eq("user_id", uid).order("name");
