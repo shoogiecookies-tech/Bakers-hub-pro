@@ -136,10 +136,14 @@ async function handler(req, res) {
   }
 
   // Always return data via service role (bypasses RLS for the caller)
-  const [{ data: pantryData }, { data: recipesData }] = await Promise.all([
+  const [{ data: pantryData, error: pantryErr }, { data: recipesData }] = await Promise.all([
     admin.from("pantry").select("*").eq("user_id", user.id).order("name"),
     admin.from("recipes").select("*").eq("user_id", user.id).order("name"),
   ]);
+  if (pantryErr) {
+    console.error("seed-starter pantry fetch error:", pantryErr.message);
+    return res.status(500).json({ error: "Pantry fetch failed: " + pantryErr.message });
+  }
   return res.status(200).json({ ok: true, skipped: !!(existing && existing.length > 0), pantry: pantryData || [], recipes: recipesData || [] });
 }
 
