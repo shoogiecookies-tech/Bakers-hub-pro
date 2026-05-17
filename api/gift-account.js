@@ -1,4 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
+const { seedForUser } = require("./seed-starter");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end("Method Not Allowed");
@@ -39,8 +40,17 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: error.message });
   }
 
+  const userId = data.user?.id;
+
   // Record in gifted_users table
   await supabase.from("gifted_users").insert([{ email, notes: notes || null, created_by: created_by || null }]);
 
-  return res.status(200).json({ ok: true, userId: data.user?.id });
+  // Seed starter pantry + recipes immediately using service role (bypasses RLS)
+  try {
+    await seedForUser(userId, supabase);
+  } catch (e) {
+    console.error("gift-account seed error (non-fatal):", e.message);
+  }
+
+  return res.status(200).json({ ok: true, userId });
 };
