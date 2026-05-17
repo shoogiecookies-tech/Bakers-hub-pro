@@ -622,14 +622,17 @@ function AppInner({ session, onSignOut }) {
   // ── Orders ────────────────────────────────────────────────────────────────
   const addOrder = async () => {
     if (!newOrder.customer) return;
-    const { data } = await supabase.from("orders").insert([{
+    const { data, error: insertErr } = await supabase.from("orders").insert([{
       user_id: uid, customer: newOrder.customer, item: newOrder.item,
       due: newOrder.due || null, status: newOrder.status,
       total: parseFloat(newOrder.total) || 0, notes: newOrder.notes, phone: newOrder.phone, email: newOrder.email || null
     }]).select().single();
+    if (insertErr) {
+      alert("Order could not be saved: " + insertErr.message);
+      return;
+    }
     if (data) {
-      const updatedOrders = [...orders, data];
-      setOrders(updatedOrders);
+      setOrders(prev => [...prev, data]);
       // Auto-generate tasks
       const tasks = generateTasksFromOrder(data);
       for (const t of tasks) {
@@ -658,7 +661,8 @@ function AppInner({ session, onSignOut }) {
       due: editOrder.due || null, status: editOrder.status,
       total: parseFloat(editOrder.total) || 0, notes: editOrder.notes, phone: editOrder.phone, email: editOrder.email || null
     };
-    await supabase.from("orders").update(updates).eq("id", editingOrder);
+    const { error: updateErr } = await supabase.from("orders").update(updates).eq("id", editingOrder);
+    if (updateErr) { alert("Order could not be updated: " + updateErr.message); return; }
     setOrders(prev => prev.map(o => o.id === editingOrder ? { ...o, ...updates } : o));
     setEditingOrder(null); setEditOrder(null);
   };
