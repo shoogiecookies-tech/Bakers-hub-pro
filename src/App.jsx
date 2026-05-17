@@ -359,7 +359,6 @@ function AppInner({ session, onSignOut }) {
   const [giftedUsers,  setGiftedUsers]  = useState([]);
   const [giftLoading,  setGiftLoading]  = useState(false);
   const [giftMsg,      setGiftMsg]      = useState("");
-  const [pwCurrent,    setPwCurrent]    = useState("");
   const [pwNew,        setPwNew]        = useState("");
   const [pwConfirm,    setPwConfirm]    = useState("");
   const [pwMsg,        setPwMsg]        = useState("");
@@ -557,7 +556,7 @@ function AppInner({ session, onSignOut }) {
     setPwLoading(true);
     const { error } = await supabase.auth.updateUser({ password: pwNew });
     if (error) { setPwMsg("Error: " + error.message); }
-    else { setPwMsg("✓ Password updated successfully!"); setPwNew(""); setPwConfirm(""); setPwCurrent(""); }
+    else { setPwMsg("✓ Password updated successfully!"); setPwNew(""); setPwConfirm(""); }
     setPwLoading(false);
   };
 
