@@ -800,9 +800,6 @@ function AppInner({ session, onSignOut }) {
   const todayStr       = new Date().toISOString().split("T")[0];
   const todayTasks     = schedule.filter(t => !t.done && t.date === todayStr);
   const scheduledPosts = social.filter(p => p.status === "Scheduled").length;
-  const thisMonth      = new Date().toISOString().slice(0, 7);
-  const monthOrders    = orders.filter(o => (o.created_at || "").startsWith(thisMonth));
-  const monthRev       = monthOrders.reduce((s, o) => s + (o.total || 0), 0);
   const itemRevMap     = {};
   orders.forEach(o => { if (o.item) itemRevMap[o.item] = (itemRevMap[o.item] || 0) + (o.total || 0); });
   const itemRevEntries = Object.entries(itemRevMap).sort((a, b) => b[1] - a[1]);
