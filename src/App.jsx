@@ -606,7 +606,7 @@ function AppInner({ session, onSignOut }) {
   };
 
   // ── Pricing ──────────────────────────────────────────────────────────────
-  const calcPrice = () => {
+  const calcPriceInputs = () => {
     let ingCost = 0;
     if (pricingRecId) {
       const rec = recipes.find(r => r.id === parseInt(pricingRecId));
@@ -616,7 +616,14 @@ function AppInner({ session, onSignOut }) {
     const labor  = laborHrs * laborRate;
     const sub    = ingCost + labor;
     const withOH = sub * (1 + overhead / 100);
-    setPriceResult({ ingCost, labor, sub, withOH });
+    return { ingCost, labor, sub, withOH };
+  };
+  const calcPrice = () => setPriceResult(calcPriceInputs());
+  const suggestPrice = () => {
+    const result = calcPriceInputs();
+    const suggested = +(result.withOH * 1.40).toFixed(2);
+    setSellingPrice(suggested > 0 ? String(suggested) : "");
+    setPriceResult(result);
   };
 
   // ── Orders ────────────────────────────────────────────────────────────────
@@ -1207,7 +1214,8 @@ function AppInner({ session, onSignOut }) {
         {/* ══════════ PRICING ══════════ */}
         {tab === "Pricing" && (
           <div>
-            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>Pricing Calculator</div>
+            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 6 }}>Pricing Calculator</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>Enter your recipe costs and labor, then set your selling price or let BakeFlo suggest one.</div>
             <div style={s.card}>
               <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, marginBottom: 8 }}>STEP 1 — Link a Recipe (optional)</div>
               <select value={pricingRecId} onChange={e => { setPricingRecId(e.target.value); if (e.target.value) { const r = recipes.find(r => r.id === parseInt(e.target.value)); if (r) { setPricingSvgs(r.servings); setSellQty(r.servings); } } }} style={s.input}>
@@ -1251,7 +1259,8 @@ function AppInner({ session, onSignOut }) {
                   style={{ ...s.input, fontSize: 16, fontWeight: "700" }}
                 />
               </div>
-              <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 14, padding: 12, fontSize: 14, background: "#C0653D" }}>Calculate Price →</button>
+              <button onClick={suggestPrice} style={{ ...s.btnSec, width: "100%", marginTop: 12, padding: 11, fontSize: 13 }}>✨ Suggest a Price — ingredients + labor + 40% markup</button>
+              <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 8, padding: 12, fontSize: 14, background: "#C0653D" }}>Calculate Price →</button>
             </div>
             {priceResult && (() => {
               const sp = parseFloat(sellingPrice) || 0;
