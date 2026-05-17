@@ -1411,7 +1411,6 @@ function AppInner({ session, onSignOut }) {
                       <div style={{ textAlign: "right" }}><div style={{ fontWeight: "bold", fontSize: 18, color: C.dark }}>${o.total}</div><span style={s.tag(STATUS_COLORS[o.status])}>{o.status}</span></div>
                     </div>
                     {o.notes && <div style={{ background: C.light, borderRadius: 8, padding: "8px 10px", marginTop: 10, fontSize: 13, color: C.mid, fontStyle: "italic" }}>📝 {o.notes}</div>}
-                    {o.total > 0 && <div style={{ fontSize: 12, color: "#10b981", marginTop: 6 }}>Est. profit: <strong>${(o.total * 0.50).toFixed(2)}</strong> <span style={{ color: C.muted }}>(~50% margin estimate)</span></div>}
                     <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                       {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${STATUS_COLORS[st]}`, background: o.status === st ? STATUS_COLORS[st] : "#fff", color: o.status === st ? "#fff" : STATUS_COLORS[st], cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
