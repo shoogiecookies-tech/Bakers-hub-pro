@@ -390,16 +390,22 @@ function AppInner({ session, onSignOut }) {
       const loadedRecipes = (recipesData || []).map(r => ({ ...r, ingredients: r.ingredients || [] }));
 
       if (loadedPantry.length === 0) {
-        // Seed via server endpoint — uses service role, bypasses RLS
+        // Client-side SELECT returned 0 — call server endpoint (service role bypasses RLS)
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
+        let serverPantry = null;
+        let serverRecipes = null;
         let seedError = null;
         try {
           const seedRes = await fetch("/api/seed-starter", {
             method: "POST",
             headers: { "Authorization": `Bearer ${token}` },
           });
-          if (!seedRes.ok) {
+          if (seedRes.ok) {
+            const json = await seedRes.json();
+            serverPantry = json.pantry || null;
+            serverRecipes = json.recipes || null;
+          } else {
             const errJson = await seedRes.json().catch(() => ({}));
             seedError = errJson.error || `HTTP ${seedRes.status}`;
           }
@@ -410,10 +416,15 @@ function AppInner({ session, onSignOut }) {
           console.error("Seed failed:", seedError);
           setSeedMsg("⚠️ Could not load starter data: " + seedError);
         }
-        const { data: freshPantry }  = await supabase.from("pantry").select("*").eq("user_id", uid).order("name");
-        const { data: freshRecipes } = await supabase.from("recipes").select("*").eq("user_id", uid).order("name");
-        setPantry((freshPantry || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
-        setRecipes((freshRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [] })));
+        if (serverPantry) {
+          setPantry(serverPantry.map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
+          setRecipes((serverRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [] })));
+        } else {
+          const { data: freshPantry }  = await supabase.from("pantry").select("*").eq("user_id", uid).order("name");
+          const { data: freshRecipes } = await supabase.from("recipes").select("*").eq("user_id", uid).order("name");
+          setPantry((freshPantry || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
+          setRecipes((freshRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [] })));
+        }
       } else {
         setPantry(loadedPantry);
         setRecipes(loadedRecipes);
