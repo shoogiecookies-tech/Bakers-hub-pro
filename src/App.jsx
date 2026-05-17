@@ -30,6 +30,20 @@ const POST_TYPES = ["Product Photo", "Behind the Scenes", "Recipe Tip", "Testimo
 const PANTRY_CATS = ["Flour & Grains", "Dairy", "Eggs & Fats", "Sweeteners", "Leavening", "Flavoring", "Chocolate", "Fruits & Nuts", "Packaging", "Other"];
 const UNITS = ["cups", "tbsp", "tsp", "oz", "lbs", "g", "kg", "ml", "l", "pcs", "dozen", "bag", "box"];
 
+// ─── PASSWORD TOGGLE ─────────────────────────────────────────────────────────
+function EyeIcon()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>; }
+function EyeOffIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>; }
+function PwField({ value, onChange, placeholder, show, onToggle, onKeyDown }) {
+  return (
+    <div style={{ position: "relative" }}>
+      <input type={show ? "text" : "password"} value={value} onChange={onChange} placeholder={placeholder || "••••••••"} style={{ ...s.input, paddingRight: 40 }} onKeyDown={onKeyDown} />
+      <button type="button" onClick={onToggle} tabIndex={-1} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 2, display: "flex", alignItems: "center" }}>
+        {show ? <EyeOffIcon /> : <EyeIcon />}
+      </button>
+    </div>
+  );
+}
+
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function formatPhone(v) {
   const d = v.replace(/\D/g, "").slice(0, 10);
@@ -122,6 +136,7 @@ function LoginScreen({ onLogin }) {
   const [error,          setError]          = useState("");
   const [gateError,      setGateError]      = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [showPw,         setShowPw]         = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -216,8 +231,7 @@ function LoginScreen({ onLogin }) {
         {mode !== "reset" && (
           <div style={{ marginBottom: 20 }}>
             <label style={s.label}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={s.input}
-              onKeyDown={e => e.key === "Enter" && handle()} />
+            <PwField value={password} onChange={e => setPassword(e.target.value)} show={showPw} onToggle={() => setShowPw(p => !p)} onKeyDown={e => e.key === "Enter" && handle()} />
           </div>
         )}
 
@@ -363,6 +377,9 @@ function AppInner({ session, onSignOut }) {
   const [pwConfirm,    setPwConfirm]    = useState("");
   const [pwMsg,        setPwMsg]        = useState("");
   const [pwLoading,    setPwLoading]    = useState(false);
+  const [showPwNew,    setShowPwNew]    = useState(false);
+  const [showPwConf,   setShowPwConf]   = useState(false);
+  const [showGiftPw,   setShowGiftPw]   = useState(false);
   const [seedMsg,      setSeedMsg]      = useState("");
 
   // ── Load all data from Supabase ──────────────────────────────────────────────
@@ -1604,9 +1621,9 @@ function AppInner({ session, onSignOut }) {
             <div style={s.card}>
               <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🔑 Change Password</div>
               <label style={s.label}>New Password</label>
-              <input type="password" placeholder="At least 6 characters" value={pwNew} onChange={e => setPwNew(e.target.value)} style={s.input} />
+              <PwField value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="At least 6 characters" show={showPwNew} onToggle={() => setShowPwNew(p => !p)} />
               <label style={{ ...s.label, marginTop: 10 }}>Confirm New Password</label>
-              <input type="password" placeholder="Repeat new password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} style={s.input} />
+              <PwField value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} placeholder="Repeat new password" show={showPwConf} onToggle={() => setShowPwConf(p => !p)} />
               {pwMsg && <div style={{ fontSize: 13, color: pwMsg.startsWith("✓") ? "#16A34A" : "#DC2626", marginTop: 8 }}>{pwMsg}</div>}
               <button onClick={changePassword} disabled={pwLoading} style={{ ...s.btn, marginTop: 12, opacity: pwLoading ? 0.6 : 1 }}>{pwLoading ? "Saving..." : "Update Password"}</button>
             </div>
@@ -1623,7 +1640,7 @@ function AppInner({ session, onSignOut }) {
                 <label style={s.label}>Email Address</label>
                 <input value={giftEmail} onChange={e => setGiftEmail(e.target.value)} placeholder="customer@email.com" style={s.input} />
                 <label style={{ ...s.label, marginTop: 10 }}>Temporary Password</label>
-                <input type="password" value={giftPassword} onChange={e => setGiftPassword(e.target.value)} placeholder="They can change this after login" style={s.input} />
+                <PwField value={giftPassword} onChange={e => setGiftPassword(e.target.value)} placeholder="They can change this after login" show={showGiftPw} onToggle={() => setShowGiftPw(p => !p)} />
                 <label style={{ ...s.label, marginTop: 10 }}>Notes (optional)</label>
                 <input value={giftNotes} onChange={e => setGiftNotes(e.target.value)} placeholder="e.g. Gift for holiday promo" style={s.input} />
                 {giftMsg && <div style={{ fontSize: 13, color: giftMsg.startsWith("Error") ? "#DC2626" : "#16A34A", marginTop: 8 }}>{giftMsg}</div>}
