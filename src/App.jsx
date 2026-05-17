@@ -403,8 +403,9 @@ function AppInner({ session, onSignOut }) {
           });
           if (seedRes.ok) {
             const json = await seedRes.json();
-            serverPantry = json.pantry || null;
+            serverPantry = (json.pantry && json.pantry.length > 0) ? json.pantry : null;
             serverRecipes = json.recipes || null;
+            if (!serverPantry) setSeedMsg("⚠️ Server returned empty pantry — please contact support.");
           } else {
             const errJson = await seedRes.json().catch(() => ({}));
             seedError = errJson.error || `HTTP ${seedRes.status}`;
@@ -416,7 +417,7 @@ function AppInner({ session, onSignOut }) {
           console.error("Seed failed:", seedError);
           setSeedMsg("⚠️ Could not load starter data: " + seedError);
         }
-        if (serverPantry) {
+        if (serverPantry && serverPantry.length > 0) {
           setPantry(serverPantry.map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
           setRecipes((serverRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [] })));
         } else {
