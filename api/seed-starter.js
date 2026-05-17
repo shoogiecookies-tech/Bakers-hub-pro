@@ -125,17 +125,22 @@ async function handler(req, res) {
   if (authErr || !user) return res.status(401).json({ error: "Invalid token" });
 
   const { data: existing } = await admin.from("pantry").select("id").eq("user_id", user.id).limit(1);
-  if (existing && existing.length > 0) {
-    return res.status(200).json({ ok: true, skipped: true });
+
+  if (!(existing && existing.length > 0)) {
+    try {
+      await seedForUser(user.id, admin);
+    } catch (e) {
+      console.error("seed-starter error:", e.message);
+      return res.status(500).json({ error: e.message });
+    }
   }
 
-  try {
-    await seedForUser(user.id, admin);
-    return res.status(200).json({ ok: true });
-  } catch (e) {
-    console.error("seed-starter error:", e.message);
-    return res.status(500).json({ error: e.message });
-  }
+  // Always return data via service role (bypasses RLS for the caller)
+  const [{ data: pantryData }, { data: recipesData }] = await Promise.all([
+    admin.from("pantry").select("*").eq("user_id", user.id).order("name"),
+    admin.from("recipes").select("*").eq("user_id", user.id).order("name"),
+  ]);
+  return res.status(200).json({ ok: true, skipped: !!(existing && existing.length > 0), pantry: pantryData || [], recipes: recipesData || [] });
 }
 
 module.exports = handler;
