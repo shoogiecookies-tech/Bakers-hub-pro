@@ -796,9 +796,6 @@ function AppInner({ session, onSignOut }) {
   const deliveredRev   = orders.filter(o => o.status === "Delivered").reduce((s, o) => s + (o.total || 0), 0);
   const pendingRev     = orders.filter(o => o.status !== "Delivered").reduce((s, o) => s + (o.total || 0), 0);
   const totalRevenue   = deliveredRev + pendingRev;
-  const estTotalCosts  = totalRevenue * 0.50;
-  const netProfit      = totalRevenue - estTotalCosts;
-  const profitMarginPct = totalRevenue > 0 ? (netProfit / totalRevenue * 100).toFixed(1) : "0.0";
   const openOrders     = orders.filter(o => o.status !== "Delivered").length;
   const todayStr       = new Date().toISOString().split("T")[0];
   const todayTasks     = schedule.filter(t => !t.done && t.date === todayStr);
@@ -806,7 +803,6 @@ function AppInner({ session, onSignOut }) {
   const thisMonth      = new Date().toISOString().slice(0, 7);
   const monthOrders    = orders.filter(o => (o.created_at || "").startsWith(thisMonth));
   const monthRev       = monthOrders.reduce((s, o) => s + (o.total || 0), 0);
-  const estMonthProfit = monthRev * 0.50;
   const itemRevMap     = {};
   orders.forEach(o => { if (o.item) itemRevMap[o.item] = (itemRevMap[o.item] || 0) + (o.total || 0); });
   const itemRevEntries = Object.entries(itemRevMap).sort((a, b) => b[1] - a[1]);
@@ -914,58 +910,21 @@ function AppInner({ session, onSignOut }) {
                  </div>
                ))}
              </div>
-             <div className="bf-card" style={{ ...s.card, background: C.card, padding: 18 }}>
-               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.caramel, flexShrink: 0 }} />
-                 <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>P&amp;L Snapshot</div>
-               </div>
-               {[["Total Revenue", `$${totalRevenue.toFixed(2)}`], ["Est. Costs (50%)", `$${estTotalCosts.toFixed(2)}`]].map(([l, v]) => (
-                 <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
-                   <span style={{ color: C.muted }}>{l}</span><span style={{ fontWeight: "600", color: C.dark }}>{v}</span>
-                 </div>
-               ))}
-               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-                 <span style={{ fontSize: 13, fontWeight: "600", color: C.dark }}>Net Profit</span>
-                 <span style={{ background: "#059669", color: "#fff", padding: "3px 16px", borderRadius: 20, fontSize: 14, fontWeight: "700" }}>${netProfit.toFixed(2)}</span>
-               </div>
-               <div style={{ fontSize: 11, color: C.muted, marginTop: 8, textAlign: "right" }}>Margin: <strong style={{ color: C.dark }}>{profitMarginPct}%</strong> &middot; est. 50% cost rate</div>
-             </div>
-             {(topItem || monthRev > 0) && (
+             {topItem && (
                <div className="bf-card" style={{ ...s.card, padding: 18, background: "#fffbf5", border: `1px solid ${C.caramel}30` }}>
                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                    <div style={{ fontSize: 18 }}>📊</div>
                    <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
                  </div>
-                 {topItem && (
-                   <div style={{ background: "#f0fdf4", borderRadius: 12, padding: "12px 14px", marginBottom: 10, border: "1px solid #bbf7d0" }}>
-                     <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Most Profitable Item</div>
-                     <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topItem[0]}</div>
-                     <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
-                       {topItemPct !== null
-                         ? `${topItem[0]} generated ${topItemPct}% of your total revenue — your top earner! 🎉`
-                         : `Your top revenue generator — keep it on the menu!`}
-                     </div>
-                   </div>
-                 )}
-                 <div style={{ background: "#eff6ff", borderRadius: 12, padding: "12px 14px", marginBottom: 10, border: "1px solid #bfdbfe" }}>
-                   <div style={{ fontSize: 12, fontWeight: "700", color: "#1e40af", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>This Month's Est. Profit</div>
-                   <div style={{ fontSize: 22, fontWeight: "800", color: "#2563eb" }}>${estMonthProfit.toFixed(2)}</div>
-                   <div style={{ fontSize: 12, color: "#3b82f6", marginTop: 4, lineHeight: 1.5 }}>
-                     {monthRev > 0
-                       ? `From $${monthRev.toFixed(2)} in orders this month — you're keeping about half 💪`
-                       : "No orders tracked this month yet"}
+                 <div style={{ background: "#f0fdf4", borderRadius: 12, padding: "12px 14px", border: "1px solid #bbf7d0" }}>
+                   <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Item</div>
+                   <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topItem[0]}</div>
+                   <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
+                     {topItemPct !== null
+                       ? `${topItem[0]} generated ${topItemPct}% of your total revenue — your top earner! 🎉`
+                       : `Your top revenue generator — keep it on the menu!`}
                    </div>
                  </div>
-                 {parseFloat(profitMarginPct) >= 40 && (
-                   <div style={{ background: "#fef3c7", borderRadius: 10, padding: "10px 14px", border: "1px solid #fde68a", fontSize: 13, color: "#92400e", fontWeight: "600" }}>
-                     ✨ Strong margins — your pricing is working!
-                   </div>
-                 )}
-                 {parseFloat(profitMarginPct) > 0 && parseFloat(profitMarginPct) < 30 && (
-                   <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", border: "1px solid #fca5a5", fontSize: 13, color: "#991b1b", fontWeight: "600" }}>
-                     ⚠️ Your margin is below 30% — consider raising prices on your most popular items.
-                   </div>
-                 )}
                </div>
              )}
              <div style={{ ...s.card, padding: 18 }}>
