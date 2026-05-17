@@ -26,11 +26,12 @@ module.exports = async function handler(req, res) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
-  // Create user server-side with email pre-confirmed — no verification email needed
+  // Create user server-side — email pre-confirmed, no confirmation email sent
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
+    user_metadata: { gifted: true },
   });
 
   if (error) {
