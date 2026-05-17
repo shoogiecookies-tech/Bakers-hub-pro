@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark navy rounded-square background -->
+  <rect width="32" height="32" rx="7" fill="#1e2d4a"/>
+  <!-- Subtle warm inner glow -->
+  <rect x="1" y="1" width="30" height="30" rx="6.5" fill="none" stroke="#c0653d" stroke-width="1" stroke-opacity="0.35"/>
+  <!-- Bold serif B, centered -->
+  <text
+    x="16"
+    y="24"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-weight="700"
+    font-size="21"
+    fill="#ffffff"
+    letter-spacing="-0.5"
+  >B</text>
+  <!-- Terracotta accent dot below B -->
+  <circle cx="16" cy="29" r="1.5" fill="#c0653d"/>
+</svg>
