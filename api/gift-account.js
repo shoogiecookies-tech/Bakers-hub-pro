@@ -86,44 +86,49 @@ async function seedForUser(uid, supabase) {
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end("Method Not Allowed");
 
-  let body = "";
-  await new Promise((resolve, reject) => {
-    req.on("data", (c) => (body += c));
-    req.on("end", resolve);
-    req.on("error", reject);
-  });
-
-  let email, password, notes, created_by;
   try {
-    ({ email, password, notes, created_by } = JSON.parse(body));
-  } catch {
-    return res.status(400).json({ error: "Invalid JSON" });
-  }
+    let body = "";
+    await new Promise((resolve, reject) => {
+      req.on("data", (c) => (body += c));
+      req.on("end", resolve);
+      req.on("error", reject);
+    });
 
-  if (!email || !password) return res.status(400).json({ error: "email and password required" });
+    let email, password, notes, created_by;
+    try {
+      ({ email, password, notes, created_by } = JSON.parse(body));
+    } catch {
+      return res.status(400).json({ error: "Invalid JSON" });
+    }
 
-  const supabase = createClient(
-    process.env.REACT_APP_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+    if (!email || !password) return res.status(400).json({ error: "email and password required" });
 
-  const { data, error } = await supabase.auth.admin.createUser({
-    email, password, email_confirm: true, user_metadata: { gifted: true },
-  });
+    const supabase = createClient(
+      process.env.REACT_APP_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
 
-  if (error) {
-    console.error("gift-account createUser error:", error);
-    return res.status(400).json({ error: error.message });
-  }
+    const { data, error } = await supabase.auth.admin.createUser({
+      email, password, email_confirm: true, user_metadata: { gifted: true },
+    });
 
-  const userId = data.user?.id;
-  await supabase.from("gifted_users").insert([{ email, notes: notes || null, created_by: created_by || null }]);
+    if (error) {
+      console.error("gift-account createUser error:", error);
+      return res.status(400).json({ error: error.message });
+    }
 
-  try {
-    await seedForUser(userId, supabase);
+    const userId = data.user?.id;
+    await supabase.from("gifted_users").insert([{ email, notes: notes || null, created_by: created_by || null }]);
+
+    try {
+      await seedForUser(userId, supabase);
+    } catch (e) {
+      console.error("gift-account seed error:", e.message);
+    }
+
+    return res.status(200).json({ ok: true, userId });
   } catch (e) {
-    console.error("gift-account seed error:", e.message);
+    console.error("gift-account unhandled error:", e.message);
+    return res.status(500).json({ error: e.message || "Internal server error" });
   }
-
-  return res.status(200).json({ ok: true, userId });
 };
