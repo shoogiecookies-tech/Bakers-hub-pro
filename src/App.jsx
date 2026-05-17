@@ -363,6 +363,7 @@ function AppInner({ session, onSignOut }) {
   const [pwConfirm,    setPwConfirm]    = useState("");
   const [pwMsg,        setPwMsg]        = useState("");
   const [pwLoading,    setPwLoading]    = useState(false);
+  const [seedMsg,      setSeedMsg]      = useState("");
 
   // ── Load all data from Supabase ──────────────────────────────────────────────
   useEffect(() => {
@@ -390,11 +391,25 @@ function AppInner({ session, onSignOut }) {
 
       if (loadedPantry.length === 0) {
         // Seed via server endpoint — uses service role, bypasses RLS
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        await fetch("/api/seed-starter", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${currentSession?.access_token}` },
-        }).catch(() => {});
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        let seedError = null;
+        try {
+          const seedRes = await fetch("/api/seed-starter", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` },
+          });
+          if (!seedRes.ok) {
+            const errJson = await seedRes.json().catch(() => ({}));
+            seedError = errJson.error || `HTTP ${seedRes.status}`;
+          }
+        } catch (e) {
+          seedError = e.message;
+        }
+        if (seedError) {
+          console.error("Seed failed:", seedError);
+          setSeedMsg("⚠️ Could not load starter data: " + seedError);
+        }
         const { data: freshPantry }  = await supabase.from("pantry").select("*").eq("user_id", uid).order("name");
         const { data: freshRecipes } = await supabase.from("recipes").select("*").eq("user_id", uid).order("name");
         setPantry((freshPantry || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
@@ -962,6 +977,7 @@ function AppInner({ session, onSignOut }) {
         {/* ══════════ PANTRY ══════════ */}
         {tab === "Pantry" && (
           <div>
+            {seedMsg && <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 12 }}>{seedMsg}</div>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <div style={{ fontSize: 18, fontWeight: "bold" }}>🫙 Ingredient Pantry</div>
               <button onClick={() => setShowNewPantry(true)} style={s.btn}>+ Add Item</button>
