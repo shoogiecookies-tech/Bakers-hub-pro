@@ -107,6 +107,23 @@ nav img.nav-logo{height:34px;display:block;}
 .app-stat.kpi-social{background:rgba(122,92,138,0.07);border-color:rgba(122,92,138,0.15);}
 .app-stat.kpi-social .app-stat-icon{background:var(--kpi-plum-bg);color:var(--kpi-plum);}
 .app-stat.kpi-social .app-stat-val{color:#a87ec0;}
+/* BUSINESS HEALTH INSIGHTS */
+.app-insights{margin-bottom:10px;}
+.app-insight-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.app-insight-row:last-child{border-bottom:none;}
+.app-insight-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dot-green{background:#7dca9a;}
+.dot-amber{background:#d4974e;}
+.app-insight-text{font-size:7px;color:rgba(255,255,255,0.45);line-height:1.4;}
+.app-insight-hi{color:#7dca9a;font-weight:500;}
+/* TODAY'S TASKS */
+.app-tasks{margin-bottom:10px;}
+.app-task-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.app-task-row:last-child{border-bottom:none;}
+.app-task-check{width:10px;height:10px;border-radius:3px;border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:6px;color:#7dca9a;flex-shrink:0;}
+.app-task-check.checked{background:rgba(74,140,106,0.25);border-color:rgba(74,140,106,0.5);}
+.app-task-text{font-size:7px;color:rgba(255,255,255,0.5);line-height:1.4;}
+.app-task-text.done{color:rgba(255,255,255,0.25);text-decoration:line-through;}
 /* ORDERS SECTION */
 .app-orders-label{font-size:7px;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
 .app-order{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
@@ -336,6 +353,36 @@ footer img{height:32px;opacity:0.6;}
             <div class="app-stat-icon">📱</div>
             <div class="app-stat-label">Scheduled Posts</div>
             <div class="app-stat-val">1</div>
+          </div>
+        </div>
+        <div class="app-orders-label">Business Health</div>
+        <div class="app-insights">
+          <div class="app-insight-row">
+            <div class="app-insight-dot dot-green"></div>
+            <div class="app-insight-text">Choc Chip Cookies — $2.41 cost · <span class="app-insight-hi">$18.00 suggested</span></div>
+          </div>
+          <div class="app-insight-row">
+            <div class="app-insight-dot dot-amber"></div>
+            <div class="app-insight-text">Pantry: butter may be running low</div>
+          </div>
+          <div class="app-insight-row">
+            <div class="app-insight-dot dot-green"></div>
+            <div class="app-insight-text">3 orders ready to deliver this week</div>
+          </div>
+        </div>
+        <div class="app-orders-label">Today's Tasks</div>
+        <div class="app-tasks">
+          <div class="app-task-row">
+            <div class="app-task-check checked">✓</div>
+            <div class="app-task-text done">Pack Sarah's cookie order</div>
+          </div>
+          <div class="app-task-row">
+            <div class="app-task-check"></div>
+            <div class="app-task-text">Post Mother's Day reel</div>
+          </div>
+          <div class="app-task-row">
+            <div class="app-task-check"></div>
+            <div class="app-task-text">Restock: vanilla extract</div>
           </div>
         </div>
         <div class="app-orders-label">Upcoming Orders</div>
