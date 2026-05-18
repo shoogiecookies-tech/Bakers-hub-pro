@@ -107,15 +107,11 @@ nav img.nav-logo{height:34px;display:block;}
 .app-stat.kpi-social{background:rgba(122,92,138,0.07);border-color:rgba(122,92,138,0.15);}
 .app-stat.kpi-social .app-stat-icon{background:var(--kpi-plum-bg);color:var(--kpi-plum);}
 .app-stat.kpi-social .app-stat-val{color:#a87ec0;}
-/* BUSINESS HEALTH INSIGHTS */
-.app-insights{margin-bottom:10px;}
-.app-insight-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
-.app-insight-row:last-child{border-bottom:none;}
-.app-insight-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-.dot-green{background:#7dca9a;}
-.dot-amber{background:#d4974e;}
-.app-insight-text{font-size:7px;color:rgba(255,255,255,0.45);line-height:1.4;}
-.app-insight-hi{color:#7dca9a;font-weight:500;}
+/* BUSINESS HEALTH CALLOUT */
+.app-insight-callout{background:rgba(74,140,106,0.08);border:1px solid rgba(74,140,106,0.2);border-radius:4px;padding:9px 11px;margin-bottom:10px;}
+.app-insight-callout-label{font-size:6.5px;color:rgba(122,202,154,0.7);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-weight:500;}
+.app-insight-callout-text{font-size:7.5px;color:rgba(255,255,255,0.65);line-height:1.5;}
+.app-insight-callout-hi{color:#7dca9a;font-weight:500;}
 /* TODAY'S TASKS */
 .app-tasks{margin-bottom:10px;}
 .app-task-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
@@ -355,34 +351,20 @@ footer img{height:32px;opacity:0.6;}
             <div class="app-stat-val">1</div>
           </div>
         </div>
-        <div class="app-orders-label">Business Health</div>
-        <div class="app-insights">
-          <div class="app-insight-row">
-            <div class="app-insight-dot dot-green"></div>
-            <div class="app-insight-text">Choc Chip Cookies — $2.41 cost · <span class="app-insight-hi">$18.00 suggested</span></div>
-          </div>
-          <div class="app-insight-row">
-            <div class="app-insight-dot dot-amber"></div>
-            <div class="app-insight-text">Pantry: butter may be running low</div>
-          </div>
-          <div class="app-insight-row">
-            <div class="app-insight-dot dot-green"></div>
-            <div class="app-insight-text">3 orders ready to deliver this week</div>
-          </div>
+        <div class="app-orders-label">Business Health Insights</div>
+        <div class="app-insight-callout">
+          <div class="app-insight-callout-label">Top Revenue Item</div>
+          <div class="app-insight-callout-text">Chocolate chip cookies · 42% of your revenue — <span class="app-insight-callout-hi">top earner! 🎉</span></div>
         </div>
         <div class="app-orders-label">Today's Tasks</div>
         <div class="app-tasks">
           <div class="app-task-row">
-            <div class="app-task-check checked">✓</div>
-            <div class="app-task-text done">Pack Sarah's cookie order</div>
+            <div class="app-task-check"></div>
+            <div class="app-task-text">Prep batter for Sarah Mitchell</div>
           </div>
           <div class="app-task-row">
             <div class="app-task-check"></div>
-            <div class="app-task-text">Post Mother's Day reel</div>
-          </div>
-          <div class="app-task-row">
-            <div class="app-task-check"></div>
-            <div class="app-task-text">Restock: vanilla extract</div>
+            <div class="app-task-text">Bake Jennifer Rodriguez birthday cake</div>
           </div>
         </div>
         <div class="app-orders-label">Upcoming Orders</div>
