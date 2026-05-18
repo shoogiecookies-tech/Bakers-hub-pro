@@ -107,15 +107,6 @@ nav img.nav-logo{height:34px;display:block;}
 .app-stat.kpi-social{background:rgba(122,92,138,0.07);border-color:rgba(122,92,138,0.15);}
 .app-stat.kpi-social .app-stat-icon{background:var(--kpi-plum-bg);color:var(--kpi-plum);}
 .app-stat.kpi-social .app-stat-val{color:#a87ec0;}
-/* P&L CARD - redesigned, lighter, cleaner */
-.app-pl{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:11px 13px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.2);}
-.app-pl-title{font-size:7.5px;color:rgba(255,255,255,0.5);font-weight:500;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:5px;}
-.app-pl-title::before{content:'';display:inline-block;width:12px;height:1px;background:var(--terracotta);opacity:0.7;}
-.app-pl-row{display:flex;justify-content:space-between;font-size:7.5px;color:rgba(255,255,255,0.4);margin-bottom:5px;line-height:1.4;}
-.app-pl-row span:last-child{color:rgba(255,255,255,0.6);}
-.app-pl-net{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);}
-.app-pl-net-label{font-size:8px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1.5px;text-transform:uppercase;}
-.app-net-badge{background:rgba(74,140,106,0.2);color:#7dca9a;padding:3px 12px;border-radius:12px;font-size:9px;font-weight:600;border:1px solid rgba(74,140,106,0.3);}
 /* ORDERS SECTION */
 .app-orders-label{font-size:7px;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
 .app-order{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
@@ -282,6 +273,7 @@ footer img{height:32px;opacity:0.6;}
   <div class="nav-right">
     <a href="#features" class="nav-link">Features</a>
     <a href="#pricing" class="nav-link">Pricing</a>
+    <a href="https://bakers-hub-pro.vercel.app" class="nav-link">Member Login</a>
     <a href="https://buy.stripe.com/aFaaEWeHvaRT1aq7w04ko00" class="btn-nav">Founding Member Pricing</a>
   </div>
 </nav>
@@ -296,6 +288,9 @@ footer img{height:32px;opacity:0.6;}
     <div class="hero-btns">
       <a href="#pricing" class="btn-primary">Grab Founding Member Pricing</a>
       <a href="#features" class="btn-text">See What's Inside →</a>
+    </div>
+    <div style="margin-top:-1.5rem;margin-bottom:1.5rem;">
+      <a href="https://bakers-hub-pro.vercel.app" style="color:rgba(255,255,255,0.28);font-size:0.78rem;letter-spacing:0.5px;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.55)'" onmouseout="this.style.color='rgba(255,255,255,0.28)'">Already a member? Log in to your account →</a>
     </div>
     <div class="hero-proof">
       <div class="hero-proof-line"></div>
@@ -342,12 +337,6 @@ footer img{height:32px;opacity:0.6;}
             <div class="app-stat-label">Scheduled Posts</div>
             <div class="app-stat-val">1</div>
           </div>
-        </div>
-        <div class="app-pl">
-          <div class="app-pl-title">P&amp;L Snapshot</div>
-          <div class="app-pl-row"><span>Total Revenue</span><span>$193.00</span></div>
-          <div class="app-pl-row"><span>Est. Total Costs</span><span>$96.50</span></div>
-          <div class="app-pl-net"><span class="app-pl-net-label">NET PROFIT</span><div class="app-net-badge">$96.50</div></div>
         </div>
         <div class="app-orders-label">Upcoming Orders</div>
         <div class="app-order">
