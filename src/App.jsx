@@ -335,8 +335,9 @@ function AppInner({ session, onSignOut }) {
   const [laborRate,    setLaborRate]    = useState(20);
   const [overhead,     setOverhead]     = useState(10);
   const [sellQty,      setSellQty]      = useState(1);
-  const [sellingPrice, setSellingPrice] = useState("");
-  const [priceResult,  setPriceResult]  = useState(null);
+  const [sellingPrice,    setSellingPrice]    = useState("");
+  const [suggestedPrice,  setSuggestedPrice]  = useState(null);
+  const [priceResult,     setPriceResult]     = useState(null);
 
   // Orders UI
   const [orderSearch,  setOrderSearch]  = useState("");
@@ -618,10 +619,11 @@ function AppInner({ session, onSignOut }) {
     const withOH = sub + ingCost * (overhead / 100);
     return { ingCost, labor, sub, withOH };
   };
-  const calcPrice = () => setPriceResult(calcPriceInputs());
+  const calcPrice = () => { const r = calcPriceInputs(); setSuggestedPrice(+(r.withOH * 1.40).toFixed(2)); setPriceResult(r); };
   const suggestPrice = () => {
     const result = calcPriceInputs();
     const suggested = +(result.withOH * 1.40).toFixed(2);
+    setSuggestedPrice(suggested > 0 ? suggested : null);
     setSellingPrice(suggested > 0 ? String(suggested) : "");
     setPriceResult(result);
   };
@@ -1250,6 +1252,11 @@ function AppInner({ session, onSignOut }) {
                   </div>
                   {divider()}
 
+                  {suggestedPrice != null && (
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: C.muted }}>
+                      <span>Suggested Price (40% markup)</span><span style={{ fontWeight: "600", color: "#C0653D" }}>${suggestedPrice.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", fontSize: 15, fontWeight: "800", color: C.dark }}>
                     <span>WHAT YOU CHARGE</span><span>${sp.toFixed(2)}</span>
                   </div>
