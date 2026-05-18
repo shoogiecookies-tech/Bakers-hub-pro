@@ -1568,22 +1568,22 @@ function AppInner({ session, onSignOut }) {
                 </div>
               </div>
               <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ flex: 1, minWidth: 140 }}>
-                  <label style={s.label}>Invoice Header Color</label>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                    <input type="color" value={invoiceHeaderColor} onChange={e => setInvoiceHeaderColor(e.target.value)} style={{ width: 44, height: 34, border: `1px solid ${C.border}`, borderRadius: 6, cursor: "pointer", padding: 2, background: "none" }} />
-                    <span style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>{invoiceHeaderColor}</span>
-                    <button onClick={() => setInvoiceHeaderColor("#1e2d4a")} style={{ ...s.btnSec, padding: "3px 8px", fontSize: 11 }}>Reset</button>
+                {[
+                  { label: "Invoice Header Color", value: invoiceHeaderColor, set: setInvoiceHeaderColor, def: "#1e2d4a" },
+                  { label: "Invoice Accent Color",  value: invoiceAccentColor, set: setInvoiceAccentColor, def: "#C0653D" },
+                ].map(({ label, value, set, def }) => (
+                  <div key={label} style={{ flex: 1, minWidth: 150 }}>
+                    <label style={s.label}>{label}</label>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                      <label style={{ cursor: "pointer", flexShrink: 0 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 8, background: value, border: `2px solid ${C.border}`, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }} />
+                        <input type="color" value={value} onChange={e => set(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }} />
+                      </label>
+                      <input value={value} onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) set(e.target.value); }} maxLength={7} style={{ ...s.input, width: 88, fontFamily: "monospace", fontSize: 13, padding: "6px 8px" }} />
+                      <button onClick={() => set(def)} style={{ ...s.btnSec, padding: "4px 8px", fontSize: 11, flexShrink: 0 }}>Reset</button>
+                    </div>
                   </div>
-                </div>
-                <div style={{ flex: 1, minWidth: 140 }}>
-                  <label style={s.label}>Invoice Accent Color</label>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                    <input type="color" value={invoiceAccentColor} onChange={e => setInvoiceAccentColor(e.target.value)} style={{ width: 44, height: 34, border: `1px solid ${C.border}`, borderRadius: 6, cursor: "pointer", padding: 2, background: "none" }} />
-                    <span style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>{invoiceAccentColor}</span>
-                    <button onClick={() => setInvoiceAccentColor("#C0653D")} style={{ ...s.btnSec, padding: "3px 8px", fontSize: 11 }}>Reset</button>
-                  </div>
-                </div>
+                ))}
               </div>
               <button onClick={saveSettings} style={{ ...s.btn, marginTop: 14 }}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
             </div>
