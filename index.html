@@ -139,7 +139,7 @@ nav img.nav-logo{height:34px;display:block;}
 .how-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:300;color:white;line-height:1.25;margin:0.75rem 0 4rem;letter-spacing:-0.3px;}
 .how-title em{font-style:italic;color:var(--rust);}
 .how-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:3rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;}
-.how-step{padding:2.5rem 2rem;flex:1;min-width:160px;border-right:1px solid rgba(255,255,255,0.07);}
+.how-step{padding:2rem 1.5rem;flex:1;min-width:130px;border-right:1px solid rgba(255,255,255,0.07);}
 .how-step:last-child{border-right:none;}
 .how-step-highlight{background:rgba(192,101,61,0.1);border-left:1px solid rgba(192,101,61,0.2)!important;}
 .how-step-label{font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:0.75rem;font-weight:400;}
@@ -183,7 +183,7 @@ nav img.nav-logo{height:34px;display:block;}
 
 /* WHO */
 .who{background:var(--charcoal);padding:6rem 3rem;position:relative;overflow:hidden;}
-.who::before{content:'BAKEFLO';position:absolute;font-family:'Cormorant Garamond',serif;font-size:18vw;font-weight:700;color:rgba(255,255,255,0.02);top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;letter-spacing:10px;}
+.who::before{content:'BAKEFLO';position:absolute;font-family:'Cormorant Garamond',serif;font-size:30vw;font-weight:700;color:rgba(255,255,255,0.025);top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;letter-spacing:10px;}
 .who-inner{max-width:900px;margin:0 auto;text-align:center;position:relative;z-index:2;}
 .who .eyebrow{color:rgba(192,101,61,0.7);}
 .who .section-title{color:white;margin-bottom:1rem;}
@@ -221,7 +221,16 @@ nav img.nav-logo{height:34px;display:block;}
 .price-divider{height:1px;background:rgba(255,255,255,0.07);margin-bottom:2rem;}
 .price-features{list-style:none;margin-bottom:2.5rem;}
 .price-features li{padding:0.65rem 0;font-size:0.88rem;color:rgba(255,255,255,0.55);border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:12px;font-weight:300;}
-.price-check{color:var(--rust);font-size:12px;flex-shrink:0;}
+.price-check{width:16px;height:16px;border-radius:50%;background:var(--terracotta);display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700;flex-shrink:0;}
+.price-features-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin:1.25rem 0 1.75rem;}
+.price-feat-item{display:flex;align-items:flex-start;gap:10px;font-size:0.92rem;color:rgba(255,255,255,0.75);line-height:1.45;font-weight:300;}
+.price-math{display:flex;align-items:center;justify-content:center;gap:1.5rem;background:rgba(192,101,61,0.08);border:1px solid rgba(192,101,61,0.25);border-radius:6px;padding:1.1rem 1.5rem;margin:1.5rem 0;}
+.price-math-item{text-align:center;}
+.price-math-amount{font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:400;color:white;line-height:1;}
+.price-math-label{font-size:0.62rem;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-top:5px;}
+.price-math-arrow{font-size:1.5rem;color:var(--terracotta);opacity:0.8;}
+.price-anchor{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:300;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:2rem;font-style:italic;letter-spacing:0.2px;}
+.price-mug-badge{background:linear-gradient(135deg,var(--terracotta),var(--rust-muted));color:white;padding:11px 16px;border-radius:4px;font-size:0.8rem;font-weight:500;text-align:center;margin:1rem 0;border:1px solid rgba(255,255,255,0.15);letter-spacing:0.3px;display:block;}
 .btn-pricing{background:var(--terracotta);color:white;border:none;padding:1.1rem 2rem;border-radius:2px;font-family:'Jost',sans-serif;font-weight:400;font-size:0.78rem;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;transition:all 0.25s;width:100%;text-align:center;display:block;text-decoration:none;}
 .btn-pricing:hover{background:var(--rust-muted);}
 .spots{font-size:0.75rem;color:rgba(196,114,74,0.65);text-align:center;margin-top:1rem;letter-spacing:0.5px;}
@@ -410,25 +419,31 @@ footer img{height:32px;opacity:0.6;}
     <div class="how-flow">
       <div class="how-step">
         <div class="how-step-label">Recipe Cost</div>
-        <div class="how-step-value">$7.28</div>
-        <div class="how-step-sub">calculated automatically</div>
+        <div class="how-step-value">$7.64</div>
+        <div class="how-step-sub">3 dozen sugar cookies</div>
       </div>
       <div class="how-arrow">→</div>
       <div class="how-step">
-        <div class="how-step-label">Your Markup</div>
-        <div class="how-step-value">30%</div>
+        <div class="how-step-label">Labor + Overhead</div>
+        <div class="how-step-value">$60.76</div>
         <div class="how-step-sub">you decide</div>
       </div>
       <div class="how-arrow">→</div>
       <div class="how-step">
         <div class="how-step-label">Suggested Price</div>
-        <div class="how-step-value">$18.00</div>
-        <div class="how-step-sub">priced with confidence</div>
+        <div class="how-step-value">$95.00</div>
+        <div class="how-step-sub">your floor</div>
+      </div>
+      <div class="how-arrow">→</div>
+      <div class="how-step">
+        <div class="how-step-label">Your Price</div>
+        <div class="how-step-value">$115.00</div>
+        <div class="how-step-sub">price with confidence</div>
       </div>
       <div class="how-arrow">→</div>
       <div class="how-step how-step-highlight">
-        <div class="how-step-label">Your Profit</div>
-        <div class="how-step-value">$10.72</div>
+        <div class="how-step-label">Pure Profit</div>
+        <div class="how-step-value">$46.60</div>
         <div class="how-step-sub">per batch</div>
       </div>
     </div>
@@ -444,7 +459,7 @@ footer img{height:32px;opacity:0.6;}
         <div class="eyebrow">Built for bakers</div>
         <div class="section-title">Everything you need.<br><em>Nothing you don't.</em></div>
       </div>
-      <div class="section-sub-right">A complete profit and pricing system — with order management, pantry tracking, and social scheduling built in.</div>
+      <div class="section-sub-right">Know your costs. Price with confidence. Send a beautiful invoice. BakeFlo is the complete business system built for bakers.</div>
     </div>
     <div class="features-grid">
       <div class="feat">
@@ -457,8 +472,8 @@ footer img{height:32px;opacity:0.6;}
       <div class="feat">
         <div class="feat-num">02</div>
         <div class="feat-icon">📊</div>
-        <h3>P&amp;L Snapshot</h3>
-        <p>Open the app and instantly see your revenue, costs, and net profit. Real numbers, every day — so you always know where your business stands.</p>
+        <h3>Business Health</h3>
+        <p>Your daily business pulse. See delivered revenue, pending orders, top earning items, and today's tasks the moment you open the app — no digging, no spreadsheets.</p>
         <span class="feat-tag">Primary feature</span>
       </div>
       <div class="feat">
@@ -472,7 +487,7 @@ footer img{height:32px;opacity:0.6;}
         <div class="feat-num">04</div>
         <div class="feat-icon">🧂</div>
         <h3>Ingredient Pantry</h3>
-        <p>Your master ingredient list with real costs. The foundation of accurate pricing — because you can't price right if you don't know your costs.</p>
+        <p>Hit the ground running. BakeFlo comes pre-loaded with common baking ingredients so you're pricing from minute one — not spending an hour setting up before you can start.</p>
         <span class="feat-tag">Supporting feature</span>
       </div>
       <div class="feat">
@@ -503,7 +518,7 @@ footer img{height:32px;opacity:0.6;}
       <div class="who-item"><span class="who-item-icon">🏠</span><div class="who-item-label">Hobby Bakers</div></div>
       <div class="who-item"><span class="who-item-icon">🍪</span><div class="who-item-label">Cookie Artists</div></div>
       <div class="who-item"><span class="who-item-icon">🎂</span><div class="who-item-label">Custom Cake Makers</div></div>
-      <div class="who-item"><span class="who-item-icon">🏡</span><div class="who-item-label">Cottage Bakeries</div></div>
+      <div class="who-item"><span class="who-item-icon" style="filter:saturate(0.1) brightness(1.3);">🏡</span><div class="who-item-label">Cottage Bakeries</div></div>
       <div class="who-item"><span class="who-item-icon">🎉</span><div class="who-item-label">Event Bakers</div></div>
       <div class="who-item"><span class="who-item-icon">📦</span><div class="who-item-label">Small Bakery Shops</div></div>
     </div>
@@ -513,7 +528,7 @@ footer img{height:32px;opacity:0.6;}
 <!-- TESTIMONIALS -->
 <section class="testimonials">
   <div class="testi-inner">
-    <div class="eyebrow">Early users</div>
+    <div class="eyebrow">Founding Members</div>
     <div class="section-title">What bakers are saying.</div>
     <div class="testi-grid">
       <div class="testi">
@@ -525,14 +540,14 @@ footer img{height:32px;opacity:0.6;}
       </div>
       <div class="testi">
         <div class="testi-stars">★★★★★</div>
-        <p>"The P&amp;L snapshot alone is worth it. I open the app every morning and I actually know if I'm making money. That's never happened before."</p>
+        <p>"I open the app every morning and I actually know if I'm making money. That's never happened before."</p>
         <div class="testi-rule"></div>
         <div class="testi-name">Jennifer R.</div>
         <div class="testi-role">Cottage Bakery Owner</div>
       </div>
       <div class="testi">
         <div class="testi-stars">★★★★★</div>
-        <p>"The order tracker keeps me so organized. Customer notes, allergy info, due dates — all right there. I don't miss anything anymore."</p>
+        <p>"I put my sugar cookie recipe in and BakeFlo told me exactly what each batch costs to make. I had no idea. I raised my prices that same day."</p>
         <div class="testi-rule"></div>
         <div class="testi-name">Amanda T.</div>
         <div class="testi-role">Cookie Artist & Event Baker</div>
@@ -569,26 +584,38 @@ footer img{height:32px;opacity:0.6;}
     <div class="eyebrow">Simple pricing</div>
     <div class="section-title">One price.<br><em>Yours forever.</em></div>
     <p class="pricing-sub">Lock in founding member access now — before BakeFlo moves to a $14.99/month subscription.</p>
+    <p class="price-anchor">Every batch has a profit story. BakeFlo tells it.</p>
     <div class="pricing-card">
       <div class="founders-ribbon">⭐ Founding Member Pricing</div>
       <div class="price-label">One-time payment</div>
       <div class="price-amount"><sup>$</sup>97</div>
       <div class="price-once">Pay once. Use forever.</div>
-      <div class="price-later">After founding members: <s>$14.99/mo</s> or <s>$149.99/yr</s></div>
       <div class="price-divider"></div>
-      <ul class="price-features">
-        <li><span class="price-check">✓</span>Full access to all features — forever</li>
-        <li><span class="price-check">✓</span>Profit & pricing calculator</li>
-        <li><span class="price-check">✓</span>P&amp;L Snapshot dashboard</li>
-        <li><span class="price-check">✓</span>Unlimited recipes with real cost tracking</li>
-        <li><span class="price-check">✓</span>Ingredient Pantry with auto-recalculation</li>
-        <li><span class="price-check">✓</span>Order management with customer notes</li>
-        <li><span class="price-check">✓</span>Social post planner</li>
-        <li><span class="price-check">✓</span>Works on desktop & mobile</li>
-        <li><span class="price-check">✓</span>All future updates included</li>
-      </ul>
+      <div class="price-features-grid">
+        <div class="price-feat-item"><span class="price-check">✓</span>Order &amp; customer tracking</div>
+        <div class="price-feat-item"><span class="price-check">✓</span>Recipe cost calculator</div>
+        <div class="price-feat-item"><span class="price-check">✓</span>Smart pricing suggestions</div>
+        <div class="price-feat-item"><span class="price-check">✓</span>Profit &amp; margin insights</div>
+        <div class="price-feat-item"><span class="price-check">✓</span>Invoice &amp; PDF download</div>
+        <div class="price-feat-item"><span class="price-check">✓</span>Social media planner</div>
+        <div class="price-feat-item"><span class="price-check">✓</span>Pantry ingredient manager</div>
+        <div class="price-feat-item"><span class="price-check">✓</span>Business health dashboard</div>
+      </div>
+      <div class="price-math">
+        <div class="price-math-item">
+          <div class="price-math-amount">$97</div>
+          <div class="price-math-label">Year 1</div>
+        </div>
+        <div class="price-math-arrow">→</div>
+        <div class="price-math-item">
+          <div class="price-math-amount">$0</div>
+          <div class="price-math-label">Every Year After</div>
+        </div>
+      </div>
+      <span class="price-mug-badge">☕ First 10 Founding Members get a BakeFlo mug!</span>
       <a href="https://buy.stripe.com/aFaaEWeHvaRT1aq7w04ko00" class="btn-pricing">Grab Founding Member Pricing →</a>
       <p class="spots">🔥 Limited to 50 founding member spots</p>
+      <p style="font-size:0.72rem;color:rgba(255,255,255,0.25);text-align:center;margin-top:0.75rem;">After founding pricing: $149/year or $14.99/month</p>
     </div>
   </div>
 </section>
@@ -621,7 +648,7 @@ footer img{height:32px;opacity:0.6;}
       </div>
       <div class="faq-item">
         <div class="faq-q">What happens after I purchase?</div>
-        <div class="faq-a">You'll get immediate access to your BakeFlo account at bakeflo.io. Set up your bakery name and logo, add your ingredients, and start pricing your recipes right away.</div>
+        <div class="faq-a">You'll get immediate access to your BakeFlo account at bakeflo.co. Your pantry comes pre-loaded with common baking ingredients so you can start pricing right away — and you can add any custom ingredients unique to your recipes.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q">If I cancel, what happens to my data?</div>
@@ -633,8 +660,8 @@ footer img{height:32px;opacity:0.6;}
 
 <!-- FOOTER CTA -->
 <section class="footer-cta">
-  <h2>Stop guessing.<br><em>Start knowing.</em></h2>
-  <p>Be the first in your kitchen to simplify your pricing and profit.<br>Join founding members getting in before it goes to $14.99/month.</p>
+  <h2>Every batch has a profit story.<br><em>BakeFlo tells it.</em></h2>
+  <p>Join founding members and price with confidence — before it goes to $14.99/month.</p>
   <a href="https://buy.stripe.com/aFaaEWeHvaRT1aq7w04ko00" class="btn-white">Get Started for $97 →</a>
 </section>
 
