@@ -303,8 +303,10 @@ function AppInner({ session, onSignOut }) {
   const [dbLoading, setDbLoading] = useState(true);
 
   // Settings
-  const [bakeryName,  setBakeryName]  = useState("My Home Bakery");
-  const [bakeryLogo,  setBakeryLogo]  = useState(null);
+  const [bakeryName,         setBakeryName]         = useState("My Home Bakery");
+  const [bakeryLogo,         setBakeryLogo]         = useState(null);
+  const [invoiceHeaderColor, setInvoiceHeaderColor] = useState("#1e2d4a");
+  const [invoiceAccentColor, setInvoiceAccentColor] = useState("#C0653D");
   const [apiKey,      setApiKey]      = useState(() => localStorage.getItem("baker_api_key") || "");
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -454,6 +456,8 @@ function AppInner({ session, onSignOut }) {
       if (profileData) {
         setBakeryName(profileData.bakery_name || "My Home Bakery");
         setBakeryLogo(profileData.bakery_logo || null);
+        setInvoiceHeaderColor(profileData.invoice_header_color || "#1e2d4a");
+        setInvoiceAccentColor(profileData.invoice_accent_color || "#C0653D");
       }
       setDbLoading(false);
     };
@@ -462,7 +466,7 @@ function AppInner({ session, onSignOut }) {
 
   // ── Save settings ────────────────────────────────────────────────────────────
   const saveSettings = async () => {
-    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo });
+    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor });
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
   };
@@ -1563,6 +1567,24 @@ function AppInner({ session, onSignOut }) {
                   </div>
                 </div>
               </div>
+              <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <label style={s.label}>Invoice Header Color</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                    <input type="color" value={invoiceHeaderColor} onChange={e => setInvoiceHeaderColor(e.target.value)} style={{ width: 44, height: 34, border: `1px solid ${C.border}`, borderRadius: 6, cursor: "pointer", padding: 2, background: "none" }} />
+                    <span style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>{invoiceHeaderColor}</span>
+                    <button onClick={() => setInvoiceHeaderColor("#1e2d4a")} style={{ ...s.btnSec, padding: "3px 8px", fontSize: 11 }}>Reset</button>
+                  </div>
+                </div>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <label style={s.label}>Invoice Accent Color</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                    <input type="color" value={invoiceAccentColor} onChange={e => setInvoiceAccentColor(e.target.value)} style={{ width: 44, height: 34, border: `1px solid ${C.border}`, borderRadius: 6, cursor: "pointer", padding: 2, background: "none" }} />
+                    <span style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>{invoiceAccentColor}</span>
+                    <button onClick={() => setInvoiceAccentColor("#C0653D")} style={{ ...s.btnSec, padding: "3px 8px", fontSize: 11 }}>Reset</button>
+                  </div>
+                </div>
+              </div>
               <button onClick={saveSettings} style={{ ...s.btn, marginTop: 14 }}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
             </div>
             <div style={s.card}>
@@ -1695,7 +1717,7 @@ CREATE POLICY "owner_only" ON gifted_users
           ? new Date(ord.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
           : "Upon delivery";
         const total = parseFloat(ord.total || 0).toFixed(2);
-        const NAVY = "#1e2d4a"; const RUST = "#C0653D"; const CREAM = "#F9FAFB"; const BORDER = "#e2e8f0";
+        const NAVY = invoiceHeaderColor; const RUST = invoiceAccentColor; const CREAM = "#F9FAFB"; const BORDER = "#e2e8f0";
         return (
           <div id="bfinv" style={{ position: "fixed", inset: 0, zIndex: 9999, background: CREAM, overflowY: "auto", fontFamily: "Georgia, serif", color: NAVY }}>
             <style>{`@media print { body > *:not(#bfinv){display:none!important} #bfinv{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
