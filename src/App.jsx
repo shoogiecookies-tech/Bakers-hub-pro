@@ -1005,8 +1005,7 @@ function AppInner({ session, onSignOut }) {
           const _catCount = new Set(pantry.map(p => p.category).filter(Boolean)).size;
           const _oldest2 = [...pantry].filter(p => p.updated_at||p.created_at).sort((a,b) => new Date(a.updated_at||a.created_at) - new Date(b.updated_at||b.created_at)).slice(0,2);
           return (
-          <div className="bf-pantry-layout" style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-          <div style={{ flex: "1 1 60%", minWidth: 0 }}>
+          <div>
             {seedMsg && <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 12 }}>{seedMsg}</div>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <div style={{ fontSize: 18, fontWeight: "bold" }}>🫙 Ingredient Pantry</div>
@@ -1021,6 +1020,8 @@ function AppInner({ session, onSignOut }) {
                 ))}
               </div>
             </div>
+            <div className="bf-pantry-layout" style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+            <div style={{ flex: "1 1 60%", minWidth: 0 }}>
             {showNewPantry && (
               <div style={s.card}>
                 <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Pantry Item</div>
@@ -1082,7 +1083,7 @@ function AppInner({ session, onSignOut }) {
               );
             })}
           </div>
-          <div className="bf-pantry-sidebar" style={{ flex: "0 0 38%", minWidth: 220, position: "sticky", top: 20, alignSelf: "flex-start", paddingTop: 185 }}>
+          <div className="bf-pantry-sidebar" style={{ flex: "0 0 38%", minWidth: 220, position: "sticky", top: 20, alignSelf: "flex-start" }}>
             <div style={{ ...s.card, marginBottom: 12 }}>
               <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, marginBottom: 12 }}>📊 Pantry Snapshot</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -1119,6 +1120,7 @@ function AppInner({ session, onSignOut }) {
                 </div>
               </div>
             )}
+          </div>
           </div>
           </div>
           );
