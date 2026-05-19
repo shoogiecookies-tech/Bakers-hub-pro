@@ -9,8 +9,8 @@ const supabase = createClient(
 
 // ─── COLORS & STYLES ──────────────────────────────────────────────────────────
 const C = {
-  bg: "#f5ede0", card: "#fdf6ec", accent: "#c0653d", dark: "#1e2d4a",
-  caramel: "#b87d3a", light: "#f5ede0", border: "#d4c5a9", text: "#1e2d4a", muted: "#5c4f3d", mid: "#3d2e1e",
+  bg: "#e8e0d4", card: "#f5f0e8", accent: "#c0653d", dark: "#1e2d4a",
+  caramel: "#b87d3a", light: "#f5ede0", border: "#c8b89a", text: "#1e2d4a", muted: "#5c4f3d", mid: "#3d2e1e",
 };
 const s = {
   card: { background: C.card, borderRadius: 16, padding: 16, boxShadow: "0 2px 16px rgba(124,58,30,0.07)", border: `1px solid ${C.border}`, marginBottom: 12 },
@@ -22,7 +22,7 @@ const s = {
 };
 
 const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Settings", "Admin"];
-const STATUS_COLORS = { Pending: "#f59e0b", "In Progress": "#3b82f6", Complete: "#10b981", Invoiced: "#0ea5e9", Delivered: "#8b5cf6" };
+const STATUS_COLORS = { Pending: "#b87d3a", "In Progress": "#c0653d", Complete: "#5a7a5c", Invoiced: "#7a6a58", Delivered: "#5c4f3d" };
 const STATUS_LIST = ["Pending", "In Progress", "Complete", "Invoiced", "Delivered"];
 const CATEGORIES = ["Cookies", "Cakes", "Bread", "Pastries", "Cupcakes", "Other"];
 const PLATFORMS = ["Instagram", "Facebook", "TikTok", "Pinterest"];
@@ -1384,7 +1384,7 @@ function AppInner({ session, onSignOut }) {
                 const q = orderSearch.toLowerCase();
                 return !q || o.customer?.toLowerCase().includes(q) || o.item?.toLowerCase().includes(q);
               }).map(o => (
-              <div key={o.id} style={{ ...s.card, borderLeft: `4px solid ${STATUS_COLORS[o.status] || "#ccc"}` }}>
+              <div key={o.id} style={{ ...s.card, borderLeft: `4px solid ${C.accent}` }}>
                 {editingOrder === o.id ? (
                   <div>
                     <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>✏️ Edit Order</div>
@@ -1413,7 +1413,7 @@ function AppInner({ session, onSignOut }) {
                     </div>
                     {o.notes && <div style={{ background: C.light, borderRadius: 8, padding: "8px 10px", marginTop: 10, fontSize: 13, color: C.mid, fontStyle: "italic" }}>📝 {o.notes}</div>}
                     <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${STATUS_COLORS[st]}`, background: o.status === st ? STATUS_COLORS[st] : "#fff", color: o.status === st ? "#fff" : STATUS_COLORS[st], cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
+                      {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: o.status === st ? "none" : "1px solid #c8b89a", background: o.status === st ? C.accent : "#fff", color: o.status === st ? "#fff" : "#5c4f3d", cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
                         <button onClick={() => printInvoice(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11, background: "#FEF0E8", color: C.accent, border: `1px solid ${C.accent}` }}>📄 Invoice</button>
