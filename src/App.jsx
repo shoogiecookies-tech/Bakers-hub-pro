@@ -887,14 +887,14 @@ function AppInner({ session, onSignOut }) {
                <div style={{ fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>{dayMessages[dow]}</div>
              </div>
              {guideVisible ? (
-               <div style={{ background: "linear-gradient(135deg, #c0653d 0%, #d4814f 100%)", borderRadius: 14, padding: "16px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 3px 14px rgba(192,101,61,0.28)" }}>
-                 <div style={{ fontSize: 26, flexShrink: 0 }}>📖</div>
+               <div style={{ background: "#fff", borderRadius: "0 12px 12px 0", borderLeft: `4px solid ${C.accent}`, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                 <div style={{ fontSize: 20, flexShrink: 0 }}>📖</div>
                  <div style={{ flex: 1, minWidth: 0 }}>
-                   <div style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Quick Start Guide</div>
-                   <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>New to BakeFlo? Set up your bakery in minutes.</div>
+                   <div style={{ fontSize: 13, fontWeight: "700", color: C.dark }}>Quick Start Guide</div>
+                   <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>New to BakeFlo? Set up your bakery in minutes.</div>
                  </div>
-                 <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#c0653d", borderRadius: 20, padding: "7px 16px", fontSize: 13, fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>Open Guide</a>
-                 <button onClick={() => { localStorage.setItem("qsg_dismissed", "1"); setGuideVisible(false); }} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", width: 26, height: 26, borderRadius: "50%", cursor: "pointer", fontSize: 15, lineHeight: "26px", flexShrink: 0, fontFamily: "'Inter', sans-serif" }}>×</button>
+                 <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ background: "none", border: "none", color: C.accent, fontSize: 12, fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer" }}>Open Guide</a>
+                 <button onClick={() => { localStorage.setItem("qsg_dismissed", "1"); setGuideVisible(false); }} style={{ background: "none", border: "none", color: C.muted, width: 24, height: 24, borderRadius: "50%", cursor: "pointer", fontSize: 15, lineHeight: "24px", flexShrink: 0, fontFamily: "'Inter', sans-serif" }}>×</button>
                </div>
              ) : (
                <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.accent, textDecoration: "none", fontWeight: "600", marginBottom: 14 }}>📖 Quick Start Guide</a>
