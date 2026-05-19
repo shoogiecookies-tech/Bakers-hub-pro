@@ -830,6 +830,9 @@ function AppInner({ session, onSignOut }) {
         .bf-btn:active { transform: translateY(0); opacity: 1; }
         .bf-kpi { transition: box-shadow 180ms ease, transform 180ms ease; }
         .bf-kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.10) !important; transform: translateY(-2px); }
+        .bf-task-check { transition: background 0.2s ease, border-color 0.2s ease; }
+        .bf-task-check:hover { background: rgba(192,101,61,0.12) !important; }
+        .bf-task-text { transition: color 0.2s ease, text-decoration 0.2s ease; }
       `}</style>
 
       {/* HEADER */}
@@ -939,8 +942,10 @@ function AppInner({ session, onSignOut }) {
                  ? <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>No tasks today — enjoy the day! 🎉</div>
                  : todayTasks.map(t => (
                    <div key={t.id} onClick={() => toggleTask(t.id)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
-                     <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${t.done ? "#059669" : C.accent}`, background: t.done ? "#059669" : "transparent", flexShrink: 0, marginTop: 1 }} />
-                     <span style={{ fontSize: 13, lineHeight: 1.5, color: t.done ? C.muted : C.text, textDecoration: t.done ? "line-through" : "none" }}>{t.task}</span>
+                     <div className="bf-task-check" style={{ width: 22, height: 22, borderRadius: "50%", border: `2.5px solid ${C.accent}`, background: t.done ? C.accent : "transparent", flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                       {t.done && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                     </div>
+                     <span className="bf-task-text" style={{ fontSize: 13, lineHeight: 1.5, color: t.done ? C.muted : C.text, textDecoration: t.done ? "line-through" : "none" }}>{t.task}</span>
                    </div>
                  ))
                }
