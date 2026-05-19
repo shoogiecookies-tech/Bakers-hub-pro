@@ -9,15 +9,15 @@ const supabase = createClient(
 
 // ─── COLORS & STYLES ──────────────────────────────────────────────────────────
 const C = {
-  bg: "#faf5ee", card: "#fffcf7", accent: "#c0653d", dark: "#1e2d4a",
-  caramel: "#c8935a", light: "#f5ede0", border: "#e8dfd0", text: "#1e2d4a", muted: "#7a6a58", mid: "#3d2e1e",
+  bg: "#f5ede0", card: "#fdf6ec", accent: "#c0653d", dark: "#1e2d4a",
+  caramel: "#b87d3a", light: "#f5ede0", border: "#d4c5a9", text: "#1e2d4a", muted: "#5c4f3d", mid: "#3d2e1e",
 };
 const s = {
   card: { background: C.card, borderRadius: 16, padding: 16, boxShadow: "0 2px 16px rgba(124,58,30,0.07)", border: `1px solid ${C.border}`, marginBottom: 12 },
   input: { width: "100%", padding: "9px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, outline: "none", background: C.bg, color: C.text, boxSizing: "border-box", fontFamily: "'Inter', sans-serif" },
-  btn: { padding: "9px 18px", borderRadius: 22, border: "none", background: "#9CA3AF", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "700", letterSpacing: 0.3, fontFamily: "'Inter', sans-serif" },
+  btn: { padding: "9px 18px", borderRadius: 22, border: "none", background: "#c0653d", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "700", letterSpacing: 0.3, fontFamily: "'Inter', sans-serif" },
   btnSec: { padding: "9px 18px", borderRadius: 22, border: `1.5px solid #d4a07a`, background: "#fff", color: C.accent, cursor: "pointer", fontSize: 13, fontWeight: "600", fontFamily: "'Inter', sans-serif" },
-  label: { fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", display: "block", marginBottom: 4 },
+  label: { fontSize: 12, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", display: "block", marginBottom: 4 },
   tag: (color) => ({ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: color + "22", color, fontWeight: "700", letterSpacing: 0.5, display: "inline-block" }),
 };
 
@@ -838,7 +838,7 @@ function AppInner({ session, onSignOut }) {
         <div style={{ position: "absolute", bottom: 10, left: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {bakeryLogo
-            ? <img src={bakeryLogo} alt="logo" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover", border: "2px solid rgba(255,255,255,0.3)" }} />
+            ? <img src={bakeryLogo} alt="logo" style={{ height: 52, width: "auto", objectFit: "contain" }} />
             : <div style={{ fontSize: 36 }}>🧁</div>
           }
           <div style={{ flex: 1 }}>
@@ -856,9 +856,9 @@ function AppInner({ session, onSignOut }) {
             <button key={t} onClick={() => setTab(t)} style={{
               padding: "10px 13px", border: "none", cursor: "pointer", fontSize: 12,
               fontWeight: tab === t ? "700" : "400", borderRadius: "10px 10px 0 0", whiteSpace: "nowrap",
-              background: tab === t ? "rgba(255,255,255,0.18)" : "transparent", color: "#fff",
-              borderBottom: tab === t ? "3px solid #fff" : "3px solid transparent",
-              opacity: tab === t ? 1 : 0.55, transition: "all 0.18s", fontFamily: "'Inter', sans-serif",
+              background: "transparent", color: "#fff",
+              borderBottom: tab === t ? "3px solid #c0653d" : "3px solid transparent",
+              opacity: tab === t ? 1 : 0.65, transition: "all 0.18s", fontFamily: "'Inter', sans-serif",
             }}>{t}</button>
           ))}
         </div>
@@ -1735,8 +1735,8 @@ CREATE POLICY "owner_only" ON gifted_users
               <div style={{ background: NAVY, padding: "22px 36px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                   {bakeryLogo
-                    ? <img src={bakeryLogo} alt="" style={{ width: 52, height: 52, borderRadius: 10, objectFit: "contain", flexShrink: 0 }} />
-                    : <div style={{ width: 52, height: 52, borderRadius: 10, background: RUST, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🧁</div>
+                    ? <img src={bakeryLogo} alt="" style={{ height: 60, width: "auto", objectFit: "contain", flexShrink: 0 }} />
+                    : <div style={{ width: 56, height: 56, borderRadius: 10, background: RUST, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>🧁</div>
                   }
                   <div>
                     <div style={{ color: "#fff", fontSize: 18, fontWeight: "bold", letterSpacing: 0.4 }}>{bakeryName}</div>
