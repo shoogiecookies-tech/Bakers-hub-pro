@@ -917,7 +917,7 @@ function AppInner({ session, onSignOut }) {
                  </div>
                ))}
              </div>
-             <div style={{ ...s.card, padding: 18, border: `2px solid ${C.border}`, borderLeft: `4px solid ${C.accent}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+             <div style={{ ...s.card, padding: 18, border: `2px solid ${C.accent}`, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                  <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>📅 Today's Tasks</div>
                  {todayTasks.length > 0 && <span style={{ background: C.accent, color: "#fff", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: "700" }}>{todayTasks.length}</span>}
@@ -935,7 +935,7 @@ function AppInner({ session, onSignOut }) {
                }
              </div>
              {topItem && (
-               <div className="bf-card" style={{ ...s.card, padding: 18, background: C.bg, border: `2px solid ${C.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+               <div className="bf-card" style={{ ...s.card, padding: 18, background: C.bg, border: `2px solid ${C.dark}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                    <div style={{ fontSize: 18 }}>📊</div>
                    <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
