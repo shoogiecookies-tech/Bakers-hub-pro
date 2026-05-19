@@ -822,7 +822,7 @@ function AppInner({ session, onSignOut }) {
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", minHeight: "100vh", background: C.bg, color: C.text }}>
       <style>{`
-        @media (max-width: 768px) { .watermark-logo { display: none !important; } }
+        @media (max-width: 768px) { .watermark-logo { display: none !important; } .bf-pantry-layout { flex-direction: column !important; } .bf-pantry-sidebar { position: static !important; width: 100% !important; min-width: 0 !important; flex: none !important; } }
         @media (max-width: 480px) {
           .bf-header { padding: 14px 14px 0 !important; }
           .bf-header-logo { height: 40px !important; }
@@ -990,8 +990,23 @@ function AppInner({ session, onSignOut }) {
            );
          })()}
         {/* ══════════ PANTRY ══════════ */}
-        {tab === "Pantry" && (
-          <div>
+        {tab === "Pantry" && (() => {
+          const _pu = {};
+          recipes.forEach(r => (r.ingredients||[]).forEach(ing => {
+            const k = ing.pantryId ? String(ing.pantryId) : (ing.name||"").toLowerCase();
+            _pu[k] = (_pu[k]||0) + 1;
+          }));
+          const _pwu = pantry.map(p => ({ ...p, _usage: Math.max(_pu[String(p.id)]||0, _pu[(p.name||"").toLowerCase()]||0) }));
+          const _mostUsed = _pwu.length ? _pwu.reduce((a,b) => b._usage > a._usage ? b : a) : null;
+          const _priciest = pantry.length ? pantry.reduce((a,b) => (b.costPer||0) > (a.costPer||0) ? b : a) : null;
+          const _usedIds = new Set(recipes.flatMap(r => (r.ingredients||[]).map(i => String(i.pantryId)).filter(Boolean)));
+          const _usedNames = new Set(recipes.flatMap(r => (r.ingredients||[]).map(i => (i.name||"").toLowerCase()).filter(Boolean)));
+          const _unusedCount = pantry.filter(p => !_usedIds.has(String(p.id)) && !_usedNames.has((p.name||"").toLowerCase())).length;
+          const _catCount = new Set(pantry.map(p => p.category).filter(Boolean)).size;
+          const _oldest2 = [...pantry].filter(p => p.updated_at||p.created_at).sort((a,b) => new Date(a.updated_at||a.created_at) - new Date(b.updated_at||b.created_at)).slice(0,2);
+          return (
+          <div className="bf-pantry-layout" style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+          <div style={{ flex: "1 1 60%", minWidth: 0 }}>
             {seedMsg && <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 12 }}>{seedMsg}</div>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <div style={{ fontSize: 18, fontWeight: "bold" }}>🫙 Ingredient Pantry</div>
@@ -1067,7 +1082,48 @@ function AppInner({ session, onSignOut }) {
               );
             })}
           </div>
-        )}
+          </div>
+          <div className="bf-pantry-sidebar" style={{ flex: "0 0 38%", minWidth: 220, position: "sticky", top: 16 }}>
+            <div style={{ ...s.card, marginBottom: 12 }}>
+              <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, marginBottom: 12 }}>📊 Pantry Snapshot</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                {[
+                  { label: "Total ingredients", value: pantry.length, color: C.dark },
+                  { label: "Categories",         value: _catCount,     color: C.dark },
+                  { label: "Most used",          value: _mostUsed ? _mostUsed.name : "—", color: C.accent },
+                  { label: "Priciest",           value: _priciest ? _priciest.name : "—", color: C.accent },
+                  { label: "Unused items",       value: _unusedCount, color: C.dark },
+                ].map(row => (
+                  <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 13 }}>
+                    <span style={{ color: C.muted }}>{row.label}</span>
+                    <span style={{ fontWeight: "700", color: row.color, maxWidth: "55%", textAlign: "right", wordBreak: "break-word" }}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {_mostUsed && _mostUsed._usage > 0 && (
+              <div style={{ ...s.card, marginBottom: 12, background: C.dark, border: "none" }}>
+                <div style={{ fontWeight: "700", fontSize: 13, color: "#fff", marginBottom: 8 }}>💡 Ingredient Insight</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", lineHeight: 1.6 }}>
+                  <strong style={{ color: "#fff" }}>{_mostUsed.name}</strong> appears in <strong style={{ color: "#fff" }}>{_mostUsed._usage}</strong> of your recipes. A $1 price change here ripples into <strong style={{ color: C.caramel }}>${(_mostUsed._usage).toFixed(2)}</strong> of recipe cost shifts.
+                </div>
+              </div>
+            )}
+            {_oldest2.length > 0 && (
+              <div style={{ ...s.card, borderLeft: `4px solid ${C.accent}` }}>
+                <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, marginBottom: 8 }}>⏰ Price Check Reminder</div>
+                <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+                  {_oldest2.length >= 2
+                    ? <><strong style={{ color: C.text }}>{_oldest2[0].name}</strong>{" & "}<strong style={{ color: C.text }}>{_oldest2[1].name}</strong>{" haven't been updated in 60+ days. Costs may have shifted."}</>
+                    : <><strong style={{ color: C.text }}>{_oldest2[0].name}</strong>{" hasn't been updated in 60+ days. Costs may have shifted."}</>
+                  }
+                </div>
+              </div>
+            )}
+          </div>
+          </div>
+          );
+        })()}
 
         {/* ══════════ RECIPES ══════════ */}
         {tab === "Recipes" && (
