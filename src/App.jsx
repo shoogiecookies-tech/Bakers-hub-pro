@@ -901,10 +901,10 @@ function AppInner({ session, onSignOut }) {
              )}
              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
                {[
-                 { label: "DELIVERED", sub: "revenue", value: `$${deliveredRev.toFixed(2)}`, icon: "💰", color: "#059669", bg: "#f0fdf4", iconBg: "#dcfce7" },
-                 { label: "PENDING",   sub: "revenue", value: `$${pendingRev.toFixed(2)}`,   icon: "⏳", color: "#d97706", bg: "#fffbeb", iconBg: "#fef3c7" },
-                 { label: "OPEN",      sub: "orders",  value: openOrders,                    icon: "📦", color: "#2563eb", bg: "#eff6ff", iconBg: "#dbeafe" },
-                 { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                icon: "📱", color: "#7c3aed", bg: "#f5f3ff", iconBg: "#ede9fe" },
+                 { label: "DELIVERED", sub: "revenue", value: `$${deliveredRev.toFixed(2)}`, icon: "💰", color: "#2d6a4f",  bg: C.card, iconBg: C.border },
+                 { label: "PENDING",   sub: "revenue", value: `$${pendingRev.toFixed(2)}`,   icon: "⏳", color: C.accent, bg: C.card, iconBg: C.border },
+                 { label: "OPEN",      sub: "orders",  value: openOrders,                    icon: "📦", color: C.dark,   bg: C.card, iconBg: C.border },
+                 { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                icon: "📱", color: C.caramel,bg: C.card, iconBg: C.border },
                ].map(k => (
                  <div key={k.label} className="bf-kpi" style={{ background: k.bg, borderRadius: 16, padding: "14px 14px 12px", border: `1px solid ${k.color}18`, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
                    <div style={{ width: 36, height: 36, borderRadius: 10, background: k.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 10 }}>{k.icon}</div>
@@ -914,12 +914,12 @@ function AppInner({ session, onSignOut }) {
                ))}
              </div>
              {topItem && (
-               <div className="bf-card" style={{ ...s.card, padding: 18, background: "#fffbf5", border: `1px solid ${C.caramel}30` }}>
+               <div className="bf-card" style={{ ...s.card, padding: 18, background: C.bg, border: `1px solid ${C.caramel}30` }}>
                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                    <div style={{ fontSize: 18 }}>📊</div>
                    <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
                  </div>
-                 <div style={{ background: "#f0fdf4", borderRadius: 12, padding: "12px 14px", border: "1px solid #bbf7d0" }}>
+                 <div style={{ background: C.card, borderRadius: 12, padding: "12px 14px", border: `1px solid ${C.border}` }}>
                    <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Item</div>
                    <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topItem[0]}</div>
                    <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
