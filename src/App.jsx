@@ -844,6 +844,11 @@ function AppInner({ session, onSignOut }) {
         .bf-task-check:hover { background: rgba(192,101,61,0.12) !important; }
         .bf-task-text { transition: color 0.5s ease, opacity 0.5s ease; }
         .bf-task-text.done { opacity: 0.45; }
+        .bf-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 4px; background: #ddd5c3; outline: none; cursor: pointer; display: block; }
+        .bf-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #c0653d; cursor: pointer; border: 2.5px solid #fff; box-shadow: 0 1px 6px rgba(192,101,61,0.35); }
+        .bf-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #c0653d; cursor: pointer; border: 2.5px solid #fff; box-shadow: 0 1px 6px rgba(192,101,61,0.35); border: none; }
+        .bf-slider::-webkit-slider-runnable-track { height: 5px; border-radius: 4px; background: #ddd5c3; }
+        .bf-slider::-moz-range-track { height: 5px; border-radius: 4px; background: #ddd5c3; }
       `}</style>
 
       {/* HEADER */}
@@ -1279,12 +1284,25 @@ function AppInner({ session, onSignOut }) {
                 <input type="number" step="0.01" placeholder="$" value={extraCostIn.cost} onChange={e => setExtraCostIn(x => ({ ...x, cost: e.target.value }))} style={{ ...s.input, width: 70 }} />
                 <button onClick={() => { if (extraCostIn.name) { setExtraCosts(p => [...p, { ...extraCostIn }]); setExtraCostIn({ name: "", cost: "" }); } }} style={{ ...s.btn, padding: "8px 12px" }}>+</button>
               </div>
-              <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, margin: "14px 0 8px" }}>STEP 3 — Labor & Margins</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
-                {[["Labor hrs", laborHrs, setLaborHrs, 0.5], ["$/hr", laborRate, setLaborRate, 1], ["Overhead %", overhead, setOverhead, 1], ["Qty to sell", sellQty, setSellQty, 1]].map(([label, val, setter, step]) => (
-                  <div key={label}><label style={s.label}>{label}</label><input type="number" step={step} value={val} onChange={e => setter(+e.target.value)} style={s.input} /></div>
-                ))}
-              </div>
+              <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, margin: "14px 0 12px" }}>STEP 3 — Labor & Margins</div>
+              {[
+                { label: "LABOR HRS", val: laborHrs, set: setLaborHrs, min: 0, max: 8, step: 0.5 },
+                { label: "$ / HR",    val: laborRate, set: setLaborRate, min: 0, max: 50, step: 1 },
+                { label: "OVERHEAD %", val: overhead, set: setOverhead,  min: 0, max: 30, step: 1 },
+                { label: "QTY TO SELL", val: sellQty, set: setSellQty,  min: 1, max: 100, step: 1 },
+              ].map(({ label, val, set, min, max, step }) => (
+                <div key={label} style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", fontWeight: "600" }}>{label}</span>
+                    <input
+                      type="number" value={val} step={step} min={min} max={max}
+                      onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) set(Math.min(max, Math.max(min, v))); }}
+                      style={{ width: 68, padding: "3px 8px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 14, fontWeight: "700", color: C.accent, textAlign: "center", background: "#fff", outline: "none", fontFamily: "'Inter', sans-serif", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <input type="range" className="bf-slider" min={min} max={max} step={step} value={val} onChange={e => set(+e.target.value)} />
+                </div>
+              ))}
               <div style={{ marginTop: 10 }}>
                 <label style={s.label}>Your Selling Price $</label>
                 <input
