@@ -1484,8 +1484,19 @@ function AppInner({ session, onSignOut }) {
             {orders.filter(o => {
                 const q = orderSearch.toLowerCase();
                 return !q || o.customer?.toLowerCase().includes(q) || o.item?.toLowerCase().includes(q);
-              }).map(o => (
-              <div key={o.id} style={{ ...s.card, borderLeft: `4px solid ${C.accent}` }}>
+              }).map(o => {
+                const _t = new Date(); _t.setHours(0,0,0,0);
+                const _d = o.due ? new Date(o.due + "T00:00:00") : null;
+                const _diff = _d ? Math.round((_d - _t) / 86400000) : null;
+                const _ov  = _d && _diff < 0 && o.status !== "Delivered";
+                const _tod = _d && _diff === 0;
+                const _tom = _d && _diff === 1;
+                const _rp  = ["Complete","Invoiced"].includes(o.status);
+                const _dl  = _ov ? "🔴 Overdue" : _tod ? "🟡 Due Today" : _tom ? "🟠 Due Tomorrow" : _rp ? "🟢 Ready for Pickup" : (o.due || "—");
+                const _dc  = _ov ? "#c0522a" : _tod ? "#d97706" : _tom ? "#ea7c0a" : _rp ? "#5a7a5c" : C.muted;
+                const _si  = STATUS_LIST.indexOf(o.status);
+                return (
+              <div key={o.id} style={{ ...s.card, borderLeft: `4px solid ${_ov ? "#c0522a" : C.accent}`, background: _ov ? "#fff8f6" : (_tod||_tom) ? "#fffbf4" : C.card }}>
                 {editingOrder === o.id ? (
                   <div>
                     <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>✏️ Edit Order</div>
@@ -1509,10 +1520,22 @@ function AppInner({ session, onSignOut }) {
                 ) : (
                   <>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <div><div style={{ fontWeight: "bold", fontSize: 15 }}>{o.customer}</div><div style={{ fontSize: 13, color: C.mid, marginTop: 2 }}>{o.item}</div><div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>Due: {o.due}{o.phone && ` · ${o.phone}`}</div></div>
+                      <div>
+                        <div style={{ fontWeight: "bold", fontSize: 15 }}>{o.customer}</div>
+                        <div style={{ fontSize: 13, color: C.mid, marginTop: 2 }}>{o.item}</div>
+                        <div style={{ fontSize: 12, color: _dc, marginTop: 4, fontWeight: (_ov||_tod||_tom) ? "600" : "400" }}>
+                          {_dl}{o.phone && <span style={{ color: C.muted, fontWeight: "400" }}> · {o.phone}</span>}
+                        </div>
+                      </div>
                       <div style={{ textAlign: "right" }}><div style={{ fontWeight: "bold", fontSize: 18, color: C.dark }}>${o.total}</div><span style={s.tag(STATUS_COLORS[o.status])}>{o.status}</span></div>
                     </div>
-                    {o.notes && <div style={{ background: C.light, borderRadius: 8, padding: "8px 10px", marginTop: 10, fontSize: 13, color: C.mid, fontStyle: "italic" }}>📝 {o.notes}</div>}
+                    <div style={{ display: "flex", alignItems: "center", margin: "10px 0 4px" }}>
+                      {STATUS_LIST.map((st, i) => [
+                        <div key={st} title={st} style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: i < _si ? C.accent : i === _si ? C.dark : "#ddd5c3", outline: i === _si ? `2px solid ${C.dark}` : "none", outlineOffset: 2 }} />,
+                        i < STATUS_LIST.length - 1 ? <div key={st+"l"} style={{ flex: 1, height: 2, background: i < _si ? C.accent : "#e2d9cc", minWidth: 8 }} /> : null,
+                      ])}
+                    </div>
+                    {o.notes && <div style={{ background: C.light, borderRadius: 8, padding: "8px 10px", marginTop: 8, fontSize: 13, color: C.mid, fontStyle: "italic" }}>📝 {o.notes}</div>}
                     <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                       {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: o.status === st ? "none" : "1px solid #c8b89a", background: o.status === st ? C.accent : "#fff", color: o.status === st ? "#fff" : "#5c4f3d", cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
@@ -1525,7 +1548,8 @@ function AppInner({ session, onSignOut }) {
                   </>
                 )}
               </div>
-            ))}
+                );
+              })}
             {orders.length === 0 && <div style={{ ...s.card, textAlign: "center", color: C.muted, fontSize: 14 }}>No orders yet — add your first one! 🎂</div>}
           </div>
         )}
