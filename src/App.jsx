@@ -828,8 +828,8 @@ function AppInner({ session, onSignOut }) {
         .bf-btn { transition: opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease; }
         .bf-btn:hover { opacity: 0.88; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
         .bf-btn:active { transform: translateY(0); opacity: 1; }
-        .bf-kpi { transition: box-shadow 180ms ease, transform 180ms ease; }
-        .bf-kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.10) !important; transform: translateY(-2px); }
+        .bf-kpi { transition: box-shadow 220ms ease, transform 220ms ease; }
+        .bf-kpi:hover { box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.18) !important; transform: translateY(-3px); }
         .bf-task-check { transition: background 0.2s ease, border-color 0.2s ease; cursor: pointer; }
         .bf-task-check:hover { background: rgba(192,101,61,0.12) !important; }
         .bf-task-text { transition: color 0.5s ease, opacity 0.5s ease; }
@@ -910,7 +910,7 @@ function AppInner({ session, onSignOut }) {
                  { label: "OPEN",      sub: "orders",  value: openOrders,                    icon: "📦", color: C.dark,   bg: C.card, iconBg: C.border },
                  { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                icon: "📱", color: C.dark,   bg: C.card, iconBg: C.border },
                ].map(k => (
-                 <div key={k.label} className="bf-kpi" style={{ background: k.bg, borderRadius: 16, padding: "14px 14px 12px", border: `1px solid ${k.color}18`, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+                 <div key={k.label} className="bf-kpi" style={{ background: k.bg, borderRadius: 16, padding: "14px 14px 12px", border: `1px solid ${k.color}18`, boxShadow: "0 0 0 1px rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.12)" }}>
                    <div style={{ width: 36, height: 36, borderRadius: 10, background: k.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 10 }}>{k.icon}</div>
                    <div style={{ fontSize: 26, fontWeight: "700", color: k.color, lineHeight: 1 }}>{k.value}</div>
                    <div style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase", color: k.color, opacity: 0.75, marginTop: 4 }}>{k.label} <span style={{ opacity: 0.6 }}>{k.sub}</span></div>
