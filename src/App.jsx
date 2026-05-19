@@ -901,10 +901,10 @@ function AppInner({ session, onSignOut }) {
              )}
              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
                {[
-                 { label: "DELIVERED", sub: "revenue", value: `$${deliveredRev.toFixed(2)}`, icon: "💰", color: "#2d6a4f",  bg: C.card, iconBg: C.border },
-                 { label: "PENDING",   sub: "revenue", value: `$${pendingRev.toFixed(2)}`,   icon: "⏳", color: C.accent, bg: C.card, iconBg: C.border },
+                 { label: "DELIVERED", sub: "revenue", value: `$${deliveredRev.toFixed(2)}`, icon: "💰", color: "#2d6a4f", bg: C.card, iconBg: C.border },
+                 { label: "PENDING",   sub: "revenue", value: `$${pendingRev.toFixed(2)}`,   icon: "⏳", color: "#2d6a4f", bg: C.card, iconBg: C.border },
                  { label: "OPEN",      sub: "orders",  value: openOrders,                    icon: "📦", color: C.dark,   bg: C.card, iconBg: C.border },
-                 { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                icon: "📱", color: C.caramel,bg: C.card, iconBg: C.border },
+                 { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                icon: "📱", color: C.dark,   bg: C.card, iconBg: C.border },
                ].map(k => (
                  <div key={k.label} className="bf-kpi" style={{ background: k.bg, borderRadius: 16, padding: "14px 14px 12px", border: `1px solid ${k.color}18`, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
                    <div style={{ width: 36, height: 36, borderRadius: 10, background: k.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 10 }}>{k.icon}</div>
