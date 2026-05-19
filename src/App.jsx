@@ -842,7 +842,7 @@ function AppInner({ session, onSignOut }) {
         <div style={{ position: "absolute", bottom: 10, left: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {bakeryLogo
-            ? <img src={bakeryLogo} alt="logo" style={{ height: 52, width: "auto", objectFit: "contain" }} />
+            ? <img src={bakeryLogo} alt="logo" style={{ height: 52, width: "auto", objectFit: "contain", mixBlendMode: "multiply", background: "transparent" }} />
             : <div style={{ fontSize: 36 }}>🧁</div>
           }
           <div style={{ flex: 1 }}>
