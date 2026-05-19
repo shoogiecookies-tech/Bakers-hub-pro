@@ -1562,6 +1562,13 @@ function AppInner({ session, onSignOut }) {
         {tab === "Settings" && (
           <div>
             <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>⚙️ Settings</div>
+            <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", marginBottom: 14, border: `1px solid ${C.border}` }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: "700", color: C.text }}>📖 Quick Start Guide</div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>New to BakeFlo? Get up and running in minutes.</div>
+              </div>
+              <div style={{ fontSize: 18, color: C.muted, flexShrink: 0 }}>›</div>
+            </a>
             <div style={s.card}>
               <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🏷 Bakery Branding</div>
               <label style={s.label}>Bakery Name</label>
