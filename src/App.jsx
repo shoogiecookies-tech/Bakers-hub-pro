@@ -1309,7 +1309,7 @@ function AppInner({ session, onSignOut }) {
                   type="number" step="0.01" placeholder="0.00"
                   value={sellingPrice}
                   onChange={e => setSellingPrice(e.target.value)}
-                  style={{ ...s.input, fontSize: 16, fontWeight: "700" }}
+                  style={{ ...s.input, fontSize: 16, fontWeight: "700", textAlign: "center" }}
                 />
               </div>
               <button onClick={suggestPrice} style={{ ...s.btnSec, width: "100%", marginTop: 12, padding: 11, fontSize: 13 }}>✨ Suggest a Price — ingredients + labor + 40% markup</button>
@@ -1349,7 +1349,7 @@ function AppInner({ session, onSignOut }) {
 
                   {suggestedPrice != null && (
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: C.muted }}>
-                      <span>Suggested Price (40% markup)</span><span style={{ fontWeight: "600", color: "#C0653D" }}>${suggestedPrice.toFixed(2)}</span>
+                      <span>BakeFlo Suggests</span><span style={{ fontWeight: "600", color: "#C0653D" }}>${suggestedPrice.toFixed(2)}</span>
                     </div>
                   )}
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", fontSize: 15, fontWeight: "800", color: C.dark }}>
@@ -1358,8 +1358,8 @@ function AppInner({ session, onSignOut }) {
                   {divider()}
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
-                    <span style={{ fontWeight: "800", fontSize: 16, color: "#10b981" }}>PURE PROFIT</span>
-                    <span style={{ fontWeight: "800", fontSize: 26, color: "#10b981" }}>${pureProfit.toFixed(2)}</span>
+                    <span style={{ fontWeight: "800", fontSize: 16, color: pureProfit >= 0 ? "#10b981" : "#ef4444" }}>PURE PROFIT</span>
+                    <span style={{ fontWeight: "800", fontSize: 26, color: pureProfit >= 0 ? "#10b981" : "#ef4444" }}>${pureProfit.toFixed(2)}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: C.muted }}>
                     <span>PROFIT MARGIN</span><span style={{ fontWeight: "700" }}>{margin.toFixed(1)}%</span>
