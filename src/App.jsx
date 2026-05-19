@@ -916,23 +916,6 @@ function AppInner({ session, onSignOut }) {
                  </div>
                ))}
              </div>
-             {topItem && (
-               <div className="bf-card" style={{ ...s.card, padding: 18, background: C.bg, border: `1px solid ${C.caramel}30` }}>
-                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                   <div style={{ fontSize: 18 }}>📊</div>
-                   <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
-                 </div>
-                 <div style={{ background: C.card, borderRadius: 12, padding: "12px 14px", border: `1px solid ${C.border}` }}>
-                   <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Item</div>
-                   <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topItem[0]}</div>
-                   <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
-                     {topItemPct !== null
-                       ? `${topItem[0]} generated ${topItemPct}% of your total revenue — your top earner! 🎉`
-                       : `Your top revenue generator — keep it on the menu!`}
-                   </div>
-                 </div>
-               </div>
-             )}
              <div style={{ ...s.card, padding: 18 }}>
                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                  <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>📅 Today's Tasks</div>
@@ -950,6 +933,23 @@ function AppInner({ session, onSignOut }) {
                  ))
                }
              </div>
+             {topItem && (
+               <div className="bf-card" style={{ ...s.card, padding: 18, background: C.bg, border: `1px solid ${C.caramel}30` }}>
+                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                   <div style={{ fontSize: 18 }}>📊</div>
+                   <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
+                 </div>
+                 <div style={{ background: C.card, borderRadius: 12, padding: "12px 14px", border: `1px solid ${C.border}` }}>
+                   <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Item</div>
+                   <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topItem[0]}</div>
+                   <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
+                     {topItemPct !== null
+                       ? `${topItem[0]} generated ${topItemPct}% of your total revenue — your top earner! 🎉`
+                       : `Your top revenue generator — keep it on the menu!`}
+                   </div>
+                 </div>
+               </div>
+             )}
              <div style={{ ...s.card, padding: 18 }}>
                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                  <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>🚨 Upcoming Orders</div>
