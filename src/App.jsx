@@ -842,7 +842,7 @@ function AppInner({ session, onSignOut }) {
         <div style={{ position: "absolute", bottom: 10, left: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {bakeryLogo
-            ? <img src={bakeryLogo} alt="logo" style={{ height: 52, width: "auto", objectFit: "contain" }} />
+            ? <img src={bakeryLogo} alt="logo" style={{ height: 52, width: "auto", objectFit: "contain", mixBlendMode: "screen" }} />
             : <div style={{ fontSize: 36 }}>🧁</div>
           }
           <div style={{ flex: 1 }}>
@@ -1569,6 +1569,7 @@ function AppInner({ session, onSignOut }) {
                   <div>
                     <PhotoUpload value={null} onChange={v => setBakeryLogo(v)} small />
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Tap to upload your logo</div>
+                    <div style={{ fontSize: 11, color: C.muted, opacity: 0.7, marginTop: 5, lineHeight: 1.4 }}>For best results, use a PNG with a transparent background.</div>
                     {bakeryLogo && <button onClick={() => setBakeryLogo(null)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove</button>}
                   </div>
                 </div>
