@@ -111,14 +111,17 @@ function PhotoUpload({ value, onChange, small }) {
   return (
     <div onClick={() => ref.current.click()} style={{
       width: small ? 60 : "100%", height: small ? 60 : 150,
-      borderRadius: small ? 10 : 12, border: `2px dashed ${C.border}`,
-      background: value ? "transparent" : C.light, cursor: "pointer",
+      borderRadius: small ? 10 : 14, border: `1.5px dashed rgba(200,184,154,0.55)`,
+      background: value ? "transparent" : (small ? C.light : "#f9f5ef"), cursor: "pointer",
       display: "flex", alignItems: "center", justifyContent: "center",
       overflow: "hidden", flexShrink: 0,
     }}>
       {value
         ? <img src={value} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        : <div style={{ textAlign: "center", color: C.muted, fontSize: small ? 20 : 28 }}>📷{!small && <div style={{ fontSize: 12, marginTop: 4 }}>Add Photo</div>}</div>
+        : <div style={{ textAlign: "center", color: C.muted, opacity: 0.7 }}>
+            <div style={{ fontSize: small ? 18 : 26 }}>📷</div>
+            {!small && <div style={{ fontSize: 11, marginTop: 6, letterSpacing: 0.4 }}>Add Photo</div>}
+          </div>
       }
       <input ref={ref} type="file" accept="image/*" style={{ display: "none" }}
         onChange={e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => onChange(ev.target.result); r.readAsDataURL(f); }} />
@@ -1137,7 +1140,7 @@ function AppInner({ session, onSignOut }) {
               placeholder="🔍 Search recipes..."
               value={recipeSearch}
               onChange={e => setRecipeSearch(e.target.value)}
-              style={{ ...s.input, marginBottom: 14 }}
+              style={{ ...s.input, marginBottom: 14, background: "#fff", border: `1.5px solid ${C.border}` }}
             />
             {showNewRec && (
               <div style={s.card}>
