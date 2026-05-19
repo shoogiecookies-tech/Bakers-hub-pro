@@ -1083,7 +1083,7 @@ function AppInner({ session, onSignOut }) {
                         </div>
                       ) : <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => { setEditingPantry(item.id); setEditPantryForm({ id: item.id, name: item.name, category: item.category, storeCost: item.storeCost, yields: item.yields, unit: item.unit, storeUnit: item.storeUnit || "" }); }} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12 }}>✏️ Edit</button>
-                        <button onClick={() => deletePantryItem(item.id)} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12, color: "#ef4444", border: "1px solid #ef4444" }}>🗑 Delete</button>
+                        <button onClick={() => deletePantryItem(item.id)} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12, color: "#c0522a", border: "1px solid #c0522a" }}>🗑 Delete</button>
                       </div>}
                     </div>
                   ))}
@@ -1190,7 +1190,7 @@ function AppInner({ session, onSignOut }) {
                         <button onClick={() => { setSelRecipe(selRecipe?.id === r.id ? null : r); setScale(1); }} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12 }}>{selRecipe?.id === r.id ? "Close" : "View / Scale"}</button>
                         <button onClick={() => { setPricingRecId(String(r.id)); setPricingSvgs(r.servings); setSellQty(r.servings); setTab("Pricing"); }} style={{ ...s.btn, padding: "5px 12px", fontSize: 12 }}>→ Price It</button>
                         <button onClick={() => { setEditRec(editRec?.id === r.id ? null : { ...r }); setEditIngInput({ pantryId: "", amount: "", unit: "cups" }); }} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12 }}>✏️ Edit</button>
-                        <button onClick={() => deleteRecipe(r.id)} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12, color: "#ef4444", border: "1px solid #ef4444" }}>🗑</button>
+                        <button onClick={() => deleteRecipe(r.id)} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12, color: "#c0522a", border: "1px solid #c0522a" }}>🗑</button>
                       </div>
                     </div>
                   </div>
@@ -1225,7 +1225,7 @@ function AppInner({ session, onSignOut }) {
                       {editRec.ingredients.map((ing, idx) => (
                         <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: C.mid, padding: "2px 0" }}>
                           <span>• {ing.amount} {ing.unit} {ing.name}</span>
-                          <button onClick={() => setEditRec(r => ({ ...r, ingredients: r.ingredients.filter((_, j) => j !== idx) }))} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
+                          <button onClick={() => setEditRec(r => ({ ...r, ingredients: r.ingredients.filter((_, j) => j !== idx) }))} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
                         </div>
                       ))}
                       <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 8 }}>
@@ -1358,8 +1358,8 @@ function AppInner({ session, onSignOut }) {
                   {divider()}
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
-                    <span style={{ fontWeight: "800", fontSize: 16, color: pureProfit >= 0 ? "#10b981" : "#ef4444" }}>PURE PROFIT</span>
-                    <span style={{ fontWeight: "800", fontSize: 26, color: pureProfit >= 0 ? "#10b981" : "#ef4444" }}>${pureProfit.toFixed(2)}</span>
+                    <span style={{ fontWeight: "800", fontSize: 16, color: pureProfit >= 0 ? "#10b981" : "#c0522a" }}>PURE PROFIT</span>
+                    <span style={{ fontWeight: "800", fontSize: 26, color: pureProfit >= 0 ? "#10b981" : "#c0522a" }}>${pureProfit.toFixed(2)}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: C.muted }}>
                     <span>PROFIT MARGIN</span><span style={{ fontWeight: "700" }}>{margin.toFixed(1)}%</span>
@@ -1509,7 +1509,7 @@ function AppInner({ session, onSignOut }) {
                         <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
                         <button onClick={() => printInvoice(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11, background: "#FEF0E8", color: C.accent, border: `1px solid ${C.accent}` }}>📄 Invoice</button>
                         <button onClick={() => genEmail(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11 }}>✉️ Email</button>
-                        <button onClick={() => deleteOrder(o.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, color: "#ef4444", border: "1px solid #ef4444" }}>🗑</button>
+                        <button onClick={() => deleteOrder(o.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, color: "#c0522a", border: "1px solid #c0522a" }}>🗑</button>
                       </div>
                     </div>
                   </>
@@ -1561,7 +1561,7 @@ function AppInner({ session, onSignOut }) {
                     <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none", cursor: "pointer" }}>{t.task}</span>
                     {t.auto && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700" }}>auto</span>}
                     {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
-                    <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+                    <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
                   </div>
                 ))}
               </div>
