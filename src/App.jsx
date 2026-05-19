@@ -310,6 +310,11 @@ function AppInner({ session, onSignOut }) {
   const [bakeryLogo,         setBakeryLogo]         = useState(null);
   const [invoiceHeaderColor, setInvoiceHeaderColor] = useState("#1e2d4a");
   const [invoiceAccentColor, setInvoiceAccentColor] = useState("#C0653D");
+  const [venmo,       setVenmo]       = useState("");
+  const [paypal,      setPaypal]      = useState("");
+  const [zelle,       setZelle]       = useState("");
+  const [acceptsCash, setAcceptsCash] = useState(false);
+  const [otherPay,    setOtherPay]    = useState("");
   const [apiKey,      setApiKey]      = useState(() => localStorage.getItem("baker_api_key") || "");
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -460,6 +465,11 @@ function AppInner({ session, onSignOut }) {
         setBakeryName(profileData.bakery_name || "My Home Bakery");
         setBakeryLogo(profileData.bakery_logo || null);
         setInvoiceHeaderColor(profileData.invoice_header_color || "#1e2d4a");
+        setVenmo(profileData.venmo || "");
+        setPaypal(profileData.paypal || "");
+        setZelle(profileData.zelle || "");
+        setAcceptsCash(!!profileData.accepts_cash);
+        setOtherPay(profileData.other_payment || "");
         setInvoiceAccentColor(profileData.invoice_accent_color || "#C0653D");
       }
       setDbLoading(false);
@@ -469,7 +479,7 @@ function AppInner({ session, onSignOut }) {
 
   // ── Save settings ────────────────────────────────────────────────────────────
   const saveSettings = async () => {
-    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor });
+    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay });
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
   };
@@ -1687,6 +1697,31 @@ function AppInner({ session, onSignOut }) {
               <button onClick={saveSettings} style={{ ...s.btn, marginTop: 14 }}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
             </div>
             <div style={s.card}>
+              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>💳 Payment Methods</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Only filled-in methods appear on your invoices.</div>
+              {[
+                { label: "Venmo",  val: venmo,   set: setVenmo,   ph: "@yourhandle" },
+                { label: "PayPal", val: paypal,  set: setPaypal,  ph: "email or @handle" },
+                { label: "Zelle",  val: zelle,   set: setZelle,   ph: "phone or email" },
+              ].map(({ label, val, set, ph }) => (
+                <div key={label} style={{ marginBottom: 10 }}>
+                  <label style={s.label}>{label}</label>
+                  <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={s.input} />
+                </div>
+              ))}
+              <div style={{ marginBottom: 10 }}>
+                <label style={s.label}>Other</label>
+                <input value={otherPay} onChange={e => setOtherPay(e.target.value)} placeholder="e.g. Bank transfer: ..." style={s.input} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <label style={{ ...s.label, marginBottom: 0 }}>Accept Cash?</label>
+                <button onClick={() => setAcceptsCash(v => !v)} style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: "700", cursor: "pointer", border: `1.5px solid ${C.accent}`, background: acceptsCash ? C.accent : "#fff", color: acceptsCash ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>
+                  {acceptsCash ? "Yes" : "No"}
+                </button>
+              </div>
+              <button onClick={saveSettings} style={{ ...s.btn, marginTop: 2 }}>{settingsSaved ? "✓ Saved!" : "Save Payment Methods"}</button>
+            </div>
+            <div style={s.card}>
               <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>🤖 AI Features</div>
               <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
                 <strong style={{ color: C.dark }}>Get your free Anthropic API key:</strong><br />
@@ -1898,6 +1933,20 @@ CREATE POLICY "owner_only" ON gifted_users
                 <div style={{ marginTop: 20, marginBottom: 36 }}>
                   <span style={{ display: "inline-block", background: "#fef0e8", color: RUST, padding: "5px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{ord.status}</span>
                 </div>
+
+                {/* How to Pay */}
+                {(venmo || paypal || zelle || acceptsCash || otherPay) && (
+                  <div style={{ borderTop: "1px solid " + BORDER, paddingTop: 18, marginBottom: 24 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: RUST, marginBottom: 12 }}>How to Pay</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 24px" }}>
+                      {venmo  && <div style={{ fontSize: 13, color: NAVY }}><strong>Venmo</strong> &nbsp;{venmo}</div>}
+                      {paypal && <div style={{ fontSize: 13, color: NAVY }}><strong>PayPal</strong> &nbsp;{paypal}</div>}
+                      {zelle  && <div style={{ fontSize: 13, color: NAVY }}><strong>Zelle</strong> &nbsp;{zelle}</div>}
+                      {acceptsCash && <div style={{ fontSize: 13, color: NAVY }}><strong>Cash</strong> &nbsp;accepted</div>}
+                      {otherPay && <div style={{ fontSize: 13, color: NAVY }}>{otherPay}</div>}
+                    </div>
+                  </div>
+                )}
 
                 {/* Footer */}
                 <div style={{ borderTop: "1px solid " + BORDER, paddingTop: 20, textAlign: "center", color: "#94a3b8", fontSize: 12, lineHeight: 2.2 }}>
