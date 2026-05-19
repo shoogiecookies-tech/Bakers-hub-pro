@@ -9,7 +9,7 @@ const supabase = createClient(
 
 // ─── COLORS & STYLES ──────────────────────────────────────────────────────────
 const C = {
-  bg: "#e8e0d4", card: "#f5f0e8", accent: "#c0653d", dark: "#1e2d4a",
+  bg: "#d4cab8", card: "#f5f0e8", accent: "#c0653d", dark: "#1e2d4a",
   caramel: "#b87d3a", light: "#f5ede0", border: "#c8b89a", text: "#1e2d4a", muted: "#5c4f3d", mid: "#3d2e1e",
 };
 const s = {
