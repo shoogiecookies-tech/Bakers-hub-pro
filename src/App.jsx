@@ -1082,7 +1082,6 @@ function AppInner({ session, onSignOut }) {
               );
             })}
           </div>
-          </div>
           <div className="bf-pantry-sidebar" style={{ flex: "0 0 38%", minWidth: 220, position: "sticky", top: 16 }}>
             <div style={{ ...s.card, marginBottom: 12 }}>
               <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, marginBottom: 12 }}>📊 Pantry Snapshot</div>
