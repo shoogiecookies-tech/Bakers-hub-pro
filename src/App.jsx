@@ -1537,12 +1537,14 @@ function AppInner({ session, onSignOut }) {
                     </div>
                     {o.notes && <div style={{ background: C.light, borderRadius: 8, padding: "8px 10px", marginTop: 8, fontSize: 13, color: C.mid, fontStyle: "italic" }}>📝 {o.notes}</div>}
                     <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      {STATUS_LIST.map(st => <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: o.status === st ? "none" : "1px solid #c8b89a", background: o.status === st ? C.accent : "#fff", color: o.status === st ? "#fff" : "#5c4f3d", cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{st}</button>)}
-                      <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11 }}>✏️ Edit</button>
-                        <button onClick={() => printInvoice(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11, background: "#FEF0E8", color: C.accent, border: `1px solid ${C.accent}` }}>📄 Invoice</button>
-                        <button onClick={() => genEmail(o)} style={{ ...s.btnSec, padding: "4px 12px", fontSize: 11 }}>✉️ Email</button>
-                        <button onClick={() => deleteOrder(o.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, color: "#c0522a", border: "1px solid #c0522a" }}>🗑</button>
+                      {STATUS_LIST.map(st => (
+                        <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: "none", background: o.status === st ? C.accent : "transparent", color: o.status === st ? "#fff" : "#aaa", cursor: "pointer", fontSize: 11, fontWeight: o.status === st ? "700" : "500", fontFamily: "'Inter', sans-serif" }}>{st}</button>
+                      ))}
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ padding: "4px 10px", borderRadius: 16, border: `1.5px solid ${C.dark}`, background: "transparent", color: C.dark, cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>Edit</button>
+                        <button onClick={() => printInvoice(o)} style={{ padding: "5px 13px", borderRadius: 16, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>📄 Invoice</button>
+                        <button onClick={() => genEmail(o)} style={{ padding: "4px 10px", borderRadius: 16, border: "1px solid #ccc", background: "transparent", color: "#999", cursor: "pointer", fontSize: 11, fontFamily: "'Inter', sans-serif" }}>✉️ Email</button>
+                        <button onClick={() => deleteOrder(o.id)} style={{ background: "none", border: "none", color: "#bbb", cursor: "pointer", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>🗑</button>
                       </div>
                     </div>
                   </>
