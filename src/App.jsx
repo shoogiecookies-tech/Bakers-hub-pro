@@ -59,19 +59,31 @@ function calcIngCost(ing, pantry) {
 function calcRecipeCost(recipe, pantry) {
   return recipe.ingredients.reduce((sum, ing) => sum + (calcIngCost(ing, pantry) || 0), 0);
 }
+function orderDayLabel(due) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(due); d.setHours(0, 0, 0, 0);
+  const diff = Math.round((d - today) / 86400000);
+  if (diff === 1) return "tomorrow's";
+  const day = d.getDay();
+  if (day === 0 || day === 6) return "this weekend's";
+  if (diff >= 2 && diff <= 6) return `${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][day]}'s`;
+  return "upcoming";
+}
+
 function generateTasksFromOrder(order) {
   if (!order.item || !order.due) return [];
   const due = new Date(order.due + "T12:00:00");
+  const day = orderDayLabel(order.due);
   const add = (daysBefore, task) => {
     const d = new Date(due);
     d.setDate(d.getDate() - daysBefore);
     return { date: d.toISOString().split("T")[0], task, done: false, auto: true, order_id: order.id };
   };
   return [
-    add(5, `Gather ingredients for "${order.item}" — ${order.customer}`),
-    add(3, `Prep batter/dough for "${order.item}" — ${order.customer}`),
+    add(5, `Prep ingredients for ${day} order — ${order.customer}`),
+    add(3, `Prep dough for ${day} bake — ${order.customer}`),
     add(3, `Bake "${order.item}" — ${order.customer}`),
-    add(2, `Decorate & finish "${order.item}" — ${order.customer}`),
+    add(2, `Final decorate and prep — ${order.customer}`),
     add(0, `Package & deliver "${order.item}" to ${order.customer}`),
   ];
 }
