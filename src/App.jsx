@@ -850,6 +850,7 @@ function AppInner({ session, onSignOut }) {
         @media (max-width: 768px) { .watermark-logo { display: none !important; } .bf-pantry-layout { flex-direction: column !important; } .bf-pantry-sidebar { position: static !important; width: 100% !important; min-width: 0 !important; flex: none !important; } }
         .bf-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
         .bf-settings-grid > * { margin-bottom: 0 !important; }
+        .bf-settings-full { grid-column: 1 / -1; }
         @media (max-width: 640px) { .bf-settings-grid { grid-template-columns: 1fr; } }
         @media (max-width: 480px) {
           .bf-header { padding: 14px 14px 0 !important; }
@@ -1693,8 +1694,8 @@ function AppInner({ session, onSignOut }) {
             <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>⚙️ Settings</div>
             <div className="bf-settings-grid">
 
-              {/* ROW 1 LEFT — Quick Start Guide */}
-              <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", border: `1px solid ${C.border}` }}>
+              {/* FULL WIDTH — Quick Start Guide */}
+              <a className="bf-settings-full" href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", border: `1px solid ${C.border}` }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: "700", color: C.text }}>📖 Quick Start Guide</div>
                   <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>New to BakeFlo? Get up and running in minutes.</div>
@@ -1702,8 +1703,8 @@ function AppInner({ session, onSignOut }) {
                 <div style={{ fontSize: 18, color: C.muted, flexShrink: 0 }}>›</div>
               </a>
 
-              {/* ROW 1 RIGHT — AI Features */}
-              <div style={s.card}>
+              {/* FULL WIDTH — AI Features */}
+              <div className="bf-settings-full" style={s.card}>
                 <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>🤖 AI Features</div>
                 <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
                   <strong style={{ color: C.dark }}>Get your free Anthropic API key:</strong><br />
@@ -1785,16 +1786,13 @@ function AppInner({ session, onSignOut }) {
                 <button onClick={saveSettings} style={{ ...s.btn, marginTop: 2 }}>{settingsSaved ? "✓ Saved!" : "Save Payment Methods"}</button>
               </div>
 
-              {/* ROW 3 LEFT — Account */}
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>👤 Account</div>
+              {/* FULL WIDTH — Account & Security */}
+              <div className="bf-settings-full" style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🔐 Account & Security</div>
                 <div style={{ fontSize: 13, color: C.mid, marginBottom: 12 }}>Signed in as <strong>{session.user.email}</strong></div>
                 <button onClick={handleSignOut} style={s.btnSec}>Sign Out</button>
-              </div>
-
-              {/* ROW 3 RIGHT — Change Password */}
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🔑 Change Password</div>
+                <div style={{ borderTop: `1px solid ${C.border}`, margin: "18px 0 14px" }} />
+                <div style={{ fontWeight: "600", color: C.text, marginBottom: 10, fontSize: 13 }}>Change Password</div>
                 <label style={s.label}>New Password</label>
                 <PwField value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="At least 6 characters" show={showPwNew} onToggle={() => setShowPwNew(p => !p)} />
                 <label style={{ ...s.label, marginTop: 10 }}>Confirm New Password</label>
