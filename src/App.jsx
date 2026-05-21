@@ -1665,6 +1665,60 @@ function AppInner({ session, onSignOut }) {
                 </div>
               </div>
             )}
+            {/* ── Post Ideas ── */}
+            {(() => {
+              const _today = new Date(); _today.setHours(0,0,0,0);
+              const _in7 = new Date(_today); _in7.setDate(_in7.getDate() + 7);
+              const _ideas = [];
+
+              // 1. Coming up this week — earliest active order due ≤7 days
+              const _upcoming = orders
+                .filter(o => o.due && o.item && o.customer && ["Pending","In Progress"].includes(o.status) && (() => { const d = new Date(o.due + "T00:00:00"); return d >= _today && d <= _in7; })())
+                .sort((a,b) => new Date(a.due) - new Date(b.due));
+              if (_upcoming.length > 0) {
+                const _o = _upcoming[0];
+                _ideas.push(`🗓️ ${_o.item} going out to ${_o.customer} this week — share a sneak peek!`);
+              }
+
+              // 2. Just delivered — most recent by due date
+              const _delivered = orders
+                .filter(o => o.status === "Delivered" && o.item && o.customer && o.due)
+                .sort((a,b) => new Date(b.due) - new Date(a.due));
+              if (_delivered.length > 0) {
+                const _o = _delivered[0];
+                _ideas.push(`📦 Just delivered ${_o.item} to ${_o.customer}! Show off your work.`);
+              }
+
+              // 3. Best seller — most frequent item (only meaningful if 2+ orders)
+              if (orders.length >= 2) {
+                const _counts = {};
+                orders.forEach(o => { if (o.item) _counts[o.item] = (_counts[o.item] || 0) + 1; });
+                const _best = Object.entries(_counts).sort((a,b) => b[1]-a[1])[0];
+                if (_best) _ideas.push(`⭐ ${_best[0]} is your most popular item — remind your followers it's available!`);
+              }
+
+              // 4. Taking orders — any pending
+              if (orders.some(o => o.status === "Pending")) {
+                _ideas.push(`📣 Orders are open! Share that you're accepting custom orders this week.`);
+              }
+
+              if (_ideas.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontWeight: "bold", fontSize: 15, marginBottom: 3 }}>💡 Post Ideas — Based on Your Bakery</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Generated from your orders and recipes. Click any idea to create a post.</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {_ideas.map((caption, i) => (
+                      <div key={i} style={{ ...s.card, borderLeft: `4px solid ${C.accent}`, background: C.light, marginBottom: 0 }}>
+                        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, marginBottom: 10 }}>{caption}</div>
+                        <button onClick={() => { setNewPost(p => ({ ...p, caption })); setShowNewPost(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...s.btn, padding: "6px 14px", fontSize: 12 }}>+ Create Post</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {social.filter(post => socialFilter === "All" || post.status === socialFilter).map(post => (
               <div key={post.id} style={s.card}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
