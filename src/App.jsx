@@ -1667,6 +1667,7 @@ function AppInner({ session, onSignOut }) {
             )}
             {/* ── Post Ideas ── */}
             {(() => {
+              const _cap = s => s.charAt(0).toUpperCase() + s.slice(1);
               const _today = new Date(); _today.setHours(0,0,0,0);
               const _in7 = new Date(_today); _in7.setDate(_in7.getDate() + 7);
               const _ideas = [];
@@ -1677,7 +1678,7 @@ function AppInner({ session, onSignOut }) {
                 .sort((a,b) => new Date(a.due) - new Date(b.due));
               if (_upcoming.length > 0) {
                 const _o = _upcoming[0];
-                _ideas.push(`🗓️ ${_o.item} going out to ${_o.customer} this week — share a sneak peek!`);
+                _ideas.push(`🗓️ ${_cap(_o.item)} going out to ${_o.customer} this week — share a sneak peek!`);
               }
 
               // 2. Just delivered — most recent by due date
@@ -1694,7 +1695,7 @@ function AppInner({ session, onSignOut }) {
                 const _counts = {};
                 orders.forEach(o => { if (o.item) _counts[o.item] = (_counts[o.item] || 0) + 1; });
                 const _best = Object.entries(_counts).sort((a,b) => b[1]-a[1])[0];
-                if (_best) _ideas.push(`⭐ ${_best[0]} is your most popular item — remind your followers it's available!`);
+                if (_best) _ideas.push(`⭐ ${_cap(_best[0])} are your most popular item — remind your followers they're available!`);
               }
 
               // 4. Taking orders — any pending
@@ -1707,11 +1708,11 @@ function AppInner({ session, onSignOut }) {
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontWeight: "bold", fontSize: 15, marginBottom: 3 }}>💡 Post Ideas — Based on Your Bakery</div>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Generated from your orders and recipes. Click any idea to create a post.</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
                     {_ideas.map((caption, i) => (
-                      <div key={i} style={{ ...s.card, borderLeft: `4px solid ${C.accent}`, background: C.light, marginBottom: 0 }}>
-                        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, marginBottom: 10 }}>{caption}</div>
-                        <button onClick={() => { setNewPost(p => ({ ...p, caption })); setShowNewPost(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...s.btn, padding: "6px 14px", fontSize: 12 }}>+ Create Post</button>
+                      <div key={i} style={{ ...s.card, borderLeft: `4px solid ${C.accent}`, background: C.light, marginBottom: 0, flexShrink: 0, width: 280, display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 110 }}>
+                        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{caption}</div>
+                        <button onClick={() => { setNewPost(p => ({ ...p, caption })); setShowNewPost(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...s.btn, padding: "6px 14px", fontSize: 12, marginTop: 12, alignSelf: "flex-start" }}>+ Create Post</button>
                       </div>
                     ))}
                   </div>
