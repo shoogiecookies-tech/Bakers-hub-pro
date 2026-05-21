@@ -1293,7 +1293,7 @@ function AppInner({ session, onSignOut }) {
                   <div style={{ background: C.light, borderRadius: 10, padding: 12, marginTop: 10 }}>
                     <div style={{ marginBottom: 8 }}><label style={s.label}>Quantity / servings selling</label><input type="number" value={pricingSvgs} onChange={e => { setPricingSvgs(+e.target.value); setSellQty(+e.target.value); }} style={{ ...s.input, width: 120 }} /></div>
                     <div style={{ fontSize: 13 }}>
-                      {r.ingredients.map((ing, i) => { const c = calcIngCost(ing, pantry); return <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: 12, color: C.muted }}><span>{ing.amount * sf} {ing.unit} {ing.name}</span><span>{c !== null ? `$${(c * sf).toFixed(2)}` : "—"}</span></div>; })}
+                      {r.ingredients.map((ing, i) => { const c = calcIngCost(ing, pantry); return <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: 12, color: C.muted }}><span>{+(ing.amount * sf).toFixed(2)} {ing.unit} {ing.name}</span><span>{c !== null ? `$${(c * sf).toFixed(2)}` : "—"}</span></div>; })}
                       <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontWeight: "bold", color: C.dark, marginTop: 4, borderTop: `1px solid ${C.border}` }}><span>Scaled ingredient cost</span><span>${(batchCost * sf).toFixed(2)}</span></div>
                     </div>
                   </div>
@@ -1605,7 +1605,7 @@ function AppInner({ session, onSignOut }) {
                 </div>
                 {tasks.map(t => (
                   <div key={t.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
-                    <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, cursor: "pointer" }}>{t.done ? "✓" : ""}</div>
+                    <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, cursor: "pointer" }}>{t.done ? "✓" : ""}</div>
                     <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none", cursor: "pointer" }}>{t.task}</span>
                     {t.auto && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700" }}>auto</span>}
                     {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
