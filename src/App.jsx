@@ -848,6 +848,9 @@ function AppInner({ session, onSignOut }) {
     <div style={{ fontFamily: "'Inter', sans-serif", minHeight: "100vh", background: C.bg, color: C.text }}>
       <style>{`
         @media (max-width: 768px) { .watermark-logo { display: none !important; } .bf-pantry-layout { flex-direction: column !important; } .bf-pantry-sidebar { position: static !important; width: 100% !important; min-width: 0 !important; flex: none !important; } }
+        .bf-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+        .bf-settings-grid > * { margin-bottom: 0 !important; }
+        @media (max-width: 640px) { .bf-settings-grid { grid-template-columns: 1fr; } }
         @media (max-width: 480px) {
           .bf-header { padding: 14px 14px 0 !important; }
           .bf-header-logo { height: 40px !important; }
@@ -1688,103 +1691,118 @@ function AppInner({ session, onSignOut }) {
         {tab === "Settings" && (
           <div>
             <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>⚙️ Settings</div>
-            <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", marginBottom: 14, border: `1px solid ${C.border}` }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: "700", color: C.text }}>📖 Quick Start Guide</div>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>New to BakeFlo? Get up and running in minutes.</div>
-              </div>
-              <div style={{ fontSize: 18, color: C.muted, flexShrink: 0 }}>›</div>
-            </a>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🏷 Bakery Branding</div>
-              <label style={s.label}>Bakery Name</label>
-              <input value={bakeryName} onChange={e => setBakeryName(e.target.value)} placeholder="My Home Bakery" style={s.input} />
-              <div style={{ marginTop: 12 }}>
-                <label style={s.label}>Bakery Logo</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  {bakeryLogo
-                    ? <img src={bakeryLogo} alt="logo" style={{ width: 72, height: 72, borderRadius: 14, objectFit: "cover", border: `2px solid ${C.border}` }} />
-                    : <div style={{ width: 72, height: 72, borderRadius: 14, background: C.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, border: `2px dashed ${C.border}` }}>🧁</div>
-                  }
-                  <div>
-                    <PhotoUpload value={null} onChange={v => setBakeryLogo(v)} small />
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Tap to upload your logo</div>
-                    <div style={{ fontSize: 11, color: C.muted, opacity: 0.7, marginTop: 5, lineHeight: 1.4 }}>For best results, use a PNG with a transparent background.</div>
-                    {bakeryLogo && <button onClick={() => setBakeryLogo(null)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove</button>}
-                  </div>
+            <div className="bf-settings-grid">
+
+              {/* ROW 1 LEFT — Quick Start Guide */}
+              <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", border: `1px solid ${C.border}` }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: "700", color: C.text }}>📖 Quick Start Guide</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>New to BakeFlo? Get up and running in minutes.</div>
                 </div>
+                <div style={{ fontSize: 18, color: C.muted, flexShrink: 0 }}>›</div>
+              </a>
+
+              {/* ROW 1 RIGHT — AI Features */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>🤖 AI Features</div>
+                <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
+                  <strong style={{ color: C.dark }}>Get your free Anthropic API key:</strong><br />
+                  1. Go to <strong>console.anthropic.com</strong><br />
+                  2. Sign up → API Keys → Create Key<br />
+                  3. Paste it below
+                </div>
+                <label style={s.label}>Your API Key</label>
+                <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} style={s.input} />
+                <button onClick={() => saveApiKey(apiKey)} style={{ ...s.btn, marginTop: 10 }}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
+                {apiKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ AI features enabled!</div>}
               </div>
-              <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {[
-                  { label: "Invoice Header Color", value: invoiceHeaderColor, set: setInvoiceHeaderColor, def: "#1e2d4a" },
-                  { label: "Invoice Accent Color",  value: invoiceAccentColor, set: setInvoiceAccentColor, def: "#C0653D" },
-                ].map(({ label, value, set, def }) => (
-                  <div key={label} style={{ flex: 1, minWidth: 150 }}>
-                    <label style={s.label}>{label}</label>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-                      <label style={{ cursor: "pointer", flexShrink: 0 }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 8, background: value, border: `2px solid ${C.border}`, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }} />
-                        <input type="color" value={value} onChange={e => set(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }} />
-                      </label>
-                      <input value={value} onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) set(e.target.value); }} maxLength={7} style={{ ...s.input, width: 88, fontFamily: "monospace", fontSize: 13, padding: "6px 8px" }} />
-                      <button onClick={() => set(def)} style={{ ...s.btnSec, padding: "4px 8px", fontSize: 11, flexShrink: 0 }}>Reset</button>
+
+              {/* ROW 2 LEFT — Bakery Branding */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🏷 Bakery Branding</div>
+                <label style={s.label}>Bakery Name</label>
+                <input value={bakeryName} onChange={e => setBakeryName(e.target.value)} placeholder="My Home Bakery" style={s.input} />
+                <div style={{ marginTop: 12 }}>
+                  <label style={s.label}>Bakery Logo</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    {bakeryLogo
+                      ? <img src={bakeryLogo} alt="logo" style={{ width: 72, height: 72, borderRadius: 14, objectFit: "cover", border: `2px solid ${C.border}` }} />
+                      : <div style={{ width: 72, height: 72, borderRadius: 14, background: C.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, border: `2px dashed ${C.border}` }}>🧁</div>
+                    }
+                    <div>
+                      <PhotoUpload value={null} onChange={v => setBakeryLogo(v)} small />
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Tap to upload your logo</div>
+                      <div style={{ fontSize: 11, color: C.muted, opacity: 0.7, marginTop: 5, lineHeight: 1.4 }}>For best results, use a PNG with a transparent background.</div>
+                      {bakeryLogo && <button onClick={() => setBakeryLogo(null)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove</button>}
                     </div>
                   </div>
-                ))}
-              </div>
-              <button onClick={saveSettings} style={{ ...s.btn, marginTop: 14 }}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
-            </div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>💳 Payment Methods</div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Only filled-in methods appear on your invoices.</div>
-              {[
-                { label: "Venmo",  val: venmo,   set: setVenmo,   ph: "@yourhandle" },
-                { label: "PayPal", val: paypal,  set: setPaypal,  ph: "email or @handle" },
-                { label: "Zelle",  val: zelle,   set: setZelle,   ph: "phone or email" },
-              ].map(({ label, val, set, ph }) => (
-                <div key={label} style={{ marginBottom: 10 }}>
-                  <label style={s.label}>{label}</label>
-                  <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={s.input} />
                 </div>
-              ))}
-              <div style={{ marginBottom: 10 }}>
-                <label style={s.label}>Other</label>
-                <input value={otherPay} onChange={e => setOtherPay(e.target.value)} placeholder="e.g. Bank transfer: ..." style={s.input} />
+                <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  {[
+                    { label: "Invoice Header Color", value: invoiceHeaderColor, set: setInvoiceHeaderColor, def: "#1e2d4a" },
+                    { label: "Invoice Accent Color",  value: invoiceAccentColor, set: setInvoiceAccentColor, def: "#C0653D" },
+                  ].map(({ label, value, set, def }) => (
+                    <div key={label} style={{ flex: 1, minWidth: 150 }}>
+                      <label style={s.label}>{label}</label>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                        <label style={{ cursor: "pointer", flexShrink: 0 }}>
+                          <div style={{ width: 38, height: 38, borderRadius: 8, background: value, border: `2px solid ${C.border}`, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }} />
+                          <input type="color" value={value} onChange={e => set(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }} />
+                        </label>
+                        <input value={value} onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) set(e.target.value); }} maxLength={7} style={{ ...s.input, width: 88, fontFamily: "monospace", fontSize: 13, padding: "6px 8px" }} />
+                        <button onClick={() => set(def)} style={{ ...s.btnSec, padding: "4px 8px", fontSize: 11, flexShrink: 0 }}>Reset</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={saveSettings} style={{ ...s.btn, marginTop: 14 }}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                <label style={{ ...s.label, marginBottom: 0 }}>Accept Cash?</label>
-                <button onClick={() => setAcceptsCash(v => !v)} style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: "700", cursor: "pointer", border: `1.5px solid ${C.accent}`, background: acceptsCash ? C.accent : "#fff", color: acceptsCash ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>
-                  {acceptsCash ? "Yes" : "No"}
-                </button>
+
+              {/* ROW 2 RIGHT — Payment Methods */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>💳 Payment Methods</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Only filled-in methods appear on your invoices.</div>
+                {[
+                  { label: "Venmo",  val: venmo,   set: setVenmo,   ph: "@yourhandle" },
+                  { label: "PayPal", val: paypal,  set: setPaypal,  ph: "email or @handle" },
+                  { label: "Zelle",  val: zelle,   set: setZelle,   ph: "phone or email" },
+                ].map(({ label, val, set, ph }) => (
+                  <div key={label} style={{ marginBottom: 10 }}>
+                    <label style={s.label}>{label}</label>
+                    <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={s.input} />
+                  </div>
+                ))}
+                <div style={{ marginBottom: 10 }}>
+                  <label style={s.label}>Other</label>
+                  <input value={otherPay} onChange={e => setOtherPay(e.target.value)} placeholder="e.g. Bank transfer: ..." style={s.input} />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <label style={{ ...s.label, marginBottom: 0 }}>Accept Cash?</label>
+                  <button onClick={() => setAcceptsCash(v => !v)} style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: "700", cursor: "pointer", border: `1.5px solid ${C.accent}`, background: acceptsCash ? C.accent : "#fff", color: acceptsCash ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>
+                    {acceptsCash ? "Yes" : "No"}
+                  </button>
+                </div>
+                <button onClick={saveSettings} style={{ ...s.btn, marginTop: 2 }}>{settingsSaved ? "✓ Saved!" : "Save Payment Methods"}</button>
               </div>
-              <button onClick={saveSettings} style={{ ...s.btn, marginTop: 2 }}>{settingsSaved ? "✓ Saved!" : "Save Payment Methods"}</button>
-            </div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>🤖 AI Features</div>
-              <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
-                <strong style={{ color: C.dark }}>Get your free Anthropic API key:</strong><br />
-                1. Go to <strong>console.anthropic.com</strong><br />
-                2. Sign up → API Keys → Create Key<br />
-                3. Paste it below
+
+              {/* ROW 3 LEFT — Account */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>👤 Account</div>
+                <div style={{ fontSize: 13, color: C.mid, marginBottom: 12 }}>Signed in as <strong>{session.user.email}</strong></div>
+                <button onClick={handleSignOut} style={s.btnSec}>Sign Out</button>
               </div>
-              <label style={s.label}>Your API Key</label>
-              <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} style={s.input} />
-              <button onClick={() => saveApiKey(apiKey)} style={{ ...s.btn, marginTop: 10 }}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
-              {apiKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ AI features enabled!</div>}
-            </div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>👤 Account</div>
-              <div style={{ fontSize: 13, color: C.mid, marginBottom: 12 }}>Signed in as <strong>{session.user.email}</strong></div>
-              <button onClick={handleSignOut} style={s.btnSec}>Sign Out</button>
-            </div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🔑 Change Password</div>
-              <label style={s.label}>New Password</label>
-              <PwField value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="At least 6 characters" show={showPwNew} onToggle={() => setShowPwNew(p => !p)} />
-              <label style={{ ...s.label, marginTop: 10 }}>Confirm New Password</label>
-              <PwField value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} placeholder="Repeat new password" show={showPwConf} onToggle={() => setShowPwConf(p => !p)} />
-              {pwMsg && <div style={{ fontSize: 13, color: pwMsg.startsWith("✓") ? "#16A34A" : "#DC2626", marginTop: 8 }}>{pwMsg}</div>}
-              <button onClick={changePassword} disabled={pwLoading} style={{ ...s.btn, marginTop: 12, opacity: pwLoading ? 0.6 : 1 }}>{pwLoading ? "Saving..." : "Update Password"}</button>
+
+              {/* ROW 3 RIGHT — Change Password */}
+              <div style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🔑 Change Password</div>
+                <label style={s.label}>New Password</label>
+                <PwField value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="At least 6 characters" show={showPwNew} onToggle={() => setShowPwNew(p => !p)} />
+                <label style={{ ...s.label, marginTop: 10 }}>Confirm New Password</label>
+                <PwField value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} placeholder="Repeat new password" show={showPwConf} onToggle={() => setShowPwConf(p => !p)} />
+                {pwMsg && <div style={{ fontSize: 13, color: pwMsg.startsWith("✓") ? "#16A34A" : "#DC2626", marginTop: 8 }}>{pwMsg}</div>}
+                <button onClick={changePassword} disabled={pwLoading} style={{ ...s.btn, marginTop: 12, opacity: pwLoading ? 0.6 : 1 }}>{pwLoading ? "Saving..." : "Update Password"}</button>
+              </div>
+
             </div>
           </div>
         )}
