@@ -377,10 +377,11 @@ function AppInner({ session, onSignOut }) {
 
 
   // Schedule UI
-  const [showNewTask,   setShowNewTask]   = useState(false);
-  const [newTask,       setNewTask]       = useState({ date: "", task: "" });
-  const [aiTaskLoading, setAiTaskLoading] = useState(false);
-  const [aiTaskError, setAiTaskError] = useState("");
+  const [showNewTask,    setShowNewTask]    = useState(false);
+  const [newTask,        setNewTask]        = useState({ date: "", task: "" });
+  const [aiTaskLoading,  setAiTaskLoading]  = useState(false);
+  const [aiTaskError,    setAiTaskError]    = useState("");
+  const [expandedDates,  setExpandedDates]  = useState(new Set());
 
   // Social UI
   const [showNewPost,    setShowNewPost]    = useState(false);
@@ -1605,25 +1606,68 @@ function AppInner({ session, onSignOut }) {
                 </div>
               </div>
             )}
-            {Object.entries(groupedSched).sort(([a], [b]) => a.localeCompare(b)).map(([date, tasks], _gi) => (
-              <div key={date} style={{ marginBottom: 18 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: _gi === 0 ? 0 : 22, marginBottom: 10 }}>
-                  <div style={{ fontSize: 15, fontWeight: "700", color: C.accent, whiteSpace: "nowrap" }}>
-                    {date === "Undated" ? "Undated" : new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+            {/* ── Overdue section ── */}
+            {(() => {
+              const _ov = schedule.filter(t => !t.done && t.date && t.date < todayStr);
+              if (!_ov.length) return null;
+              return (
+                <div style={{ marginBottom: 22 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    <div style={{ fontSize: 15, fontWeight: "700", color: "#c0522a", whiteSpace: "nowrap" }}>🔴 Overdue</div>
+                    <div style={{ flex: 1, height: 1, background: "#c0522a", opacity: 0.3 }} />
+                    <span style={{ fontSize: 11, color: "#c0522a", fontWeight: "600", flexShrink: 0 }}>{_ov.length} task{_ov.length !== 1 ? "s" : ""}</span>
                   </div>
-                  <div style={{ flex: 1, height: 1, background: C.border, opacity: 0.6 }} />
+                  {_ov.map(t => (
+                    <div key={t.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", marginBottom: 6, background: "#fff8f6", borderLeft: "3px solid #c0522a" }}>
+                      <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${C.accent}`, background: "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} />
+                      <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, cursor: "pointer" }}>{t.task}</span>
+                      {t.auto && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700" }}>auto</span>}
+                      {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
+                      <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+                    </div>
+                  ))}
                 </div>
-                {tasks.map(t => (
-                  <div key={t.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
-                    <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, cursor: "pointer" }}>{t.done ? "✓" : ""}</div>
-                    <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none", cursor: "pointer" }}>{t.task}</span>
-                    {t.auto && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700" }}>auto</span>}
-                    {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
-                    <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+              );
+            })()}
+
+            {/* ── Date groups (excluding overdue incomplete) ── */}
+            {(() => {
+              const _ovIds = new Set(schedule.filter(t => !t.done && t.date && t.date < todayStr).map(t => t.id));
+              const _grouped = schedule
+                .filter(t => !_ovIds.has(t.id))
+                .reduce((acc, t) => { const d = t.date || "Undated"; if (!acc[d]) acc[d] = []; acc[d].push(t); return acc; }, {});
+              return Object.entries(_grouped).sort(([a],[b]) => a.localeCompare(b)).map(([date, tasks], _gi) => {
+                const _isToday  = date === todayStr;
+                const _isPast   = date !== "Undated" && date < todayStr;
+                const _incomplete = tasks.filter(t => !t.done);
+                const _allDone  = _incomplete.length === 0;
+                const _collapsed = _isPast && _allDone && !expandedDates.has(date);
+                const _toggle   = () => setExpandedDates(prev => { const n = new Set(prev); n.has(date) ? n.delete(date) : n.add(date); return n; });
+                const _label    = date === "Undated" ? "Undated"
+                  : (_isToday ? "Today · " : "") + new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+                return (
+                  <div key={date} style={{ marginBottom: 18 }}>
+                    <div onClick={_isPast && _allDone ? _toggle : undefined} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: _gi === 0 ? 0 : 22, marginBottom: 10, cursor: _isPast && _allDone ? "pointer" : "default", ...(_isToday ? { background: `${C.dark}0a`, borderRadius: 8, padding: "7px 10px", marginLeft: -10, marginRight: -10 } : {}) }}>
+                      <div style={{ fontSize: 15, fontWeight: "700", color: _isToday ? C.dark : C.accent, whiteSpace: "nowrap" }}>{_label}</div>
+                      <div style={{ flex: 1, height: 1, background: _isToday ? C.dark : C.border, opacity: _isToday ? 0.15 : 0.6 }} />
+                      {_allDone
+                        ? <span style={{ fontSize: 11, color: "#10b981", fontWeight: "700", flexShrink: 0 }}>✓ All done{_isPast ? (_collapsed ? " ▸" : " ▾") : ""}</span>
+                        : <span style={{ fontSize: 11, color: C.muted, fontWeight: "600", flexShrink: 0 }}>{_incomplete.length} task{_incomplete.length !== 1 ? "s" : ""}</span>
+                      }
+                    </div>
+                    {!_collapsed && tasks.map(t => (
+                      <div key={t.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
+                        <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, cursor: "pointer" }}>{t.done ? "✓" : ""}</div>
+                        <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none", cursor: "pointer" }}>{t.task}</span>
+                        {t.auto && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700" }}>auto</span>}
+                        {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
+                        <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ))}
+                );
+              });
+            })()}
           </div>
         )}
 
