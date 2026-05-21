@@ -852,6 +852,9 @@ function AppInner({ session, onSignOut }) {
         .bf-settings-grid > * { margin-bottom: 0 !important; }
         .bf-settings-full { grid-column: 1 / -1; }
         @media (max-width: 640px) { .bf-settings-grid { grid-template-columns: 1fr; } }
+        .bf-social-layout { display: flex; gap: 16px; align-items: flex-start; }
+        .bf-social-sidebar { flex: 0 0 33%; min-width: 200px; position: sticky; top: 20px; align-self: flex-start; }
+        @media (max-width: 640px) { .bf-social-layout { flex-direction: column !important; } .bf-social-sidebar { position: static !important; width: 100% !important; flex: none !important; min-width: 0 !important; } }
         @media (max-width: 480px) {
           .bf-header { padding: 14px 14px 0 !important; }
           .bf-header-logo { height: 40px !important; }
@@ -1628,118 +1631,125 @@ function AppInner({ session, onSignOut }) {
               <div style={{ fontSize: 18, fontWeight: "bold" }}>Social Media Planner</div>
               <button onClick={() => setShowNewPost(true)} style={s.btn}>+ New Post</button>
             </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto" }}>
-              {PLATFORMS.map(p => { const count = social.filter(post => post.platform === p).length; return (
-                <div key={p} style={{ ...s.card, padding: "10px 14px", flexShrink: 0, textAlign: "center", minWidth: 80, marginBottom: 0 }}>
-                  <div style={{ fontSize: 18 }}>{p === "Instagram" ? "📸" : p === "Facebook" ? "👥" : p === "TikTok" ? "🎵" : "📌"}</div>
-                  <div style={{ fontWeight: "bold", fontSize: 16, color: C.accent }}>{count}</div>
-                  <div style={{ fontSize: 10, color: C.muted }}>{p}</div>
-                </div>
-              ); })}
-            </div>
-            <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-              {["All", "Draft", "Scheduled", "Posted"].map(f => {
-                const color = f === "Posted" ? "#10b981" : f === "Scheduled" ? "#3b82f6" : f === "Draft" ? "#9a7a65" : C.dark;
-                return (
-                  <button key={f} onClick={() => setSocialFilter(f)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif", border: `1.5px solid ${color}`, background: socialFilter === f ? color : "#fff", color: socialFilter === f ? "#fff" : color }}>{f}</button>
-                );
-              })}
-            </div>
-            {showNewPost && (
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Post</div>
-                <PhotoUpload value={newPost.photo} onChange={v => setNewPost(p => ({ ...p, photo: v }))} />
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <select value={newPost.platform} onChange={e => setNewPost(p => ({ ...p, platform: e.target.value }))} style={{ ...s.input, flex: 1 }}>{PLATFORMS.map(p => <option key={p}>{p}</option>)}</select>
-                  <select value={newPost.type} onChange={e => setNewPost(p => ({ ...p, type: e.target.value }))} style={{ ...s.input, flex: 1 }}>{POST_TYPES.map(t => <option key={t}>{t}</option>)}</select>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <input type="date" value={newPost.date} onChange={e => setNewPost(p => ({ ...p, date: e.target.value }))} style={{ ...s.input, flex: 1 }} />
-                  <select value={newPost.status} onChange={e => setNewPost(p => ({ ...p, status: e.target.value }))} style={{ ...s.input, flex: 1 }}>{["Draft", "Scheduled", "Posted"].map(st => <option key={st}>{st}</option>)}</select>
-                </div>
-                <textarea placeholder="Caption... or use AI ✨" value={newPost.caption} onChange={e => setNewPost(p => ({ ...p, caption: e.target.value }))} style={{ ...s.input, marginTop: 8, height: 90, resize: "vertical" }} />
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button onClick={genCaption} disabled={captionLoading} style={{ ...s.btnSec, fontSize: 12 }}>{captionLoading ? "✨ Writing..." : "✨ AI Caption"}</button>
-                  <button onClick={addPost} style={s.btn}>Save Post</button>
-                  <button onClick={() => setShowNewPost(false)} style={s.btnSec}>Cancel</button>
-                </div>
-              </div>
-            )}
-            {/* ── Post Ideas ── */}
-            {(() => {
-              const _cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-              const _today = new Date(); _today.setHours(0,0,0,0);
-              const _in7 = new Date(_today); _in7.setDate(_in7.getDate() + 7);
-              const _ideas = [];
+            <div className="bf-social-layout">
 
-              // 1. Coming up this week — earliest active order due ≤7 days
-              const _upcoming = orders
-                .filter(o => o.due && o.item && o.customer && ["Pending","In Progress"].includes(o.status) && (() => { const d = new Date(o.due + "T00:00:00"); return d >= _today && d <= _in7; })())
-                .sort((a,b) => new Date(a.due) - new Date(b.due));
-              if (_upcoming.length > 0) {
-                const _o = _upcoming[0];
-                _ideas.push(`🗓️ ${_cap(_o.item)} going out to ${_o.customer} this week — share a sneak peek!`);
-              }
-
-              // 2. Just delivered — most recent by due date
-              const _delivered = orders
-                .filter(o => o.status === "Delivered" && o.item && o.customer && o.due)
-                .sort((a,b) => new Date(b.due) - new Date(a.due));
-              if (_delivered.length > 0) {
-                const _o = _delivered[0];
-                _ideas.push(`📦 Just delivered ${_o.item} to ${_o.customer}! Show off your work.`);
-              }
-
-              // 3. Best seller — most frequent item (only meaningful if 2+ orders)
-              if (orders.length >= 2) {
-                const _counts = {};
-                orders.forEach(o => { if (o.item) _counts[o.item] = (_counts[o.item] || 0) + 1; });
-                const _best = Object.entries(_counts).sort((a,b) => b[1]-a[1])[0];
-                if (_best) _ideas.push(`⭐ ${_cap(_best[0])} are your most popular item — remind your followers they're available!`);
-              }
-
-              // 4. Taking orders — any pending
-              if (orders.some(o => o.status === "Pending")) {
-                _ideas.push(`📣 Orders are open! Share that you're accepting custom orders this week.`);
-              }
-
-              if (_ideas.length === 0) return null;
-              return (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: "bold", fontSize: 15, marginBottom: 3 }}>💡 Post Ideas — Based on Your Bakery</div>
-                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Generated from your orders and recipes. Click any idea to create a post.</div>
-                  <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
-                    {_ideas.map((caption, i) => (
-                      <div key={i} style={{ ...s.card, borderLeft: `4px solid ${C.accent}`, background: C.light, marginBottom: 0, flexShrink: 0, width: 280, display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 110 }}>
-                        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{caption}</div>
-                        <button onClick={() => { setNewPost(p => ({ ...p, caption })); setShowNewPost(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...s.btn, padding: "6px 14px", fontSize: 12, marginTop: 12, alignSelf: "flex-start" }}>+ Create Post</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {social.filter(post => socialFilter === "All" || post.status === socialFilter).map(post => (
-              <div key={post.id} style={s.card}>
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  {post.photo ? <img src={post.photo} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
-                    : <div style={{ width: 64, height: 64, borderRadius: 10, background: C.light, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{post.platform === "Instagram" ? "📸" : post.platform === "Facebook" ? "👥" : post.platform === "TikTok" ? "🎵" : "📌"}</div>}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, fontWeight: "700", color: C.accent }}>{post.platform}</span>
-                      <span style={{ fontSize: 11, color: C.muted }}>· {post.type}{post.date && ` · ${post.date}`}</span>
-                      <span style={s.tag(post.status === "Posted" ? "#10b981" : post.status === "Scheduled" ? "#3b82f6" : "#9a7a65")}>{post.status}</span>
+              {/* ── LEFT COLUMN ── */}
+              <div style={{ flex: "1 1 65%", minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto" }}>
+                  {PLATFORMS.map(p => { const count = social.filter(post => post.platform === p).length; return (
+                    <div key={p} style={{ ...s.card, padding: "10px 14px", flexShrink: 0, textAlign: "center", minWidth: 80, marginBottom: 0 }}>
+                      <div style={{ fontSize: 18 }}>{p === "Instagram" ? "📸" : p === "Facebook" ? "👥" : p === "TikTok" ? "🎵" : "📌"}</div>
+                      <div style={{ fontWeight: "bold", fontSize: 16, color: C.accent }}>{count}</div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{p}</div>
                     </div>
-                    <div style={{ fontSize: 13, lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: expandedPost === post.id ? "unset" : 3, WebkitBoxOrient: "vertical" }}>{post.caption}</div>
-                    {post.caption?.length > 100 && <button onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)} style={{ background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", padding: 0, marginTop: 4, fontFamily: "'Inter', sans-serif" }}>{expandedPost === post.id ? "Show less" : "Show more"}</button>}
+                  ); })}
+                </div>
+                <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+                  {["All", "Draft", "Scheduled", "Posted"].map(f => {
+                    const color = f === "Posted" ? "#10b981" : f === "Scheduled" ? "#3b82f6" : f === "Draft" ? "#9a7a65" : C.dark;
+                    return (
+                      <button key={f} onClick={() => setSocialFilter(f)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif", border: `1.5px solid ${color}`, background: socialFilter === f ? color : "#fff", color: socialFilter === f ? "#fff" : color }}>{f}</button>
+                    );
+                  })}
+                </div>
+                {showNewPost && (
+                  <div style={s.card}>
+                    <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Post</div>
+                    <PhotoUpload value={newPost.photo} onChange={v => setNewPost(p => ({ ...p, photo: v }))} />
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <select value={newPost.platform} onChange={e => setNewPost(p => ({ ...p, platform: e.target.value }))} style={{ ...s.input, flex: 1 }}>{PLATFORMS.map(p => <option key={p}>{p}</option>)}</select>
+                      <select value={newPost.type} onChange={e => setNewPost(p => ({ ...p, type: e.target.value }))} style={{ ...s.input, flex: 1 }}>{POST_TYPES.map(t => <option key={t}>{t}</option>)}</select>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <input type="date" value={newPost.date} onChange={e => setNewPost(p => ({ ...p, date: e.target.value }))} style={{ ...s.input, flex: 1 }} />
+                      <select value={newPost.status} onChange={e => setNewPost(p => ({ ...p, status: e.target.value }))} style={{ ...s.input, flex: 1 }}>{["Draft", "Scheduled", "Posted"].map(st => <option key={st}>{st}</option>)}</select>
+                    </div>
+                    <textarea placeholder="Caption... or use AI ✨" value={newPost.caption} onChange={e => setNewPost(p => ({ ...p, caption: e.target.value }))} style={{ ...s.input, marginTop: 8, height: 90, resize: "vertical" }} />
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <button onClick={genCaption} disabled={captionLoading} style={{ ...s.btnSec, fontSize: 12 }}>{captionLoading ? "✨ Writing..." : "✨ AI Caption"}</button>
+                      <button onClick={addPost} style={s.btn}>Save Post</button>
+                      <button onClick={() => setShowNewPost(false)} style={s.btnSec}>Cancel</button>
+                    </div>
                   </div>
-                </div>
-                <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                  {["Draft", "Scheduled", "Posted"].map(st => <button key={st} onClick={() => updatePostStatus(post.id, st)} style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif", border: `1px solid ${st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65"}`, background: post.status === st ? (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") : "#fff", color: post.status === st ? "#fff" : (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") }}>{st}</button>)}
-                </div>
+                )}
+                {social.filter(post => socialFilter === "All" || post.status === socialFilter).map(post => (
+                  <div key={post.id} style={s.card}>
+                    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                      {post.photo ? <img src={post.photo} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
+                        : <div style={{ width: 64, height: 64, borderRadius: 10, background: C.light, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{post.platform === "Instagram" ? "📸" : post.platform === "Facebook" ? "👥" : post.platform === "TikTok" ? "🎵" : "📌"}</div>}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: "700", color: C.accent }}>{post.platform}</span>
+                          <span style={{ fontSize: 11, color: C.muted }}>· {post.type}{post.date && ` · ${post.date}`}</span>
+                          <span style={s.tag(post.status === "Posted" ? "#10b981" : post.status === "Scheduled" ? "#3b82f6" : "#9a7a65")}>{post.status}</span>
+                        </div>
+                        <div style={{ fontSize: 13, lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: expandedPost === post.id ? "unset" : 3, WebkitBoxOrient: "vertical" }}>{post.caption}</div>
+                        {post.caption?.length > 100 && <button onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)} style={{ background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", padding: 0, marginTop: 4, fontFamily: "'Inter', sans-serif" }}>{expandedPost === post.id ? "Show less" : "Show more"}</button>}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                      {["Draft", "Scheduled", "Posted"].map(st => <button key={st} onClick={() => updatePostStatus(post.id, st)} style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif", border: `1px solid ${st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65"}`, background: post.status === st ? (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") : "#fff", color: post.status === st ? "#fff" : (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") }}>{st}</button>)}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+
+              {/* ── RIGHT COLUMN — Post Ideas sidebar ── */}
+              <div className="bf-social-sidebar">
+                {(() => {
+                  const _ucfirst = str => str.charAt(0).toUpperCase() + str.slice(1);
+                  const _today = new Date(); _today.setHours(0,0,0,0);
+                  const _in7 = new Date(_today); _in7.setDate(_in7.getDate() + 7);
+                  const _ideas = [];
+
+                  const _upcoming = orders
+                    .filter(o => o.due && o.item && o.customer && ["Pending","In Progress"].includes(o.status) && (() => { const d = new Date(o.due + "T00:00:00"); return d >= _today && d <= _in7; })())
+                    .sort((a,b) => new Date(a.due) - new Date(b.due));
+                  if (_upcoming.length > 0) {
+                    const _o = _upcoming[0];
+                    _ideas.push(`🗓️ ${_ucfirst(_o.item)} going out to ${_o.customer} this week — share a sneak peek!`);
+                  }
+
+                  const _delivered = orders
+                    .filter(o => o.status === "Delivered" && o.item && o.customer && o.due)
+                    .sort((a,b) => new Date(b.due) - new Date(a.due));
+                  if (_delivered.length > 0) {
+                    const _o = _delivered[0];
+                    _ideas.push(`📦 Just delivered ${_o.item} to ${_o.customer}! Show off your work.`);
+                  }
+
+                  if (orders.length >= 2) {
+                    const _counts = {};
+                    orders.forEach(o => { if (o.item) _counts[o.item] = (_counts[o.item] || 0) + 1; });
+                    const _best = Object.entries(_counts).sort((a,b) => b[1]-a[1])[0];
+                    if (_best) _ideas.push(`⭐ ${_ucfirst(_best[0])} are your most popular item — remind your followers they're available!`);
+                  }
+
+                  if (orders.some(o => o.status === "Pending")) {
+                    _ideas.push(`📣 Orders are open! Share that you're accepting custom orders this week.`);
+                  }
+
+                  return (
+                    <div style={{ ...s.card, background: C.light, padding: "16px 14px" }}>
+                      <div style={{ fontWeight: "bold", fontSize: 14, color: C.text, marginBottom: 2 }}>💡 Post Ideas</div>
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>Based on your orders</div>
+                      {_ideas.length === 0
+                        ? <div style={{ fontSize: 12, color: C.muted }}>Add orders to get post ideas.</div>
+                        : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {_ideas.map((caption, i) => (
+                              <div key={i} style={{ background: C.card, borderRadius: 10, borderLeft: `4px solid ${C.accent}`, padding: "12px 12px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+                                <div style={{ fontSize: 12, color: C.text, lineHeight: 1.55 }}>{caption}</div>
+                                <button onClick={() => { setNewPost(p => ({ ...p, caption })); setShowNewPost(true); }} style={{ ...s.btn, padding: "5px 12px", fontSize: 11, alignSelf: "flex-start" }}>+ Create Post</button>
+                              </div>
+                            ))}
+                          </div>
+                      }
+                    </div>
+                  );
+                })()}
+              </div>
+
+            </div>
           </div>
         )}
 
