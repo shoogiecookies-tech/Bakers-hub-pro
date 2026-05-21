@@ -837,7 +837,6 @@ function AppInner({ session, onSignOut }) {
   const itemRevEntries = Object.entries(itemRevMap).sort((a, b) => b[1] - a[1]);
   const topItem        = itemRevEntries[0] || null;
   const topItemPct     = totalRevenue > 0 && topItem ? Math.round(topItem[1] / totalRevenue * 100) : null;
-  const groupedSched   = schedule.reduce((acc, t) => { const d = t.date || "Undated"; if (!acc[d]) acc[d] = []; acc[d].push(t); return acc; }, {});
 
   if (dbLoading) return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: C.muted, fontSize: 16 }}>
