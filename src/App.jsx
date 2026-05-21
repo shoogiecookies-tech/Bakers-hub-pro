@@ -1605,10 +1605,13 @@ function AppInner({ session, onSignOut }) {
                 </div>
               </div>
             )}
-            {Object.entries(groupedSched).sort(([a], [b]) => a.localeCompare(b)).map(([date, tasks]) => (
-              <div key={date} style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: "700", letterSpacing: 2, textTransform: "uppercase", color: C.accent, marginBottom: 6 }}>
-                  {date === "Undated" ? "Undated" : new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+            {Object.entries(groupedSched).sort(([a], [b]) => a.localeCompare(b)).map(([date, tasks], _gi) => (
+              <div key={date} style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: _gi === 0 ? 0 : 22, marginBottom: 10 }}>
+                  <div style={{ fontSize: 15, fontWeight: "700", color: C.accent, whiteSpace: "nowrap" }}>
+                    {date === "Undated" ? "Undated" : new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                  </div>
+                  <div style={{ flex: 1, height: 1, background: C.border, opacity: 0.6 }} />
                 </div>
                 {tasks.map(t => (
                   <div key={t.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
