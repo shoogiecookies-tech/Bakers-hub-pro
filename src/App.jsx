@@ -21,7 +21,7 @@ const s = {
   tag: (color) => ({ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: color + "22", color, fontWeight: "700", letterSpacing: 0.5, display: "inline-block" }),
 };
 
-const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Settings", "Admin"];
+const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Bakery Profile", "Settings", "Admin"];
 const STATUS_COLORS = { Pending: "#b87d3a", "In Progress": "#c0653d", Complete: "#5a7a5c", Invoiced: "#7a6a58", Delivered: "#5c4f3d" };
 const STATUS_LIST = ["Pending", "In Progress", "Complete", "Invoiced", "Delivered"];
 const CATEGORIES = ["Cookies", "Cakes", "Bread", "Pastries", "Cupcakes", "Other"];
@@ -317,7 +317,7 @@ function AppInner({ session, onSignOut }) {
   const [schedule, setSchedule] = useState([]);
   const [dbLoading, setDbLoading] = useState(true);
 
-  // Settings
+  // Settings / Bakery Profile
   const [bakeryName,         setBakeryName]         = useState("My Home Bakery");
   const [bakeryLogo,         setBakeryLogo]         = useState(null);
   const [invoiceHeaderColor, setInvoiceHeaderColor] = useState("#1e2d4a");
@@ -327,6 +327,10 @@ function AppInner({ session, onSignOut }) {
   const [zelle,       setZelle]       = useState("");
   const [acceptsCash, setAcceptsCash] = useState(false);
   const [otherPay,    setOtherPay]    = useState("");
+  const [defaultLaborRate, setDefaultLaborRate] = useState(20);
+  const [defaultMarkup,    setDefaultMarkup]    = useState(40);
+  const [defaultOverhead,  setDefaultOverhead]  = useState(10);
+  const [currency,         setCurrency]         = useState("USD");
   const [apiKey,      setApiKey]      = useState(() => localStorage.getItem("baker_api_key") || "");
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -355,6 +359,7 @@ function AppInner({ session, onSignOut }) {
   const [extraCostIn,  setExtraCostIn]  = useState({ name: "", cost: "" });
   const [laborHrs,     setLaborHrs]     = useState(1);
   const [laborRate,    setLaborRate]    = useState(20);
+  const [markup,       setMarkup]       = useState(40);
   const [overhead,     setOverhead]     = useState(10);
   const [sellQty,      setSellQty]      = useState(1);
   const [sellingPrice,    setSellingPrice]    = useState("");
@@ -478,21 +483,29 @@ function AppInner({ session, onSignOut }) {
         setBakeryName(profileData.bakery_name || "My Home Bakery");
         setBakeryLogo(profileData.bakery_logo || null);
         setInvoiceHeaderColor(profileData.invoice_header_color || "#1e2d4a");
+        setInvoiceAccentColor(profileData.invoice_accent_color || "#C0653D");
         setVenmo(profileData.venmo || "");
         setPaypal(profileData.paypal || "");
         setZelle(profileData.zelle || "");
         setAcceptsCash(!!profileData.accepts_cash);
         setOtherPay(profileData.other_payment || "");
-        setInvoiceAccentColor(profileData.invoice_accent_color || "#C0653D");
+        const dlr = parseFloat(profileData.default_labor_rate) || 20;
+        const dm  = parseFloat(profileData.default_markup)     || 40;
+        const doh = parseFloat(profileData.default_overhead)   || 10;
+        setDefaultLaborRate(dlr); setLaborRate(dlr);
+        setDefaultMarkup(dm);    setMarkup(dm);
+        setDefaultOverhead(doh); setOverhead(doh);
+        setCurrency(profileData.currency || "USD");
       }
       setDbLoading(false);
     };
     load();
   }, [uid]);
 
-  // ── Save settings ────────────────────────────────────────────────────────────
-  const saveSettings = async () => {
-    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay });
+  // ── Save bakery profile ───────────────────────────────────────────────────────
+  const saveProfile = async () => {
+    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency });
+    setLaborRate(defaultLaborRate); setMarkup(defaultMarkup); setOverhead(defaultOverhead);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
   };
@@ -652,7 +665,7 @@ function AppInner({ session, onSignOut }) {
   const calcPrice = () => { const r = calcPriceInputs(); setSuggestedPrice(+(r.withOH * 1.40).toFixed(2)); setPriceResult(r); };
   const suggestPrice = () => {
     const result = calcPriceInputs();
-    const suggested = +(result.withOH * 1.40).toFixed(2);
+    const suggested = +(result.withOH * (1 + markup / 100)).toFixed(2);
     setSuggestedPrice(suggested > 0 ? suggested : null);
     setSellingPrice(suggested > 0 ? String(suggested) : "");
     setPriceResult(result);
@@ -1315,10 +1328,11 @@ function AppInner({ session, onSignOut }) {
               </div>
               <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, margin: "14px 0 12px" }}>STEP 3 — Labor & Margins</div>
               {[
-                { label: "LABOR HRS", val: laborHrs, set: setLaborHrs, min: 0, max: 8, step: 0.5 },
-                { label: "$ / HR",    val: laborRate, set: setLaborRate, min: 0, max: 50, step: 1 },
-                { label: "OVERHEAD %", val: overhead, set: setOverhead,  min: 0, max: 30, step: 1 },
-                { label: "QTY TO SELL", val: sellQty, set: setSellQty,  min: 1, max: 100, step: 1 },
+                { label: "LABOR HRS",  val: laborHrs,  set: setLaborHrs,  min: 0, max: 8,   step: 0.5 },
+                { label: "$ / HR",     val: laborRate,  set: setLaborRate,  min: 0, max: 50,  step: 1 },
+                { label: "MARKUP %",   val: markup,     set: setMarkup,     min: 0, max: 100, step: 1 },
+                { label: "OVERHEAD %", val: overhead,   set: setOverhead,   min: 0, max: 30,  step: 1 },
+                { label: "QTY TO SELL", val: sellQty,  set: setSellQty,    min: 1, max: 100, step: 1 },
               ].map(({ label, val, set, min, max, step }) => (
                 <div key={label} style={{ marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -1341,7 +1355,7 @@ function AppInner({ session, onSignOut }) {
                   style={{ ...s.input, fontSize: 16, fontWeight: "700", textAlign: "center" }}
                 />
               </div>
-              <button onClick={suggestPrice} style={{ ...s.btnSec, width: "100%", marginTop: 12, padding: 11, fontSize: 13 }}>✨ Suggest a Price — ingredients + labor + 40% markup</button>
+              <button onClick={suggestPrice} style={{ ...s.btnSec, width: "100%", marginTop: 12, padding: 11, fontSize: 13 }}>✨ Suggest a Price — ingredients + labor + {markup}% markup</button>
               <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 8, padding: 12, fontSize: 14, background: "#C0653D" }}>Calculate Price →</button>
             </div>
             {priceResult && (() => {
@@ -1799,37 +1813,13 @@ function AppInner({ session, onSignOut }) {
           </div>
         )}
 
-        {/* ══════════ SETTINGS ══════════ */}
-        {tab === "Settings" && (
+        {/* ══════════ BAKERY PROFILE ══════════ */}
+        {tab === "Bakery Profile" && (
           <div>
-            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>⚙️ Settings</div>
+            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>🏪 Bakery Profile</div>
             <div className="bf-settings-grid">
 
-              {/* FULL WIDTH — Quick Start Guide */}
-              <a className="bf-settings-full" href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: "700", color: C.text }}>📖 Quick Start Guide</div>
-                  <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>New to BakeFlo? Get up and running in minutes.</div>
-                </div>
-                <div style={{ fontSize: 18, color: C.muted, flexShrink: 0 }}>›</div>
-              </a>
-
-              {/* FULL WIDTH — AI Features */}
-              <div className="bf-settings-full" style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>🤖 AI Features</div>
-                <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
-                  <strong style={{ color: C.dark }}>Get your free Anthropic API key:</strong><br />
-                  1. Go to <strong>console.anthropic.com</strong><br />
-                  2. Sign up → API Keys → Create Key<br />
-                  3. Paste it below
-                </div>
-                <label style={s.label}>Your API Key</label>
-                <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} style={s.input} />
-                <button onClick={() => saveApiKey(apiKey)} style={{ ...s.btn, marginTop: 10 }}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
-                {apiKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ AI features enabled!</div>}
-              </div>
-
-              {/* ROW 2 LEFT — Bakery Branding */}
+              {/* LEFT — Bakery Branding */}
               <div style={s.card}>
                 <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🏷 Bakery Branding</div>
                 <label style={s.label}>Bakery Name</label>
@@ -1867,10 +1857,10 @@ function AppInner({ session, onSignOut }) {
                     </div>
                   ))}
                 </div>
-                <button onClick={saveSettings} style={{ ...s.btn, marginTop: 14 }}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
+                <button onClick={saveProfile} style={{ ...s.btn, marginTop: 14 }}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
               </div>
 
-              {/* ROW 2 RIGHT — Payment Methods */}
+              {/* RIGHT — Payment Methods */}
               <div style={s.card}>
                 <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>💳 Payment Methods</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Only filled-in methods appear on your invoices.</div>
@@ -1894,7 +1884,68 @@ function AppInner({ session, onSignOut }) {
                     {acceptsCash ? "Yes" : "No"}
                   </button>
                 </div>
-                <button onClick={saveSettings} style={{ ...s.btn, marginTop: 2 }}>{settingsSaved ? "✓ Saved!" : "Save Payment Methods"}</button>
+                <button onClick={saveProfile} style={{ ...s.btn, marginTop: 2 }}>{settingsSaved ? "✓ Saved!" : "Save Payment Methods"}</button>
+              </div>
+
+              {/* FULL WIDTH — Workflow Preferences */}
+              <div className="bf-settings-full" style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>⚙️ Workflow Preferences</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>These defaults pre-fill the Pricing Calculator each time you open it.</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div>
+                    <label style={s.label}>Default Labor Rate ($/hr)</label>
+                    <input type="number" min="0" max="200" step="1" value={defaultLaborRate} onChange={e => setDefaultLaborRate(parseFloat(e.target.value) || 0)} style={s.input} />
+                  </div>
+                  <div>
+                    <label style={s.label}>Default Markup %</label>
+                    <input type="number" min="0" max="200" step="1" value={defaultMarkup} onChange={e => setDefaultMarkup(parseFloat(e.target.value) || 0)} style={s.input} />
+                  </div>
+                  <div>
+                    <label style={s.label}>Default Overhead %</label>
+                    <input type="number" min="0" max="100" step="1" value={defaultOverhead} onChange={e => setDefaultOverhead(parseFloat(e.target.value) || 0)} style={s.input} />
+                  </div>
+                  <div>
+                    <label style={s.label}>Currency</label>
+                    <select value={currency} onChange={e => setCurrency(e.target.value)} style={s.input}>
+                      {["USD","CAD","GBP","EUR","AUD","MXN"].map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <button onClick={saveProfile} style={{ ...s.btn, marginTop: 16 }}>{settingsSaved ? "✓ Saved!" : "Save Preferences"}</button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* ══════════ SETTINGS ══════════ */}
+        {tab === "Settings" && (
+          <div>
+            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>⚙️ Settings</div>
+            <div className="bf-settings-grid">
+
+              {/* FULL WIDTH — Quick Start Guide */}
+              <a className="bf-settings-full" href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", border: `1px solid ${C.border}` }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: "700", color: C.text }}>📖 Quick Start Guide</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>New to BakeFlo? Get up and running in minutes.</div>
+                </div>
+                <div style={{ fontSize: 18, color: C.muted, flexShrink: 0 }}>›</div>
+              </a>
+
+              {/* FULL WIDTH — AI Features */}
+              <div className="bf-settings-full" style={s.card}>
+                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>🤖 AI Features</div>
+                <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
+                  <strong style={{ color: C.dark }}>Get your free Anthropic API key:</strong><br />
+                  1. Go to <strong>console.anthropic.com</strong><br />
+                  2. Sign up → API Keys → Create Key<br />
+                  3. Paste it below
+                </div>
+                <label style={s.label}>Your API Key</label>
+                <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} style={s.input} />
+                <button onClick={() => saveApiKey(apiKey)} style={{ ...s.btn, marginTop: 10 }}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
+                {apiKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ AI features enabled!</div>}
               </div>
 
               {/* FULL WIDTH — Account & Security */}
