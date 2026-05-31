@@ -134,21 +134,21 @@ nav img.nav-logo{height:34px;display:block;}
 .badge-del{background:rgba(74,140,106,0.2);color:#7dca9a;border:1px solid rgba(74,140,106,0.25);}
 
 /* HOW IT WORKS */
-.how-it-works{background:var(--charcoal-deep);padding:6rem 3rem;text-align:center;}
+.how-it-works{background:var(--ivory);padding:6rem 3rem;text-align:center;}
 .how-inner{max-width:960px;margin:0 auto;}
-.how-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:300;color:white;line-height:1.25;margin:0.75rem 0 4rem;letter-spacing:-0.3px;}
+.how-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:300;color:var(--charcoal);line-height:1.25;margin:0.75rem 0 4rem;letter-spacing:-0.3px;}
 .how-title em{font-style:italic;color:var(--rust);}
-.how-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:3rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;}
-.how-step{padding:2rem 1.5rem;flex:1;min-width:130px;border-right:1px solid rgba(255,255,255,0.07);}
+.how-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:3rem;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.09);border-radius:4px;overflow:hidden;}
+.how-step{padding:2rem 1.5rem;flex:1;min-width:130px;border-right:1px solid rgba(0,0,0,0.08);}
 .how-step:last-child{border-right:none;}
-.how-step-highlight{background:rgba(192,101,61,0.1);border-left:1px solid rgba(192,101,61,0.2)!important;}
-.how-step-label{font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:0.75rem;font-weight:400;}
-.how-step-value{font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:300;color:white;line-height:1;margin-bottom:0.5rem;}
+.how-step-highlight{background:rgba(192,101,61,0.08);border-left:1px solid rgba(192,101,61,0.2)!important;}
+.how-step-label{font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:rgba(0,0,0,0.4);margin-bottom:0.75rem;font-weight:400;}
+.how-step-value{font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:300;color:var(--charcoal);line-height:1;margin-bottom:0.5rem;}
 .how-step-highlight .how-step-value{color:var(--rust);}
-.how-step-sub{font-size:0.75rem;color:rgba(255,255,255,0.25);font-weight:300;}
-.how-arrow{font-size:1.2rem;color:rgba(192,101,61,0.4);padding:0 0.5rem;flex-shrink:0;}
-.how-note{font-size:0.85rem;color:rgba(255,255,255,0.7);letter-spacing:1.5px;text-transform:uppercase;font-weight:500;}
-@media(max-width:700px){.how-flow{flex-direction:column;}.how-arrow{transform:rotate(90deg);padding:0.5rem 0;}.how-step{width:100%;border-right:none;border-bottom:1px solid rgba(255,255,255,0.07);}. how-step:last-child{border-bottom:none;}}
+.how-step-sub{font-size:0.75rem;color:rgba(0,0,0,0.38);font-weight:300;}
+.how-arrow{font-size:1.2rem;color:rgba(192,101,61,0.5);padding:0 0.5rem;flex-shrink:0;}
+.how-note{font-size:0.85rem;color:var(--text-mid);letter-spacing:1.5px;text-transform:uppercase;font-weight:500;}
+@media(max-width:700px){.how-flow{flex-direction:column;}.how-arrow{transform:rotate(90deg);padding:0.5rem 0;}.how-step{width:100%;border-right:none;border-bottom:1px solid rgba(0,0,0,0.08);}. how-step:last-child{border-bottom:none;}}
 
 /* DIAGONAL DIVIDER */
 .diagonal{width:100%;height:80px;background:var(--charcoal-deep);clip-path:polygon(0 0,100% 0,100% 30%,0 100%);}
@@ -182,17 +182,17 @@ nav img.nav-logo{height:34px;display:block;}
 .feat-tag{display:inline-block;margin-top:1.1rem;font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--rust);font-weight:400;opacity:0.75;}
 
 /* WHO */
-.who{background:var(--charcoal);padding:6rem 3rem;position:relative;overflow:hidden;}
-.who::before{content:'BAKEFLO';position:absolute;font-family:'Cormorant Garamond',serif;font-size:30vw;font-weight:700;color:rgba(255,255,255,0.025);top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;letter-spacing:10px;}
+.who{background:var(--cream-warm);padding:6rem 3rem;position:relative;overflow:hidden;}
+.who::before{content:'BAKEFLO';position:absolute;font-family:'Cormorant Garamond',serif;font-size:30vw;font-weight:700;color:rgba(0,0,0,0.04);top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;letter-spacing:10px;}
 .who-inner{max-width:900px;margin:0 auto;text-align:center;position:relative;z-index:2;}
 .who .eyebrow{color:rgba(192,101,61,0.7);}
-.who .section-title{color:white;margin-bottom:1rem;}
-.who-sub{font-size:0.95rem;color:rgba(255,255,255,0.4);line-height:1.85;font-weight:300;max-width:500px;margin:0 auto 3.5rem;}
-.who-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.06);max-width:800px;margin:0 auto;}
-.who-item{background:var(--charcoal);padding:2rem 1.5rem;text-align:center;transition:background 0.3s;}
-.who-item:hover{background:#333;}
+.who .section-title{color:var(--charcoal);margin-bottom:1rem;}
+.who-sub{font-size:0.95rem;color:var(--text-mid);line-height:1.85;font-weight:300;max-width:500px;margin:0 auto 3.5rem;}
+.who-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(0,0,0,0.08);max-width:800px;margin:0 auto;}
+.who-item{background:var(--cream-warm);padding:2rem 1.5rem;text-align:center;transition:background 0.3s;}
+.who-item:hover{background:#d9d0c3;}
 .who-item-icon{font-size:1.75rem;margin-bottom:0.75rem;display:block;}
-.who-item-label{font-size:0.8rem;color:rgba(255,255,255,0.6);letter-spacing:0.5px;font-weight:300;}
+.who-item-label{font-size:0.8rem;color:var(--charcoal);letter-spacing:0.5px;font-weight:300;}
 
 /* TESTIMONIALS */
 .testimonials{background:var(--ivory);padding:6rem 3rem;}
@@ -521,7 +521,7 @@ footer img{height:32px;opacity:0.6;}
 <section class="who">
   <div class="who-inner">
     <div class="eyebrow">Made for you</div>
-    <div class="section-title" style="color:white;margin-bottom:0.75rem;">Built for bakers<br><em>who mean business.</em></div>
+    <div class="section-title" style="color:var(--charcoal);margin-bottom:0.75rem;">Built for bakers<br><em>who mean business.</em></div>
     <p class="who-sub">Whether you're baking on weekends or running a full cottage bakery — if you're selling baked goods, you need to know your numbers.</p>
     <div class="who-grid">
       <div class="who-item"><span class="who-item-icon">🏠</span><div class="who-item-label">Hobby Bakers</div></div>
@@ -591,13 +591,21 @@ footer img{height:32px;opacity:0.6;}
   </div>
 </section>
 
+<!-- FOUNDER NOTE -->
+<section style="background:var(--ivory);padding:6rem 3rem;text-align:center;">
+  <div style="max-width:640px;margin:0 auto;">
+    <div class="eyebrow" style="color:var(--rust);margin-bottom:1.5rem;">From the Founder</div>
+    <blockquote style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.25rem,2.5vw,1.6rem);font-weight:300;font-style:italic;color:var(--charcoal);line-height:1.7;margin:0 0 2rem;letter-spacing:-0.2px;">"I'm a baker. I built BakeFlo because I kept asking the same questions — am I actually profitable, am I pricing this right, and why is it so hard to just know? I couldn't find a tool that answered those questions the way a baker actually thinks. So I built one. The pricing calculator alone will change how you price every single order. If you're serious about your bakery, you deserve to know your numbers."</blockquote>
+    <p style="font-family:'Jost',sans-serif;font-size:0.8rem;font-weight:500;letter-spacing:1.5px;color:var(--rust);text-transform:uppercase;">— Debbie Correa, baker and founder</p>
+  </div>
+</section>
+
 <!-- PRICING -->
 <section class="pricing" id="pricing">
   <div class="pricing-inner" style="max-width:560px;">
     <div class="eyebrow">Simple pricing</div>
     <div class="section-title">Founding Member Pricing.<br><em>Yours forever.</em></div>
-    <p class="pricing-sub">Most baker tools charge monthly — forever. As a BakeFlo founding member, you pay $97 once. No renewals. Ever. When we open to the public, it moves to a subscription — you're locked in for life at no monthly cost.</p>
-    <p class="pricing-sub" style="margin-bottom:0.5rem;font-style:italic;">One price — if you get in now.</p>
+    <p class="pricing-sub">Most tools give you a long feature list. BakeFlo gives you the answer to the question that actually matters — are you profitable? As a founding member you pay $97 once, and never again. When we open to the public it moves to $14.99/month. Get in now and own it forever.</p>
     <p class="price-anchor">Every batch has a profit story. BakeFlo tells it.</p>
     <div class="pricing-card">
       <div class="founders-ribbon">⭐ Founding Member Pricing</div>
