@@ -279,11 +279,13 @@ function LoginScreen({ onLogin }) {
 export default function BakersHubPro() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recoveryMode, setRecoveryMode] = useState(() => window.location.hash.includes("type=recovery"));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); setLoading(false); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -296,20 +298,13 @@ export default function BakersHubPro() {
 
   if (!session) return <LoginScreen onLogin={() => {}} />;
 
-  return <AppInner session={session} onSignOut={() => setSession(null)} />;
+  return <AppInner session={session} onSignOut={() => setSession(null)} initialTab={recoveryMode ? "Settings" : "Dashboard"} />;
 }
 
 // ─── APP INNER (authenticated) ────────────────────────────────────────────────
-function AppInner({ session, onSignOut }) {
+function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const uid = session.user.id;
-  const [tab, setTab] = useState("Dashboard");
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setTab("Settings");
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  const [tab, setTab] = useState(initialTab);
 
   const handleSignOut = () => {
     onSignOut();
