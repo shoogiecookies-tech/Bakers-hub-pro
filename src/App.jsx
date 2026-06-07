@@ -954,11 +954,11 @@ function AppInner({ session, onSignOut }) {
                    <div style={{ fontSize: 13, fontWeight: "700", color: C.dark }}>Quick Start Guide</div>
                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>New to BakeFlo? Set up your bakery in minutes.</div>
                  </div>
-                 <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ background: "none", border: "none", color: C.accent, fontSize: 12, fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer" }}>Open Guide</a>
+                 <a href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" style={{ background: "none", border: "none", color: C.accent, fontSize: 12, fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer" }}>Open Guide</a>
                  <button onClick={() => { localStorage.setItem("qsg_dismissed", "1"); setGuideVisible(false); }} style={{ background: "none", border: "none", color: C.muted, width: 24, height: 24, borderRadius: "50%", cursor: "pointer", fontSize: 15, lineHeight: "24px", flexShrink: 0, fontFamily: "'Inter', sans-serif" }}>×</button>
                </div>
              ) : (
-               <a href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.accent, textDecoration: "none", fontWeight: "600", marginBottom: 14 }}>📖 Quick Start Guide</a>
+               <a href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.accent, textDecoration: "none", fontWeight: "600", marginBottom: 14 }}>📖 Quick Start Guide</a>
              )}
              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
                {[
@@ -1925,7 +1925,7 @@ function AppInner({ session, onSignOut }) {
             <div className="bf-settings-grid">
 
               {/* FULL WIDTH — Quick Start Guide */}
-              <a className="bf-settings-full" href="https://drive.google.com/file/d/10skI31a9S-7NyyP2hRQb5TvjQEBQPYBO/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", border: `1px solid ${C.border}` }}>
+              <a className="bf-settings-full" href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", border: `1px solid ${C.border}` }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: "700", color: C.text }}>📖 Quick Start Guide</div>
                   <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>New to BakeFlo? Get up and running in minutes.</div>
