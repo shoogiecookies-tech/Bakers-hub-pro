@@ -282,7 +282,10 @@ export default function BakersHubPro() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); setLoading(false); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      if (event === "PASSWORD_RECOVERY") setTab("Settings");
+    });
     return () => subscription.unsubscribe();
   }, []);
 
