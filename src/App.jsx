@@ -282,9 +282,8 @@ export default function BakersHubPro() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); setLoading(false); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (event === "PASSWORD_RECOVERY") setTab("Settings");
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -304,6 +303,13 @@ export default function BakersHubPro() {
 function AppInner({ session, onSignOut }) {
   const uid = session.user.id;
   const [tab, setTab] = useState("Dashboard");
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setTab("Settings");
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSignOut = () => {
     onSignOut();
