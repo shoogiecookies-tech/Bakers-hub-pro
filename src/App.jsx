@@ -366,6 +366,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [markup,       setMarkup]       = useState(40);
   const [overhead,     setOverhead]     = useState(10);
   const [sellQty,      setSellQty]      = useState(1);
+  const [focusedPricingField, setFocusedPricingField] = useState(null);
   const [sellingPrice,    setSellingPrice]    = useState("");
   const [suggestedPrice,  setSuggestedPrice]  = useState(null);
   const [priceResult,     setPriceResult]     = useState(null);
@@ -1332,22 +1333,27 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
               <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, margin: "14px 0 12px" }}>STEP 3 — Labor & Margins</div>
               {[
-                { label: "LABOR HRS",  val: laborHrs,  set: setLaborHrs,  min: 0, max: 8,   step: 0.5 },
-                { label: "$ / HR",     val: laborRate,  set: setLaborRate,  min: 0, max: 50,  step: 1 },
-                { label: "MARKUP %",   val: markup,     set: setMarkup,     min: 0, max: 100, step: 1 },
-                { label: "OVERHEAD %", val: overhead,   set: setOverhead,   min: 0, max: 30,  step: 1 },
-                { label: "QTY TO SELL", val: sellQty,  set: setSellQty,    min: 1, max: 100, step: 1 },
-              ].map(({ label, val, set, min, max, step }) => (
+                { label: "LABOR HRS",   val: laborHrs,  set: setLaborHrs,  min: 0, max: 8,   step: 0.5, tooltip: "Decorating a detailed cookie? Add the extra time — your price adjusts automatically." },
+                { label: "$ / HR",      val: laborRate, set: setLaborRate, min: 0, max: 50,  step: 1,   tooltip: "Not sure where to start? Try your state's minimum wage and adjust up from there." },
+                { label: "MARKUP %",    val: markup,    set: setMarkup,    min: 0, max: 100, step: 1,   tooltip: "40% markup = 28.6% profit margin. Increase for more intricate or custom work." },
+                { label: "OVERHEAD %",  val: overhead,  set: setOverhead,  min: 0, max: 30,  step: 1,   tooltip: "Covers utilities, packaging, and equipment wear. 10% is a common starting point." },
+                { label: "RECIPE YIELD", val: sellQty,  set: setSellQty,   min: 1, max: 100, step: 1,   tooltip: "How many pieces does this recipe make? BakeFlo divides your total cost by this number to get your per-item price." },
+              ].map(({ label, val, set, min, max, step, tooltip }) => (
                 <div key={label} style={{ marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                     <span style={{ fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", fontWeight: "600" }}>{label}</span>
                     <input
                       type="number" value={val} step={step} min={min} max={max}
                       onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) set(Math.min(max, Math.max(min, v))); }}
+                      onFocus={() => setFocusedPricingField(label)}
+                      onBlur={() => setFocusedPricingField(null)}
                       style={{ width: 68, padding: "3px 8px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 14, fontWeight: "700", color: C.accent, textAlign: "center", background: "#fff", outline: "none", fontFamily: "'Inter', sans-serif", boxSizing: "border-box" }}
                     />
                   </div>
                   <input type="range" className="bf-slider" min={min} max={max} step={step} value={val} onChange={e => set(+e.target.value)} />
+                  {focusedPricingField === label && (
+                    <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic", marginTop: 5, lineHeight: 1.4 }}>{tooltip}</div>
+                  )}
                 </div>
               ))}
               <div style={{ marginTop: 10 }}>
