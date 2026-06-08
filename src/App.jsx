@@ -392,6 +392,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [aiTaskLoading,  setAiTaskLoading]  = useState(false);
   const [aiTaskError,    setAiTaskError]    = useState("");
   const [expandedDates,  setExpandedDates]  = useState(new Set());
+  const [editingAutoTaskId, setEditingAutoTaskId] = useState(null);
 
   // Social UI
   const [showNewPost,    setShowNewPost]    = useState(false);
@@ -794,6 +795,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const deleteTask = async (id) => {
     await supabase.from("schedule").delete().eq("id", id);
     setSchedule(prev => prev.filter(t => t.id !== id));
+  };
+
+  const rescheduleTask = async (id, newDate) => {
+    await supabase.from("schedule").update({ date: newDate }).eq("id", id);
+    setSchedule(prev => prev.map(t => t.id === id ? { ...t, date: newDate } : t));
+    setEditingAutoTaskId(null);
   };
 
   const getAiTasks = async () => {
@@ -1641,12 +1648,19 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     <span style={{ fontSize: 11, color: "#c0522a", fontWeight: "600", flexShrink: 0 }}>{_ov.length} task{_ov.length !== 1 ? "s" : ""}</span>
                   </div>
                   {_ov.map(t => (
-                    <div key={t.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", marginBottom: 6, background: "#fff8f6", borderLeft: "3px solid #c0522a" }}>
-                      <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${C.accent}`, background: "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} />
-                      <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, cursor: "pointer" }}>{t.task}</span>
-                      {t.auto && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700" }}>auto</span>}
-                      {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
-                      <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+                    <div key={t.id} style={{ ...s.card, padding: "11px 14px", marginBottom: 6, background: "#fff8f6", borderLeft: "3px solid #c0522a" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${C.accent}`, background: "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} />
+                        <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, cursor: "pointer" }}>{t.task}</span>
+                        {t.auto && <span onClick={e => { e.stopPropagation(); setEditingAutoTaskId(editingAutoTaskId === t.id ? null : t.id); }} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700", cursor: "pointer" }}>auto</span>}
+                        {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
+                        <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+                      </div>
+                      {t.auto && editingAutoTaskId === t.id && (
+                        <div style={{ marginTop: 8, marginLeft: 30 }}>
+                          <input type="date" defaultValue={t.date || ""} onChange={e => { if (e.target.value) rescheduleTask(t.id, e.target.value); }} style={{ fontSize: 12, padding: "3px 8px", borderRadius: 6, border: `1px solid ${C.border}`, color: C.text, fontFamily: "'Inter', sans-serif" }} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1679,12 +1693,19 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       }
                     </div>
                     {!_collapsed && tasks.map(t => (
-                      <div key={t.id} style={{ ...s.card, display: "flex", alignItems: "center", gap: 10, opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
-                        <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, cursor: "pointer" }}>{t.done ? "✓" : ""}</div>
-                        <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none", cursor: "pointer" }}>{t.task}</span>
-                        {t.auto && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700" }}>auto</span>}
-                        {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
-                        <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+                      <div key={t.id} style={{ ...s.card, opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, cursor: "pointer" }}>{t.done ? "✓" : ""}</div>
+                          <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none", cursor: "pointer" }}>{t.task}</span>
+                          {t.auto && <span onClick={e => { e.stopPropagation(); setEditingAutoTaskId(editingAutoTaskId === t.id ? null : t.id); }} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700", cursor: "pointer" }}>auto</span>}
+                          {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
+                          <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+                        </div>
+                        {t.auto && editingAutoTaskId === t.id && (
+                          <div style={{ marginTop: 8, marginLeft: 30 }}>
+                            <input type="date" defaultValue={t.date || ""} onChange={e => { if (e.target.value) rescheduleTask(t.id, e.target.value); }} style={{ fontSize: 12, padding: "3px 8px", borderRadius: 6, border: `1px solid ${C.border}`, color: C.text, fontFamily: "'Inter', sans-serif" }} />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
