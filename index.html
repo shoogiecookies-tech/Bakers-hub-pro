@@ -55,24 +55,23 @@ nav img.nav-logo{height:34px;display:block;}
 @keyframes navPulse{0%,100%{box-shadow:0 0 0 0 rgba(196,114,74,0.4);}50%{box-shadow:0 0 0 6px rgba(196,114,74,0);}}
 
 /* HERO */
-.hero{background:#1d2d44;min-height:92vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:0;position:relative;overflow:hidden;}
-.hero::before{content:'';position:absolute;top:-30%;right:-10%;width:700px;height:700px;background:radial-gradient(circle,rgba(196,114,74,0.06) 0%,transparent 70%);pointer-events:none;}
-.hero-left{padding:6rem 4rem 6rem 6rem;position:relative;z-index:2;}
-.hero-right{position:relative;height:100%;display:flex;align-items:center;justify-content:center;padding:3rem 4rem 3rem 0;}
+.hero{background:url('hero-bg.png') center center/cover no-repeat;min-height:92vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:0;position:relative;overflow:hidden;}
+.hero-left{padding:6rem 4rem 6rem 6rem;position:relative;z-index:2;max-width:600px;}
+.hero-right{display:none;}
 .hero-line{width:48px;height:1px;background:var(--terracotta);margin-bottom:2rem;opacity:0.8;}
 .hero-eyebrow{font-family:'Jost',sans-serif;font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;color:var(--terracotta);margin-bottom:1.5rem;font-weight:400;}
-.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(3rem,4.5vw,5rem);font-weight:300;color:white;line-height:1.08;margin-bottom:1.75rem;letter-spacing:-0.5px;}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(3rem,4.5vw,5rem);font-weight:300;color:var(--navy);line-height:1.08;margin-bottom:1.75rem;letter-spacing:-0.5px;}
 .hero h1 em{font-style:italic;color:var(--terracotta);}
 .hero h1 strong{font-weight:600;}
-.hero-sub{font-size:0.95rem;color:rgba(255,255,255,0.48);max-width:420px;line-height:1.9;font-weight:300;margin-bottom:2.75rem;letter-spacing:0.2px;}
+.hero-sub{font-size:0.95rem;color:var(--text-mid);max-width:420px;line-height:1.9;font-weight:300;margin-bottom:2.75rem;letter-spacing:0.2px;}
 .hero-btns{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:3rem;}
 .btn-primary{background:var(--terracotta);color:white;border:none;padding:1rem 2.4rem;border-radius:2px;font-family:'Jost',sans-serif;font-weight:400;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all 0.25s;text-decoration:none;display:inline-block;}
 .btn-primary:hover{background:var(--rust-muted);transform:translateY(-1px);}
-.btn-text{color:rgba(255,255,255,0.7);font-size:0.82rem;letter-spacing:1px;text-decoration:none;text-transform:uppercase;transition:color 0.2s;font-weight:300;}
-.btn-text:hover{color:rgba(255,255,255,0.75);}
+.btn-text{color:var(--text-mid);font-size:0.8rem;letter-spacing:1px;text-decoration:none;text-transform:uppercase;transition:color 0.2s;font-weight:300;}
+.btn-text:hover{color:var(--navy);}
 .hero-proof{display:flex;align-items:center;gap:12px;}
-.hero-proof-line{width:24px;height:1px;background:rgba(255,255,255,0.2);}
-.hero-proof-text{color:rgba(255,255,255,0.75);font-size:0.85rem;letter-spacing:0.5px;}
+.hero-proof-line{width:24px;height:1px;background:var(--text-light);}
+.hero-proof-text{color:var(--text-mid);font-size:0.75rem;letter-spacing:0.5px;}
 
 /* HERO APP CARD */
 .hero-app-card{background:#f2ece0;border:1px solid rgba(0,0,0,0.08);border-radius:6px;overflow:hidden;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,0.25);}
@@ -314,88 +313,11 @@ footer img{height:32px;opacity:0.6;}
       <a href="#features" class="btn-text">See What's Inside →</a>
     </div>
     <div style="margin-top:-1.5rem;margin-bottom:1.5rem;">
-      <a href="https://bakeflo.co" style="color:rgba(255,255,255,0.28);font-size:0.78rem;letter-spacing:0.5px;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.55)'" onmouseout="this.style.color='rgba(255,255,255,0.28)'">Already a member? Log in to your account →</a>
+      <a href="https://bakeflo.co" style="color:var(--text-mid);font-size:0.78rem;letter-spacing:0.5px;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='var(--text-dark)'" onmouseout="this.style.color='var(--text-mid)'">Already a member? Log in to your account →</a>
     </div>
     <div class="hero-proof">
       <div class="hero-proof-line"></div>
       <span class="hero-proof-text">$97 one-time · before it goes to $14.99/month</span>
-    </div>
-  </div>
-  <div class="hero-right">
-    <div class="hero-app-card">
-      <div class="app-card-bar"><div class="app-dot"></div><div class="app-dot"></div><div class="app-dot"></div></div>
-      <div class="app-card-body">
-        <div class="app-topbar">
-          <span class="app-topbar-text">Home Bakery Business</span>
-          <span style="color:rgba(255,255,255,0.35);font-size:7px;letter-spacing:0.5px;">Your Bakery Name</span>
-        </div>
-        <div class="app-tabs">
-          <div class="app-tab">Dashboard</div>
-          <div class="app-tab">Pantry</div>
-          <div class="app-tab">Recipes</div>
-          <div class="app-tab active">Pricing</div>
-          <div class="app-tab">Orders</div>
-        </div>
-        <div class="app-greeting">
-          <div class="app-greeting-text" id="app-greeting-msg">Good morning ☀️ Ready for a great baking day?</div>
-          <div class="app-greeting-sub">Your kitchen is looking busy this week 🍪</div>
-        </div>
-        <div class="app-stats">
-          <div class="app-stat kpi-revenue">
-            <div class="app-stat-icon">💰</div>
-            <div class="app-stat-label">Delivered Revenue</div>
-            <div class="app-stat-val">$0.00</div>
-          </div>
-          <div class="app-stat kpi-pending">
-            <div class="app-stat-icon">⏳</div>
-            <div class="app-stat-label">Pending Revenue</div>
-            <div class="app-stat-val">$193.00</div>
-          </div>
-          <div class="app-stat kpi-orders">
-            <div class="app-stat-icon">📦</div>
-            <div class="app-stat-label">Open Orders</div>
-            <div class="app-stat-val">4</div>
-          </div>
-          <div class="app-stat kpi-social">
-            <div class="app-stat-icon">📱</div>
-            <div class="app-stat-label">Scheduled Posts</div>
-            <div class="app-stat-val">1</div>
-          </div>
-        </div>
-        <div class="app-orders-label">Business Health Insights</div>
-        <div class="app-insight-callout">
-          <div class="app-insight-callout-label">Top Revenue Item</div>
-          <div class="app-insight-callout-text">Chocolate chip cookies · 42% of your revenue — <span class="app-insight-callout-hi">top earner! 🎉</span></div>
-        </div>
-        <div class="app-orders-label">Today's Tasks</div>
-        <div class="app-tasks">
-          <div class="app-task-row">
-            <div class="app-task-check"></div>
-            <div class="app-task-text">Prep batter for Sarah Mitchell</div>
-          </div>
-          <div class="app-task-row">
-            <div class="app-task-check"></div>
-            <div class="app-task-text">Bake Jennifer Rodriguez birthday cake</div>
-          </div>
-        </div>
-        <div class="app-orders-label">Upcoming Orders</div>
-        <div class="app-order">
-          <div class="app-order-avatar">SM</div>
-          <div class="app-order-info">
-            <div class="app-order-name">Sarah Mitchell</div>
-            <div class="app-order-sub">Choc chip cookies · May 10</div>
-          </div>
-          <div class="app-badge badge-prog">In Progress</div>
-        </div>
-        <div class="app-order">
-          <div class="app-order-avatar">JR</div>
-          <div class="app-order-info">
-            <div class="app-order-name">Jennifer Rodriguez</div>
-            <div class="app-order-sub">Birthday cake · May 14</div>
-          </div>
-          <div class="app-badge badge-pend">Pending</div>
-        </div>
-      </div>
     </div>
   </div>
 </section>
