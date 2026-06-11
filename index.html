@@ -280,10 +280,12 @@ footer img{height:32px;opacity:0.6;}
   .section-header{flex-direction:column;align-items:flex-start;}
   .section-sub-right{text-align:left;}
 }
+.hero-mobile-banner{display:none;}
 @media(max-width:768px){
   .hero{background-image:none;background-color:#f5efe6;min-height:auto;display:block;padding:3rem 0 0 0;}
   .hero-left{padding:2rem 1.5rem 3rem 1.5rem;}
   .hero::after{display:none;}
+  .hero-mobile-banner{display:block;width:100%;height:200px;background:url('mobile-banner.png') center center/cover no-repeat;margin-bottom:0;}
 }
 .what-you-get{background:var(--linen);padding:5rem 2rem;}
 .what-inner{max-width:620px;margin:0 auto;}
@@ -309,6 +311,7 @@ footer img{height:32px;opacity:0.6;}
 
 <!-- HERO -->
 <section class="hero">
+  <div class="hero-mobile-banner"></div>
   <div class="hero-left">
     <div class="hero-line"></div>
     <div class="hero-eyebrow">From Recipe to Revenue</div>
