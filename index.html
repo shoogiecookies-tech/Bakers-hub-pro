@@ -154,14 +154,15 @@ nav img.nav-logo{height:34px;display:block;}
 .diagonal{width:100%;height:80px;background:var(--charcoal-deep);clip-path:polygon(0 0,100% 0,100% 30%,0 100%);}
 
 /* INTRO STATEMENT */
-.intro{background:var(--ivory);padding:6rem 3rem;text-align:center;}
-.intro-inner{max-width:760px;margin:0 auto;}
-.intro-rule{display:flex;align-items:center;gap:1.5rem;justify-content:center;margin-bottom:2.5rem;}
+.intro{background:var(--ivory);padding:6rem 3rem;}
+.intro-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;}
+.intro-rule{display:flex;align-items:center;gap:1.5rem;margin-bottom:2.5rem;}
 .intro-rule-line{flex:1;max-width:80px;height:1px;background:var(--cream-dark);}
 .intro-rule-icon{color:var(--rust);font-size:18px;}
-.intro h2{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:300;color:var(--charcoal);line-height:1.3;margin-bottom:1.75rem;letter-spacing:-0.3px;}
+.intro h2{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,3.5vw,3rem);font-weight:300;color:var(--charcoal);line-height:1.3;margin-bottom:1.75rem;letter-spacing:-0.3px;}
 .intro h2 em{font-style:italic;color:var(--rust);}
-.intro p{font-size:1rem;color:var(--text-mid);line-height:2;font-weight:300;max-width:600px;margin:0 auto;}
+.intro p{font-size:1rem;color:var(--text-mid);line-height:2;font-weight:300;}
+@media(max-width:768px){.intro-inner{grid-template-columns:1fr;gap:3rem;}.intro-mockup{display:none;}}
 
 /* FEATURES */
 .features{background:var(--oat);padding:6rem 3rem;}
@@ -325,13 +326,92 @@ footer img{height:32px;opacity:0.6;}
 <!-- INTRO STATEMENT -->
 <section class="intro">
   <div class="intro-inner">
-    <div class="intro-rule">
-      <div class="intro-rule-line"></div>
-      <div class="intro-rule-icon">🌾</div>
-      <div class="intro-rule-line"></div>
+    <div class="intro-left">
+      <div class="intro-rule">
+        <div class="intro-rule-line"></div>
+        <div class="intro-rule-icon">🌾</div>
+        <div class="intro-rule-line"></div>
+      </div>
+      <h2>Most bakers are <em>undercharging</em> — and they don't even know it.</h2>
+      <p>When you can't see your real ingredient costs, your true profit margin, or what each recipe actually earns you — you're guessing. BakeFlo ends the guessing. Know your numbers. Most only count ingredients. BakeFlo counts the rest too — so your price actually covers what it costs you.</p>
     </div>
-    <h2>Most bakers are <em>undercharging</em> — and they don't even know it.</h2>
-    <p>When you can't see your real ingredient costs, your true profit margin, or what each recipe actually earns you — you're guessing. BakeFlo ends the guessing. Know your numbers. Most only count ingredients. BakeFlo counts the rest too — so your price actually covers what it costs you.</p>
+    <div class="intro-mockup">
+      <div class="hero-app-card">
+        <div class="app-card-bar"><div class="app-dot"></div><div class="app-dot"></div><div class="app-dot"></div></div>
+        <div class="app-card-body">
+          <div class="app-topbar">
+            <span class="app-topbar-text">Home Bakery Business</span>
+            <span style="color:rgba(255,255,255,0.35);font-size:7px;letter-spacing:0.5px;">Your Bakery Name</span>
+          </div>
+          <div class="app-tabs">
+            <div class="app-tab active">Dashboard</div>
+            <div class="app-tab">Pantry</div>
+            <div class="app-tab">Recipes</div>
+            <div class="app-tab">Pricing</div>
+            <div class="app-tab">Orders</div>
+          </div>
+          <div class="app-greeting">
+            <div class="app-greeting-text">Good morning ☀️ Ready for a great baking day?</div>
+            <div class="app-greeting-sub">Your kitchen is looking busy this week 🍪</div>
+          </div>
+          <div class="app-stats">
+            <div class="app-stat kpi-revenue">
+              <div class="app-stat-icon">💰</div>
+              <div class="app-stat-label">Delivered Revenue</div>
+              <div class="app-stat-val">$1,240.00</div>
+            </div>
+            <div class="app-stat kpi-pending">
+              <div class="app-stat-icon">⏳</div>
+              <div class="app-stat-label">Pending Revenue</div>
+              <div class="app-stat-val">$193.00</div>
+            </div>
+            <div class="app-stat kpi-orders">
+              <div class="app-stat-icon">📦</div>
+              <div class="app-stat-label">Open Orders</div>
+              <div class="app-stat-val">4</div>
+            </div>
+            <div class="app-stat kpi-social">
+              <div class="app-stat-icon">📱</div>
+              <div class="app-stat-label">Scheduled Posts</div>
+              <div class="app-stat-val">1</div>
+            </div>
+          </div>
+          <div class="app-orders-label">Business Health Insights</div>
+          <div class="app-insight-callout">
+            <div class="app-insight-callout-label">Top Revenue Item</div>
+            <div class="app-insight-callout-text">Chocolate chip cookies · 42% of your revenue — <span class="app-insight-callout-hi">top earner! 🎉</span></div>
+          </div>
+          <div class="app-orders-label">Today's Tasks</div>
+          <div class="app-tasks">
+            <div class="app-task-row">
+              <div class="app-task-check"></div>
+              <div class="app-task-text">Prep batter for Sarah Mitchell</div>
+            </div>
+            <div class="app-task-row">
+              <div class="app-task-check"></div>
+              <div class="app-task-text">Bake Jennifer Rodriguez birthday cake</div>
+            </div>
+          </div>
+          <div class="app-orders-label">Upcoming Orders</div>
+          <div class="app-order">
+            <div class="app-order-avatar">SM</div>
+            <div class="app-order-info">
+              <div class="app-order-name">Sarah Mitchell</div>
+              <div class="app-order-sub">Choc chip cookies · Jun 14</div>
+            </div>
+            <div class="app-badge badge-prog">In Progress</div>
+          </div>
+          <div class="app-order">
+            <div class="app-order-avatar">JR</div>
+            <div class="app-order-info">
+              <div class="app-order-name">Jennifer Rodriguez</div>
+              <div class="app-order-sub">Birthday cake · Jun 18</div>
+            </div>
+            <div class="app-badge badge-pend">Pending</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
