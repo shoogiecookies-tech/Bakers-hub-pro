@@ -601,6 +601,53 @@ footer img{height:32px;opacity:0.6;}
   </div>
 </section>
 
+<!-- WORKSHEET LEAD MAGNET -->
+<section id="worksheet" style="background:var(--cream-warm);padding:5rem 3rem;text-align:center;">
+  <div style="max-width:520px;margin:0 auto;">
+    <div class="eyebrow" style="color:var(--text-mid);margin-bottom:1.25rem;">Free Download</div>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.75rem,3vw,2.4rem);font-weight:300;color:var(--navy);line-height:1.25;margin-bottom:1rem;letter-spacing:-0.2px;">Not ready to buy?<br>Grab the free Pricing Worksheet</h2>
+    <p style="font-size:0.92rem;color:var(--text-mid);line-height:1.85;margin-bottom:2rem;font-weight:300;">A five-minute manual worksheet to price one recipe or order — so you know your number before you ever quote it.</p>
+
+    <form id="worksheet-form" name="worksheet-leads" data-netlify="true" netlify-honeypot="bot-field" style="max-width:420px;margin:0 auto;">
+      <input type="hidden" name="form-name" value="worksheet-leads">
+      <p style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></p>
+      <div style="display:flex;border:1.5px solid var(--sand);border-radius:2px;overflow:hidden;background:white;">
+        <input type="email" name="email" required placeholder="your@email.com"
+          style="flex:1;padding:0.9rem 1rem;border:none;font-family:'Jost',sans-serif;font-size:0.9rem;color:var(--text-dark);background:white;outline:none;min-width:0;">
+        <button type="submit"
+          style="background:var(--navy);color:white;border:none;padding:0.9rem 1.4rem;font-family:'Jost',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background 0.2s;flex-shrink:0;">Send it →</button>
+      </div>
+      <p style="font-size:0.72rem;color:var(--text-light);margin:0.75rem 0 0;letter-spacing:0.3px;">No spam. Unsubscribe any time.</p>
+    </form>
+
+    <div id="worksheet-success" style="display:none;padding:1.75rem 2rem;background:white;border:1px solid var(--sand);border-radius:2px;margin-top:1rem;max-width:420px;margin-left:auto;margin-right:auto;">
+      <p style="color:var(--navy);font-size:1rem;font-weight:500;margin:0 0 0.5rem;font-family:'Jost',sans-serif;">Check your email — the worksheet is on its way.</p>
+      <p style="font-size:0.84rem;color:var(--text-mid);margin:0;">Email slow? <a href="https://www.bakeflo.io/worksheet.pdf" style="color:var(--terracotta);text-decoration:none;font-weight:500;">Download it directly →</a></p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  var form = document.getElementById('worksheet-form');
+  var success = document.getElementById('worksheet-success');
+  if (!form || !success) return;
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
+    fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(new FormData(form)).toString()
+    }).finally(function() {
+      form.style.display = 'none';
+      success.style.display = 'block';
+    });
+  });
+})();
+</script>
+
 <!-- PRICING -->
 <section class="pricing" id="pricing">
   <div class="pricing-inner" style="max-width:560px;">
