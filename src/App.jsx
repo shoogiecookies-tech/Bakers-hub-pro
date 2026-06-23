@@ -335,6 +335,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [defaultMarkup,    setDefaultMarkup]    = useState(40);
   const [defaultOverhead,  setDefaultOverhead]  = useState(10);
   const [currency,         setCurrency]         = useState("USD");
+  const [bakerState,       setBakerState]       = useState("");
   const [apiKey,      setApiKey]      = useState(() => localStorage.getItem("baker_api_key") || "");
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -502,6 +503,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         setDefaultMarkup(dm);    setMarkup(dm);
         setDefaultOverhead(doh); setOverhead(doh);
         setCurrency(profileData.currency || "USD");
+        setBakerState(profileData.state || "");
       }
       setDbLoading(false);
     };
@@ -510,7 +512,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Save bakery profile ───────────────────────────────────────────────────────
   const saveProfile = async () => {
-    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency });
+    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency, state: bakerState });
     setLaborRate(defaultLaborRate); setMarkup(defaultMarkup); setOverhead(defaultOverhead);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
@@ -1855,6 +1857,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🏷 Bakery Branding</div>
                 <label style={s.label}>Bakery Name</label>
                 <input value={bakeryName} onChange={e => setBakeryName(e.target.value)} placeholder="My Home Bakery" style={s.input} />
+                <div style={{ marginTop: 10 }}>
+                  <label style={s.label}>State</label>
+                  <select value={bakerState} onChange={e => setBakerState(e.target.value)} style={s.input}>
+                    <option value="">— Select your state —</option>
+                    {["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"].map(st => <option key={st}>{st}</option>)}
+                  </select>
+                </div>
                 <div style={{ marginTop: 12 }}>
                   <label style={s.label}>Bakery Logo</label>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
