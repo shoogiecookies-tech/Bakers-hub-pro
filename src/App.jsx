@@ -724,6 +724,17 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     const { error: updateErr } = await supabase.from("orders").update(updates).eq("id", editingOrder);
     if (updateErr) { alert("Order could not be updated: " + updateErr.message); return; }
     setOrders(prev => prev.map(o => o.id === editingOrder ? { ...o, ...updates } : o));
+
+    // Delete auto-generated tasks for this order and regenerate from new details
+    await supabase.from("schedule").delete().eq("order_id", editingOrder).eq("auto", true);
+    setSchedule(prev => prev.filter(t => !(t.order_id === editingOrder && t.auto)));
+    const updatedOrder = { ...updates, id: editingOrder };
+    const newTasks = generateTasksFromOrder(updatedOrder);
+    for (const t of newTasks) {
+      const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t }]).select().single();
+      if (taskData) setSchedule(prev => [...prev, { ...taskData, orderId: taskData.order_id, aiSuggested: false }]);
+    }
+
     setEditingOrder(null); setEditOrder(null);
   };
 
