@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -291,14 +292,27 @@ export default function BakersHubPro() {
   }, []);
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", background: "#9CA3AF", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "#fff", fontSize: 18 }}>
-      🧁 Loading...
-    </div>
+    <>
+      <div style={{ minHeight: "100vh", background: "#9CA3AF", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "#fff", fontSize: 18 }}>
+        🧁 Loading...
+      </div>
+      <Analytics />
+    </>
   );
 
-  if (!session) return <LoginScreen onLogin={() => {}} />;
+  if (!session) return (
+    <>
+      <LoginScreen onLogin={() => {}} />
+      <Analytics />
+    </>
+  );
 
-  return <AppInner session={session} onSignOut={() => setSession(null)} initialTab={recoveryMode ? "Settings" : "Dashboard"} />;
+  return (
+    <>
+      <AppInner session={session} onSignOut={() => setSession(null)} initialTab={recoveryMode ? "Settings" : "Dashboard"} />
+      <Analytics />
+    </>
+  );
 }
 
 // ─── APP INNER (authenticated) ────────────────────────────────────────────────
