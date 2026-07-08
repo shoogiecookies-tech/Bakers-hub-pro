@@ -92,14 +92,38 @@ nav img.nav-logo{height:34px;display:block;}
 .hero h1 em{font-style:italic;color:var(--terracotta);}
 .hero h1 strong{font-weight:600;}
 .hero-sub{font-size:0.95rem;color:var(--text-mid);max-width:420px;line-height:1.9;font-weight:300;margin-bottom:2.75rem;letter-spacing:0.2px;}
-.hero-btns{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:3rem;}
+.hero-btns{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem;}
 .btn-primary{background:var(--terracotta);color:white;border:none;padding:1rem 2.4rem;border-radius:2px;font-family:'Jost',sans-serif;font-weight:400;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all 0.25s;text-decoration:none;display:inline-block;}
 .btn-primary:hover{background:var(--rust-muted);transform:translateY(-1px);}
+.hero-trust-row{display:flex;gap:1.6rem;flex-wrap:wrap;margin-bottom:2.5rem;}
+.hero-trust-item{display:flex;align-items:center;gap:0.4rem;font-family:'Jost',sans-serif;font-size:0.7rem;letter-spacing:0.3px;color:var(--text-light);font-weight:400;}
+.hero-trust-icon{font-size:0.85rem;line-height:1;}
 .btn-text{color:var(--text-mid);font-size:0.8rem;letter-spacing:1px;text-decoration:none;text-transform:uppercase;transition:color 0.2s;font-weight:300;}
 .btn-text:hover{color:var(--navy);}
 .hero-proof{display:flex;align-items:center;gap:12px;}
-.hero-proof-line{width:24px;height:1px;background:var(--text-light);}
-.hero-proof-text{color:var(--text-mid);font-size:0.75rem;letter-spacing:0.5px;}
+.hero-proof-line{width:24px;height:1px;background:rgba(247,243,236,0.5);}
+.hero-proof-text{color:var(--cream);font-size:0.75rem;letter-spacing:0.5px;}
+.hero-strip-link{color:var(--cream);font-size:0.78rem;letter-spacing:0.5px;text-decoration:none;opacity:0.75;transition:opacity 0.2s;}
+.hero-strip-link:hover{opacity:1;}
+
+/* HERO PRICING ROW (table + worksheet card) */
+.hero-pricing-row{grid-column:1/-1;position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:stretch;padding:0 6rem 3rem 6rem;}
+.hero-pricing-row .equation-table{margin:0;width:100%;}
+.hero-worksheet-card{background:white;border:1px solid #e0d9ce;border-radius:4px;padding:2rem 2.25rem;display:flex;flex-direction:column;justify-content:center;}
+.hero-worksheet-heading{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:400;color:var(--navy);margin-bottom:0.6rem;}
+.hero-worksheet-text{font-size:0.85rem;color:var(--text-mid);line-height:1.6;margin-bottom:1.25rem;font-weight:300;}
+.hero-worksheet-input-row{display:flex;border:1.5px solid var(--sand);border-radius:2px;overflow:hidden;background:white;}
+.hero-worksheet-input{flex:1;padding:0.75rem 0.9rem;border:none;font-family:'Jost',sans-serif;font-size:0.85rem;color:var(--text-dark);background:white;outline:none;min-width:0;}
+.hero-worksheet-btn{background:transparent;color:var(--navy);border:none;border-left:1.5px solid var(--sand);padding:0.75rem 1.1rem;font-family:'Jost',sans-serif;font-size:0.68rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background 0.2s,color 0.2s;flex-shrink:0;}
+.hero-worksheet-btn:hover{background:var(--navy);color:white;}
+.hero-worksheet-success{font-size:0.85rem;color:var(--navy);font-weight:500;}
+.hero-strip{grid-column:1/-1;position:relative;z-index:2;text-align:center;padding:1.5rem 2rem 3rem;}
+@media(max-width:900px){
+  .hero-pricing-row{padding:0 2rem 2rem;}
+}
+@media(max-width:768px){
+  .hero-pricing-row{grid-template-columns:1fr;padding:0 1.5rem 2rem;gap:1.5rem;}
+}
 
 /* HERO APP CARD */
 .hero-app-card{background:#f2ece0;border:1px solid rgba(0,0,0,0.08);border-radius:6px;overflow:hidden;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,0.25);}
@@ -228,9 +252,27 @@ nav img.nav-logo{height:34px;display:block;}
 .faq{background:var(--ivory);padding:6rem 3rem;}
 .faq-inner{max-width:680px;margin:0 auto;}
 .faq-list{margin-top:3.5rem;}
-.faq-item{border-bottom:1px solid var(--cream-dark);padding:1.5rem 0;}
-.faq-q{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;color:var(--charcoal);margin-bottom:0.6rem;}
-.faq-a{font-size:0.88rem;color:var(--text-mid);line-height:1.85;font-weight:300;}
+.faq-item{border-bottom:1px solid var(--cream-dark);}
+.faq-q{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;color:var(--charcoal);padding:1.5rem 0;margin:0;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;cursor:pointer;user-select:none;}
+.faq-q-icon{flex-shrink:0;width:18px;height:18px;position:relative;transition:transform 0.25s ease;}
+.faq-q-icon::before,.faq-q-icon::after{content:'';position:absolute;background:var(--terracotta);border-radius:1px;}
+.faq-q-icon::before{top:50%;left:0;width:100%;height:2px;transform:translateY(-50%);}
+.faq-q-icon::after{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%);transition:opacity 0.2s ease;}
+.faq-item.open .faq-q-icon{transform:rotate(180deg);}
+.faq-item.open .faq-q-icon::after{opacity:0;}
+.faq-a-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows 0.3s ease;}
+.faq-item.open .faq-a-wrap{grid-template-rows:1fr;}
+.faq-a-wrap>div{overflow:hidden;min-height:0;}
+.faq-a{font-size:0.88rem;color:var(--text-mid);line-height:1.85;font-weight:300;padding-bottom:1.5rem;}
+
+/* HERO MINI FAQ */
+.hero-mini-faq{grid-column:1/-1;position:relative;z-index:2;padding:0 6rem 2.5rem;}
+.hero-mini-faq-card{background:white;border:1px solid #e0d9ce;border-radius:4px;padding:0.25rem 2rem;max-width:720px;margin:0 auto;}
+.hero-mini-faq .faq-item:last-child{border-bottom:none;}
+.hero-mini-faq .faq-q{font-size:0.95rem;padding:1.1rem 0;}
+.hero-mini-faq .faq-a{font-size:0.82rem;line-height:1.7;padding-bottom:1.1rem;}
+@media(max-width:900px){.hero-mini-faq{padding:0 2rem 2rem;}}
+@media(max-width:768px){.hero-mini-faq{padding:0 1.5rem 1.5rem;}.hero-mini-faq-card{padding:0.25rem 1.25rem;}}
 
 /* FOOTER CTA */
 .footer-cta{background:#1d2d44;padding:5.5rem 3rem;text-align:center;position:relative;overflow:hidden;}
@@ -270,6 +312,10 @@ footer img{height:32px;opacity:0.6;}
   .hero-left{padding:2rem 1.5rem 3rem 1.5rem;}
   .hero::after{display:none;}
   .hero-mobile-banner{display:block;width:100%;height:200px;background:url('mobile-banner.png') center center/cover no-repeat;margin-bottom:0;}
+  .hero-strip-link{color:var(--text-mid);opacity:1;}
+  .hero-strip-link:hover{color:var(--text-dark);}
+  .hero-proof-line{background:var(--text-light);}
+  .hero-proof-text{color:var(--text-mid);}
 }
 .what-you-get{background:var(--linen);padding:5rem 2rem;}
 .what-inner{max-width:1100px;margin:0 auto;}
@@ -336,16 +382,76 @@ footer img{height:32px;opacity:0.6;}
   <div class="hero-left">
     <div class="hero-line"></div>
     <div class="hero-eyebrow">From Recipe to Revenue</div>
-    <h1>Tired of figuring it out every time —<br><em>or just giving it your best guess?</em></h1>
-    <p class="hero-sub">BakeFlo is the profit and pricing tool I built for my own bakery, So I'd always know my real costs, my true margin, and exactly what to charge — without starting from scratch every single order.</p>
+    <h1>Know your real profit on every bake —<br><em>before you quote it.</em></h1>
+    <p class="hero-sub">BakeFlo is the pricing and profit tool I built for my own bakery — so I always know my real costs, my true margin, and exactly what to charge. No more guessing, no more starting from scratch every order.</p>
     <div class="hero-btns">
       <a href="#pricing" class="btn-primary">Grab Founding Member Pricing</a>
-      <a href="#pricing" class="btn-text">See What's Inside →</a>
     </div>
-    <div style="margin-top:-1.5rem;margin-bottom:1.5rem;">
-      <a href="https://bakeflo.co" style="color:var(--text-mid);font-size:0.78rem;letter-spacing:0.5px;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='var(--text-dark)'" onmouseout="this.style.color='var(--text-mid)'">Already a member? Log in to your account →</a>
+    <div class="hero-trust-row">
+      <span class="hero-trust-item"><span class="hero-trust-icon">🛡️</span> 30-Day Money-Back Guarantee</span>
+      <span class="hero-trust-item"><span class="hero-trust-icon">🔒</span> One-Time Payment, No Subscription</span>
     </div>
-    <div class="hero-proof">
+  </div>
+  <div class="hero-pricing-row">
+    <div class="equation-table">
+      <div class="equation-row">
+        <div class="equation-op"></div>
+        <div class="equation-label">Recipe cost — 3 dz cookies</div>
+        <div class="equation-value">$7.64</div>
+      </div>
+      <div class="equation-row">
+        <div class="equation-op">+</div>
+        <div class="equation-label">Labor + overhead — you decide</div>
+        <div class="equation-value">$60.76</div>
+      </div>
+      <div class="equation-row">
+        <div class="equation-op">=</div>
+        <div class="equation-label">Suggested price — floor, never go below</div>
+        <div class="equation-value">$95.00</div>
+      </div>
+      <div class="equation-row equation-row-highlight">
+        <div class="equation-op">→</div>
+        <div class="equation-label"><strong>Your price</strong></div>
+        <div class="equation-value">$115.00</div>
+      </div>
+    </div>
+    <div class="hero-worksheet-card">
+      <div class="hero-worksheet-heading">Not ready yet?</div>
+      <p class="hero-worksheet-text">Grab the free Pricing Worksheet — price one recipe in 5 minutes.</p>
+      <form id="hero-worksheet-form" name="worksheet-leads" data-netlify="true" netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="worksheet-leads">
+        <p style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></p>
+        <div class="hero-worksheet-input-row">
+          <input type="email" name="email" required placeholder="your@email.com" class="hero-worksheet-input">
+          <button type="submit" class="hero-worksheet-btn">Send It</button>
+        </div>
+      </form>
+      <div id="hero-worksheet-success" class="hero-worksheet-success" style="display:none;">Check your email — the worksheet is on its way.</div>
+    </div>
+  </div>
+  <div class="hero-mini-faq">
+    <div class="hero-mini-faq-card">
+      <div class="faq-item">
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>Is this for hobby bakers or professional bakeries?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">Both. BakeFlo works great for hobby bakers just starting to sell, and scales up to cottage bakeries and small custom shops managing multiple orders a week. BakeFlo works for both — because every baker deserves to know if they're profitable.</div></div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>If I cancel, what happens to my data?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">Your recipes, pantry, and orders are always yours. You can export your data at any time. We never hold your information hostage — if you decide to leave, you leave with everything you built.</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-strip">
+    <div style="margin-bottom:1rem;">
+      <a href="https://bakeflo.co" class="hero-strip-link">Already a member? Log in to your account →</a>
+    </div>
+    <div class="hero-proof" style="justify-content:center;">
       <div class="hero-proof-line"></div>
       <span class="hero-proof-text">$97 one-time · before it goes to $14.99/month</span>
     </div>
@@ -444,42 +550,12 @@ footer img{height:32px;opacity:0.6;}
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how-it-works">
-  <div class="how-inner">
-    <div class="eyebrow" style="text-align:center;">How it works</div>
-    <h2 class="how-title">BakeFlo tells you <em>exactly</em> what to charge.</h2>
-    <div class="equation-table">
-      <div class="equation-row">
-        <div class="equation-op"></div>
-        <div class="equation-label">Recipe cost — 3 dz cookies</div>
-        <div class="equation-value">$7.64</div>
-      </div>
-      <div class="equation-row">
-        <div class="equation-op">+</div>
-        <div class="equation-label">Labor + overhead — you decide</div>
-        <div class="equation-value">$60.76</div>
-      </div>
-      <div class="equation-row">
-        <div class="equation-op">=</div>
-        <div class="equation-label">Suggested price — floor, never go below</div>
-        <div class="equation-value">$95.00</div>
-      </div>
-      <div class="equation-row equation-row-highlight">
-        <div class="equation-op">→</div>
-        <div class="equation-label"><strong>Your price</strong></div>
-        <div class="equation-value">$115.00</div>
-      </div>
-    </div>
-    <p class="how-note">No spreadsheets. No guessing. No undercharging.</p>
-  </div>
-</section>
-
 <!-- WHAT YOU GET + PRICING -->
 <section class="what-you-get" id="pricing">
   <div class="what-inner">
     <div class="eyebrow" style="text-align:center;">What you get</div>
-    <div class="section-title" style="text-align:center;margin-bottom:3rem;">Know your numbers. Price with confidence.<br><em>Keep what you earn.</em></div>
+    <div class="section-title" style="text-align:center;margin-bottom:1.5rem;">Know your numbers. Price with confidence.<br><em>Keep what you earn.</em></div>
+    <p style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:300;font-style:italic;color:var(--navy);text-align:center;max-width:600px;margin:0 auto 3rem;line-height:1.5;">You built a real business. <span style="color:var(--rust);">BakeFlo just makes sure the numbers know it too.</span></p>
     <div class="what-pricing-grid">
       <div>
         <div class="what-table" style="margin-top:0;">
@@ -527,6 +603,16 @@ footer img{height:32px;opacity:0.6;}
         <p style="font-size:0.72rem;color:rgba(255,255,255,0.45);text-align:center;margin-top:0.75rem;">After founding pricing: $149/year or $14.99/month</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- OUTGROWN THE NOTEBOOK -->
+<section style="background:var(--oat);padding:5rem 3rem;text-align:center;">
+  <div style="max-width:640px;margin:0 auto;">
+    <div class="eyebrow" style="color:var(--rust);margin-bottom:1.25rem;">For bakers past the notebook</div>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.75rem,3vw,2.4rem);font-weight:300;color:var(--navy);line-height:1.25;margin-bottom:1rem;letter-spacing:-0.2px;">Outgrown the notebook?</h2>
+    <p style="font-size:0.92rem;color:var(--text-mid);line-height:1.85;margin-bottom:2.5rem;font-weight:300;">Past 12–20 orders a week, a notebook or spreadsheet starts failing you: orders overlap, payments get lost, production planning falls apart. BakeFlo tracks every order, invoice, and payment in one place — so growth doesn't mean chaos.</p>
+    <a href="#pricing" class="btn-primary">Grab Founding Member Pricing</a>
   </div>
 </section>
 
@@ -583,6 +669,49 @@ footer img{height:32px;opacity:0.6;}
 })();
 </script>
 
+<script>
+(function(){
+  var form = document.getElementById('hero-worksheet-form');
+  var success = document.getElementById('hero-worksheet-success');
+  if (!form || !success) return;
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
+    fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(new FormData(form)).toString()
+    }).finally(function() {
+      form.style.display = 'none';
+      success.style.display = 'block';
+    });
+  });
+})();
+</script>
+
+<script>
+(function(){
+  function toggle(q) {
+    var item = q.closest('.faq-item');
+    if (!item) return;
+    var open = item.classList.toggle('open');
+    q.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  document.addEventListener('click', function(e){
+    var q = e.target.closest('.faq-q');
+    if (q) toggle(q);
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var q = e.target.closest('.faq-q');
+    if (!q) return;
+    e.preventDefault();
+    toggle(q);
+  });
+})();
+</script>
+
 
 <!-- WHAT'S COMING -->
 <section style="background:var(--navy);padding:5rem 3rem;text-align:center;">
@@ -615,38 +744,63 @@ footer img{height:32px;opacity:0.6;}
   <div class="faq-inner">
     <div class="eyebrow">Questions</div>
     <div class="section-title">Frequently asked.</div>
+    <p style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:300;font-style:italic;color:var(--charcoal);text-align:center;max-width:560px;margin:1.5rem auto 0;line-height:1.5;">A spreadsheet can hold your orders. <span style="color:var(--rust);">It can't tell you if you're actually making money.</span></p>
     <div class="faq-list">
       <div class="faq-item">
-        <div class="faq-q">What will pricing look like after the founding member period?</div>
-        <div class="faq-a">Once founding member spots are filled, BakeFlo will move to a $14.99/month subscription — or $149/year (roughly two months free). Founding members pay nothing going forward. Ever.</div>
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>What will pricing look like after the founding member period?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">Once founding member spots are filled, BakeFlo will move to a $14.99/month subscription — or $149/year (roughly two months free). Founding members pay nothing going forward. Ever.</div></div></div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">What is the Founder's Deal?</div>
-        <div class="faq-a">You pay once — $97 — and get full access to BakeFlo forever. When we open to the public, it becomes a $14.99/month subscription. Founding members are locked in for life at no monthly cost.</div>
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>What is the Founder's Deal?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">You pay once — $97 — and get full access to BakeFlo forever. When we open to the public, it becomes a $14.99/month subscription. Founding members are locked in for life at no monthly cost.</div></div></div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Is this for hobby bakers or professional bakeries?</div>
-        <div class="faq-a">Both. BakeFlo works great for hobby bakers just starting to sell, and scales up to cottage bakeries and small custom shops managing multiple orders a week. BakeFlo works for both — because every baker deserves to know if they're profitable.</div>
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>Is this for hobby bakers or professional bakeries?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">Both. BakeFlo works great for hobby bakers just starting to sell, and scales up to cottage bakeries and small custom shops managing multiple orders a week. BakeFlo works for both — because every baker deserves to know if they're profitable.</div></div></div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Do I need to be tech-savvy?</div>
-        <div class="faq-a">Not at all. BakeFlo is designed to be simple and intuitive. If you can use a phone, you can use BakeFlo. Most bakers are up and running in under 10 minutes.</div>
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>Do I need to be tech-savvy?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">Not at all. BakeFlo is designed to be simple and intuitive. If you can use a phone, you can use BakeFlo. Most bakers are up and running in under 10 minutes.</div></div></div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">What devices does it work on?</div>
-        <div class="faq-a">BakeFlo works on any device — desktop, laptop, tablet, or phone. Just open your browser and go. No app store download required. On iPhone, tap Share → Add to Home Screen and BakeFlo opens like a native app — no download needed.</div>
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>What devices does it work on?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">BakeFlo works on any device — desktop, laptop, tablet, or phone. Just open your browser and go. No app store download required. On iPhone, tap Share → Add to Home Screen and BakeFlo opens like a native app — no download needed.</div></div></div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">What happens after I purchase?</div>
-        <div class="faq-a">You'll get immediate access to your BakeFlo account at bakeflo.co. Your pantry comes pre-loaded with common baking ingredients so you can start pricing right away — and you can add any custom ingredients unique to your recipes.</div>
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>What happens after I purchase?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">You'll get immediate access to your BakeFlo account at bakeflo.co. Your pantry comes pre-loaded with common baking ingredients so you can start pricing right away — and you can add any custom ingredients unique to your recipes.</div></div></div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Is there a guarantee?</div>
-        <div class="faq-a">Yes. You have 30 days from purchase to try BakeFlo risk-free. If it's not for you, just email us and we'll refund your full payment — no questions asked. We're confident that once you see your real costs and true margin, you won't want to go back.</div>
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>Is there a guarantee?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">Yes. You have 30 days from purchase to try BakeFlo risk-free. If it's not for you, just email us and we'll refund your full payment — no questions asked. We're confident that once you see your real costs and true margin, you won't want to go back.</div></div></div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">If I cancel, what happens to my data?</div>
-        <div class="faq-a">Your recipes, pantry, and orders are always yours. You can export your data at any time. We never hold your information hostage — if you decide to leave, you leave with everything you built.</div>
+        <div class="faq-q" role="button" tabindex="0" aria-expanded="false">
+          <span>If I cancel, what happens to my data?</span>
+          <span class="faq-q-icon" aria-hidden="true"></span>
+        </div>
+        <div class="faq-a-wrap"><div class="faq-a-inner"><div class="faq-a">Your recipes, pantry, and orders are always yours. You can export your data at any time. We never hold your information hostage — if you decide to leave, you leave with everything you built.</div></div></div>
       </div>
     </div>
   </div>
