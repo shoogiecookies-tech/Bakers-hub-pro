@@ -37,6 +37,11 @@ const LABEL_SIZES = [
   { value: "rect",  label: '3" x 2" or 4" x 3" Rectangular',     desc: "Full-size label with room for an optional ingredient list, allergen declaration, and disclosures.", w: "4in", h: "3in", radius: "8px" },
   { value: "box",   label: '4" x 6" Detailed Box Label',         desc: "Fits pastry box lids and larger packaging with full compliance details.",                    w: "4in", h: "6in", radius: "8px" },
 ];
+const QUICK_ID_FONT_SIZES = [
+  { value: "small",  label: "Small",  px: 14 },
+  { value: "medium", label: "Medium", px: 18 },
+  { value: "large",  label: "Large",  px: 24 },
+];
 
 // ─── PASSWORD TOGGLE ─────────────────────────────────────────────────────────
 function EyeIcon()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>; }
@@ -403,6 +408,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [labelDescription,  setLabelDescription]  = useState("");
   const [labelIncludeIngredients, setLabelIncludeIngredients] = useState(false);
   const [labelQuickIdText, setLabelQuickIdText] = useState(null); // null = show auto default; string = baker-edited (may be empty)
+  const [labelQuickIdFontSize, setLabelQuickIdFontSize] = useState("medium");
+  const [labelQuickIdBold, setLabelQuickIdBold] = useState(true);
 
 
 
@@ -788,6 +795,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     setLabelDescription("");
     setLabelIncludeIngredients(false);
     setLabelQuickIdText(null);
+    setLabelQuickIdFontSize("medium");
+    setLabelQuickIdBold(true);
     setLabelPrintOrder(order);
   };
 
@@ -2374,6 +2383,7 @@ CREATE POLICY "owner_only" ON gifted_users
         const isRound = labelSize === "round";
         const quickIdDefault = recipe ? `${bakeryName} — ${recipe.name}` : "";
         const quickIdValue = labelQuickIdText !== null ? labelQuickIdText : quickIdDefault;
+        const quickIdFontPx = (QUICK_ID_FONT_SIZES.find(fs => fs.value === labelQuickIdFontSize) || QUICK_ID_FONT_SIZES[1]).px;
         return (
           <div id="bflabel" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#F9FAFB", overflowY: "auto", fontFamily: "'Inter', sans-serif", color: C.dark }}>
             <style>{`@media print { body > *:not(#bflabel){display:none!important} #bflabel{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
@@ -2411,7 +2421,22 @@ CREATE POLICY "owner_only" ON gifted_users
               {isRound ? (
                 <div>
                   <label style={s.label}>Quick-ID Label Text</label>
-                  <input value={quickIdValue} onChange={e => setLabelQuickIdText(e.target.value)} placeholder="e.g. Business Name — Recipe Name" style={s.input} />
+                  <textarea value={quickIdValue} onChange={e => setLabelQuickIdText(e.target.value)} placeholder="e.g. Business Name — Recipe Name" rows={3} style={{ ...s.input, resize: "vertical", fontFamily: "'Inter', sans-serif" }} />
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Press Enter to control exactly where lines break.</div>
+                  <div style={{ display: "flex", gap: 20, marginTop: 12, flexWrap: "wrap" }}>
+                    <div>
+                      <label style={s.label}>Font Size</label>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {QUICK_ID_FONT_SIZES.map(fs => (
+                          <button key={fs.value} type="button" onClick={() => setLabelQuickIdFontSize(fs.value)} style={{ padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${C.accent}`, background: labelQuickIdFontSize === fs.value ? C.accent : "#fff", color: labelQuickIdFontSize === fs.value ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>{fs.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={s.label}>Bold</label>
+                      <button type="button" onClick={() => setLabelQuickIdBold(b => !b)} style={{ padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${C.accent}`, background: labelQuickIdBold ? C.accent : "#fff", color: labelQuickIdBold ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>{labelQuickIdBold ? "On" : "Off"}</button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -2433,7 +2458,7 @@ CREATE POLICY "owner_only" ON gifted_users
                 {!recipe ? (
                   <div style={{ margin: "auto", color: C.muted, fontSize: 13, textAlign: "center" }}>Select a recipe above to preview the label.</div>
                 ) : isRound ? (
-                  <div style={{ fontWeight: "bold", fontSize: 18, color: C.dark, whiteSpace: "pre-wrap", overflowWrap: "break-word" }}>{quickIdValue}</div>
+                  <div style={{ fontWeight: labelQuickIdBold ? "bold" : "400", fontSize: quickIdFontPx, color: C.dark, whiteSpace: "pre-wrap", overflowWrap: "break-word" }}>{quickIdValue}</div>
                 ) : (
                   <>
                     <div>
