@@ -2411,13 +2411,13 @@ CREATE POLICY "owner_only" ON gifted_users
 
             {/* Preview */}
             <div style={{ display: "flex", justifyContent: "center", padding: "32px 20px" }}>
-              <div id="bflabel-content" style={{ width: sizeDef.w, height: isRound ? sizeDef.w : sizeDef.h, borderRadius: sizeDef.radius, border: `2px solid ${C.dark}`, background: "#fff", padding: labelSize === "mini" ? 10 : 16, display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden", boxSizing: "border-box" }}>
+              <div id="bflabel-content" style={{ width: sizeDef.w, height: isRound ? sizeDef.w : sizeDef.h, borderRadius: sizeDef.radius, border: `2px solid ${C.dark}`, background: "#fff", padding: isRound ? "19% 17%" : (labelSize === "mini" ? 10 : 16), display: "flex", flexDirection: "column", justifyContent: isRound ? "center" : "space-between", alignItems: isRound ? "center" : "stretch", textAlign: isRound ? "center" : "left", gap: isRound ? 14 : 0, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden", boxSizing: "border-box" }}>
                 {!recipe ? (
                   <div style={{ margin: "auto", color: C.muted, fontSize: 13, textAlign: "center" }}>Select a recipe above to preview the label.</div>
                 ) : (
                   <>
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: isRound ? "center" : "flex-start", gap: 8, marginBottom: 6 }}>
                         {bakeryLogo && <img src={bakeryLogo} alt="" style={{ height: labelSize === "mini" ? 20 : 30, width: "auto", objectFit: "contain" }} />}
                         <div style={{ fontWeight: "bold", fontSize: labelSize === "mini" ? 10 : 13, color: C.dark }}>{bakeryName}</div>
                       </div>
