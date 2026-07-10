@@ -402,6 +402,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [labelSize,         setLabelSize]         = useState(LABEL_SIZES[0].value);
   const [labelDescription,  setLabelDescription]  = useState("");
   const [labelIncludeIngredients, setLabelIncludeIngredients] = useState(false);
+  const [labelQuickIdText, setLabelQuickIdText] = useState(null); // null = show auto default; string = baker-edited (may be empty)
 
 
 
@@ -786,6 +787,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     setLabelSize(LABEL_SIZES[0].value);
     setLabelDescription("");
     setLabelIncludeIngredients(false);
+    setLabelQuickIdText(null);
     setLabelPrintOrder(order);
   };
 
@@ -2370,6 +2372,8 @@ CREATE POLICY "owner_only" ON gifted_users
         const allergenLine = recipe && recipe.allergens && recipe.allergens.length > 0 ? `Contains: ${recipe.allergens.join(", ")}` : "No major allergens declared";
         const registrationLine = dshsRegistrationNumber || physicalAddress || null;
         const isRound = labelSize === "round";
+        const quickIdDefault = recipe ? `${bakeryName} — ${recipe.name}` : "";
+        const quickIdValue = labelQuickIdText !== null ? labelQuickIdText : quickIdDefault;
         return (
           <div id="bflabel" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#F9FAFB", overflowY: "auto", fontFamily: "'Inter', sans-serif", color: C.dark }}>
             <style>{`@media print { body > *:not(#bflabel){display:none!important} #bflabel{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
@@ -2387,7 +2391,7 @@ CREATE POLICY "owner_only" ON gifted_users
             <div className="np" style={{ padding: "16px 24px", background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 12, maxWidth: 700, margin: "0 auto" }}>
               <div>
                 <label style={s.label}>Recipe</label>
-                <select value={labelRecipeId} onChange={e => setLabelRecipeId(e.target.value)} style={s.input}>
+                <select value={labelRecipeId} onChange={e => { setLabelRecipeId(e.target.value); setLabelQuickIdText(null); }} style={s.input}>
                   <option value="">— Select a recipe —</option>
                   {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
@@ -2398,11 +2402,23 @@ CREATE POLICY "owner_only" ON gifted_users
                   {LABEL_SIZES.map(sz => <option key={sz.value} value={sz.value}>{sz.label}</option>)}
                 </select>
                 <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{sizeDef.desc}</div>
+                {isRound && (
+                  <div style={{ fontSize: 12, color: "#c0522a", background: "#fff3ee", border: "1px solid #f3c9b8", borderRadius: 8, padding: "8px 10px", marginTop: 8 }}>
+                    ⚠ Quick-ID label only — must be paired with a fully compliant label elsewhere on the packaging (e.g. the container itself).
+                  </div>
+                )}
               </div>
-              <div>
-                <label style={s.label}>Label Description (optional)</label>
-                <input value={labelDescription} onChange={e => setLabelDescription(e.target.value)} placeholder="e.g. Best enjoyed same day" style={s.input} />
-              </div>
+              {isRound ? (
+                <div>
+                  <label style={s.label}>Quick-ID Label Text</label>
+                  <input value={quickIdValue} onChange={e => setLabelQuickIdText(e.target.value)} placeholder="e.g. Business Name — Recipe Name" style={s.input} />
+                </div>
+              ) : (
+                <div>
+                  <label style={s.label}>Label Description (optional)</label>
+                  <input value={labelDescription} onChange={e => setLabelDescription(e.target.value)} placeholder="e.g. Best enjoyed same day" style={s.input} />
+                </div>
+              )}
               {allowIngredients && recipe && recipe.ingredientsList && (
                 <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.mid, cursor: "pointer" }}>
                   <input type="checkbox" checked={labelIncludeIngredients} onChange={e => setLabelIncludeIngredients(e.target.checked)} />
@@ -2413,13 +2429,15 @@ CREATE POLICY "owner_only" ON gifted_users
 
             {/* Preview */}
             <div style={{ display: "flex", justifyContent: "center", padding: "32px 20px" }}>
-              <div id="bflabel-content" style={{ width: sizeDef.w, height: isRound ? sizeDef.w : sizeDef.h, borderRadius: sizeDef.radius, border: `2px solid ${C.dark}`, background: "#fff", padding: isRound ? "19% 17%" : (labelSize === "mini" ? 10 : 16), display: "flex", flexDirection: "column", justifyContent: isRound ? "center" : "space-between", alignItems: isRound ? "center" : "stretch", textAlign: isRound ? "center" : "left", gap: isRound ? 14 : 0, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden", boxSizing: "border-box" }}>
+              <div id="bflabel-content" style={{ width: sizeDef.w, height: isRound ? sizeDef.w : sizeDef.h, borderRadius: sizeDef.radius, border: `2px solid ${C.dark}`, background: "#fff", padding: isRound ? "0.55in 0.5in" : (labelSize === "mini" ? 10 : 16), display: "flex", flexDirection: "column", justifyContent: isRound ? "center" : "space-between", alignItems: "stretch", textAlign: isRound ? "center" : "left", gap: isRound ? 14 : 0, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden", boxSizing: "border-box" }}>
                 {!recipe ? (
                   <div style={{ margin: "auto", color: C.muted, fontSize: 13, textAlign: "center" }}>Select a recipe above to preview the label.</div>
+                ) : isRound ? (
+                  <div style={{ fontWeight: "bold", fontSize: 18, color: C.dark, whiteSpace: "pre-wrap", overflowWrap: "break-word" }}>{quickIdValue}</div>
                 ) : (
                   <>
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: isRound ? "center" : "flex-start", gap: 8, marginBottom: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, marginBottom: 6 }}>
                         {bakeryLogo && <img src={bakeryLogo} alt="" style={{ height: labelSize === "mini" ? 20 : 30, width: "auto", objectFit: "contain" }} />}
                         <div style={{ fontWeight: "bold", fontSize: labelSize === "mini" ? 10 : 13, color: C.dark }}>{bakeryName}</div>
                       </div>
