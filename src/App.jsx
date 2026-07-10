@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -968,6 +969,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
             <a href="mailto:hello@bakeflo.io" style={{ color: "#fff", fontSize: 12, textDecoration: "none", background: "#C0653D", border: "none", borderRadius: 20, padding: "6px 14px", fontFamily: "'Inter', sans-serif", fontWeight: "600" }}>Contact Us</a>
             <button onClick={handleSignOut} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif", padding: "6px 4px" }}>Sign Out</button>
           </div>
+          <ThemeSwitcher />
         </div>
         <div style={{ display: "flex", overflowX: "auto", marginTop: 16, gap: 2 }}>
           {TABS.filter(t => t !== "Admin" || session.user.email === "shoogiecookies@gmail.com").map(t => (

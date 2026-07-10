@@ -1,0 +1,83 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/*
+ * Theme tokens for the three BakeFlo modes: dark, cozy (brand default), light.
+ * Values live as plain CSS custom properties so `data-theme` can flip them at
+ * runtime; Tailwind's @theme block below just maps utility classes to them.
+ * Cozy background (#FAF0E6) is a linen placeholder — confirm the real brand
+ * hex with Debbie before this ships past scaffolding.
+ */
+
+@theme {
+  --color-background: #FAF0E6;
+  --color-foreground: #1d2d44;
+  --color-primary: #1d2d44;
+  --color-accent: #b85c35;
+  --color-terracotta: #c4724a;
+  --color-success: #5a7a5c;
+  --color-warning: #d97706;
+  --color-danger: #c0522a;
+  --color-info: #6b8cae;
+  --color-card: #f5f0e8;
+  --color-border: #c8b89a;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 2px 16px rgba(124, 58, 30, 0.07);
+
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'Jost', sans-serif;
+  --font-label: 'DM Mono', monospace;
+}
+
+:root[data-theme="cozy"] {
+  --color-background: #FAF0E6;
+  --color-foreground: #1d2d44;
+  --color-primary: #1d2d44;
+  --color-accent: #b85c35;
+  --color-terracotta: #c4724a;
+  --color-success: #5a7a5c;
+  --color-warning: #d97706;
+  --color-danger: #c0522a;
+  --color-info: #6b8cae;
+  --color-card: #f5f0e8;
+  --color-border: #c8b89a;
+  --radius-card: 1rem;
+  --shadow-card: 0 2px 16px rgba(124, 58, 30, 0.07);
+}
+
+:root[data-theme="dark"] {
+  --color-background: #09090B;
+  --color-foreground: #FAFAFA;
+  --color-primary: #4F46E5;
+  --color-accent: #F59E0B;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-danger: #F87171;
+  --color-info: #818CF8;
+  --color-card: #18181B;
+  --color-border: #27272A;
+  --radius-card: 1.5rem;
+  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="light"] {
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  --color-primary: #eb5c33;
+  --color-accent: #eb5c33;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
+  --color-card: #ffffff;
+  --color-border: #e2e8f0;
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
