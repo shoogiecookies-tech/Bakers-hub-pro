@@ -29,6 +29,13 @@ const PLATFORMS = ["Instagram", "Facebook", "TikTok", "Pinterest"];
 const POST_TYPES = ["Product Photo", "Behind the Scenes", "Recipe Tip", "Testimonial", "Promo/Sale", "Seasonal"];
 const PANTRY_CATS = ["Flour & Grains", "Dairy", "Eggs & Fats", "Sweeteners", "Leavening", "Flavoring", "Chocolate", "Fruits & Nuts", "Packaging", "Other"];
 const UNITS = ["cups", "tbsp", "tsp", "oz", "lbs", "g", "kg", "ml", "l", "pcs", "dozen", "bag", "box"];
+const ALLERGENS = ["Milk", "Eggs", "Fish", "Crustacean Shellfish", "Tree Nuts", "Peanuts", "Wheat", "Soybeans", "Sesame"];
+const LABEL_SIZES = [
+  { value: "round", label: '2" x 2" or 3" x 3" Round',           desc: "Perfect for cookie bags, jar tops, and round treats.",                                       w: "3in", h: "3in", radius: "50%" },
+  { value: "mini",  label: '2.25" x 1.25" (Mini Label)',         desc: "Compact label for allergens and required disclosures.",                                     w: "2.25in", h: "1.25in", radius: "8px" },
+  { value: "rect",  label: '3" x 2" or 4" x 3" Rectangular',     desc: "Full-size label with room for an optional ingredient list, allergen declaration, and disclosures.", w: "4in", h: "3in", radius: "8px" },
+  { value: "box",   label: '4" x 6" Detailed Box Label',         desc: "Fits pastry box lids and larger packaging with full compliance details.",                    w: "4in", h: "6in", radius: "8px" },
+];
 
 // ─── PASSWORD TOGGLE ─────────────────────────────────────────────────────────
 function EyeIcon()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>; }
@@ -336,6 +343,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [defaultOverhead,  setDefaultOverhead]  = useState(10);
   const [currency,         setCurrency]         = useState("USD");
   const [bakerState,       setBakerState]       = useState("");
+  const [cottageLawState,        setCottageLawState]        = useState("TX");
+  const [physicalAddress,        setPhysicalAddress]        = useState("");
+  const [dshsRegistrationNumber, setDshsRegistrationNumber] = useState("");
+  const [websiteUrl,             setWebsiteUrl]             = useState("");
+  const [useDshsReg,             setUseDshsReg]             = useState(false);
   const [apiKey,      setApiKey]      = useState(() => localStorage.getItem("baker_api_key") || "");
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -352,7 +364,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [selRecipe,   setSelRecipe]   = useState(null);
   const [scale,       setScale]       = useState(1);
   const [showNewRec,  setShowNewRec]  = useState(false);
-  const [newRec,      setNewRec]      = useState({ name: "", category: "Cookies", servings: 12, ingredients: [], notes: "", photo: null });
+  const [newRec,      setNewRec]      = useState({ name: "", category: "Cookies", servings: 12, ingredients: [], notes: "", photo: null, allergens: [], ingredientsList: "" });
   const [recIngInput, setRecIngInput] = useState({ pantryId: "", amount: "", unit: "cups" });
   const [editRec,       setEditRec]       = useState(null);
   const [editIngInput,  setEditIngInput]  = useState({ pantryId: "", amount: "", unit: "cups" });
@@ -384,6 +396,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [emailCopied,  setEmailCopied]  = useState(false);
   const [invoicePrintOrder, setInvoicePrintOrder] = useState(null);
   const [pdfGenerating,     setPdfGenerating]     = useState(false);
+  const [labelPrintOrder,   setLabelPrintOrder]   = useState(null);
+  const [labelRecipeId,     setLabelRecipeId]     = useState("");
+  const [labelSize,         setLabelSize]         = useState(LABEL_SIZES[0].value);
+  const [labelDescription,  setLabelDescription]  = useState("");
+  const [labelIncludeIngredients, setLabelIncludeIngredients] = useState(false);
 
 
 
@@ -440,7 +457,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
       // Map snake_case DB fields to camelCase for the app
       const loadedPantry = (pantryData || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost }));
-      const loadedRecipes = (recipesData || []).map(r => ({ ...r, ingredients: r.ingredients || [] }));
+      const loadedRecipes = (recipesData || []).map(r => ({ ...r, ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" }));
 
       if (loadedPantry.length === 0) {
         // Client-side SELECT returned 0 — call server endpoint (service role bypasses RLS)
@@ -472,12 +489,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         }
         if (serverPantry && serverPantry.length > 0) {
           setPantry(serverPantry.map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
-          setRecipes((serverRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [] })));
+          setRecipes((serverRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
         } else {
           const { data: freshPantry }  = await supabase.from("pantry").select("*").eq("user_id", uid).order("name");
           const { data: freshRecipes } = await supabase.from("recipes").select("*").eq("user_id", uid).order("name");
           setPantry((freshPantry || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
-          setRecipes((freshRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [] })));
+          setRecipes((freshRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
         }
       } else {
         setPantry(loadedPantry);
@@ -504,6 +521,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         setDefaultOverhead(doh); setOverhead(doh);
         setCurrency(profileData.currency || "USD");
         setBakerState(profileData.state || "");
+        setCottageLawState(profileData.cottage_law_state || "TX");
+        setPhysicalAddress(profileData.physical_address || "");
+        setDshsRegistrationNumber(profileData.dshs_registration_number || "");
+        setWebsiteUrl(profileData.website_url || "");
+        setUseDshsReg(!!profileData.dshs_registration_number);
       }
       setDbLoading(false);
     };
@@ -512,7 +534,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Save bakery profile ───────────────────────────────────────────────────────
   const saveProfile = async () => {
-    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency, state: bakerState });
+    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency, state: bakerState, cottage_law_state: cottageLawState, physical_address: physicalAddress, dshs_registration_number: dshsRegistrationNumber, website_url: websiteUrl });
     setLaborRate(defaultLaborRate); setMarkup(defaultMarkup); setOverhead(defaultOverhead);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
@@ -624,10 +646,10 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     const { data } = await supabase.from("recipes").insert([{
       user_id: uid, name: newRec.name, category: newRec.category,
       servings: newRec.servings, notes: newRec.notes, photo: newRec.photo,
-      ingredients: newRec.ingredients
+      ingredients: newRec.ingredients, allergens: newRec.allergens, ingredients_list: newRec.ingredientsList
     }]).select().single();
-    if (data) setRecipes(r => [...r, { ...data, ingredients: data.ingredients || [] }]);
-    setNewRec({ name: "", category: "Cookies", servings: 12, ingredients: [], notes: "", photo: null });
+    if (data) setRecipes(r => [...r, { ...data, ingredients: data.ingredients || [], allergens: data.allergens || [], ingredientsList: data.ingredients_list || "" }]);
+    setNewRec({ name: "", category: "Cookies", servings: 12, ingredients: [], notes: "", photo: null, allergens: [], ingredientsList: "" });
     setShowNewRec(false);
   };
 
@@ -648,7 +670,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   };
   const saveRecipeEdit = async () => {
     if (!editRec?.name) return;
-    await supabase.from("recipes").update({ name: editRec.name, category: editRec.category, servings: editRec.servings, notes: editRec.notes, ingredients: editRec.ingredients }).eq("id", editRec.id);
+    await supabase.from("recipes").update({ name: editRec.name, category: editRec.category, servings: editRec.servings, notes: editRec.notes, ingredients: editRec.ingredients, allergens: editRec.allergens || [], ingredients_list: editRec.ingredientsList || "" }).eq("id", editRec.id);
     setRecipes(prev => prev.map(x => x.id === editRec.id ? { ...x, ...editRec } : x));
     setEditRec(null);
   };
@@ -755,6 +777,16 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Invoice ──────────────────────────────────────────────────────────────
   const printInvoice = (order) => setInvoicePrintOrder(order);
+
+  // ── Compliance Label Proofer ─────────────────────────────────────────────
+  const printLabel = (order) => {
+    const match = recipes.find(r => r.name.trim().toLowerCase() === (order.item || "").trim().toLowerCase());
+    setLabelRecipeId(match ? String(match.id) : "");
+    setLabelSize(LABEL_SIZES[0].value);
+    setLabelDescription("");
+    setLabelIncludeIngredients(false);
+    setLabelPrintOrder(order);
+  };
 
   const downloadInvoicePdf = async () => {
     const el = document.getElementById("bfinv-content");
@@ -1236,6 +1268,20 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 </div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 2 }}>💡 Fractions as decimals: 1/4 = 0.25 · 1/3 = 0.33 · 1/2 = 0.5 · 2/3 = 0.67 · 3/4 = 0.75</div>
                 <textarea placeholder="Notes / instructions" value={newRec.notes} onChange={e => setNewRec(r => ({ ...r, notes: e.target.value }))} style={{ ...s.input, marginTop: 8, height: 70, resize: "vertical" }} />
+                <label style={{ ...s.label, marginTop: 10 }}>Major Allergens</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                  {ALLERGENS.map(a => {
+                    const checked = newRec.allergens.includes(a);
+                    return (
+                      <label key={a} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: checked ? "#fff" : C.mid, background: checked ? C.accent : "#fff", border: `1.5px solid ${checked ? C.accent : C.border}`, borderRadius: 16, padding: "4px 10px", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                        <input type="checkbox" checked={checked} onChange={() => setNewRec(r => ({ ...r, allergens: checked ? r.allergens.filter(x => x !== a) : [...r.allergens, a] }))} style={{ margin: 0 }} />
+                        {a}
+                      </label>
+                    );
+                  })}
+                </div>
+                <label style={s.label}>Ingredients List (optional — not required under Texas law)</label>
+                <textarea placeholder="e.g. Enriched flour, sugar, butter, eggs, vanilla extract..." value={newRec.ingredientsList} onChange={e => setNewRec(r => ({ ...r, ingredientsList: e.target.value }))} style={{ ...s.input, height: 50, resize: "vertical", marginBottom: 4 }} />
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={addRecipe} style={s.btn}>Save Recipe</button>
                   <button onClick={() => setShowNewRec(false)} style={s.btnSec}>Cancel</button>
@@ -1278,6 +1324,16 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         })}
                       </div>
                       {r.notes && <div style={{ marginTop: 10, fontSize: 13, color: C.mid, fontStyle: "italic", lineHeight: 1.7 }}>{r.notes}</div>}
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontWeight: "600", fontSize: 12, color: C.dark, marginBottom: 6 }}>MAJOR ALLERGENS</div>
+                        {(r.allergens && r.allergens.length > 0) ? (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {r.allergens.map(a => <span key={a} style={s.tag(C.accent)}>{a}</span>)}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>No major allergens declared</div>
+                        )}
+                      </div>
                     </div>
                   )}
                   {editRec?.id === r.id && (
@@ -1306,6 +1362,20 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       </div>
                       <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 2 }}>💡 Fractions as decimals: 1/4 = 0.25 · 1/3 = 0.33 · 1/2 = 0.5 · 2/3 = 0.67 · 3/4 = 0.75</div>
                       <textarea placeholder="Notes / instructions" value={editRec.notes || ""} onChange={e => setEditRec(r => ({ ...r, notes: e.target.value }))} style={{ ...s.input, height: 60, resize: "vertical", marginBottom: 8 }} />
+                      <label style={s.label}>Major Allergens</label>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                        {ALLERGENS.map(a => {
+                          const checked = (editRec.allergens || []).includes(a);
+                          return (
+                            <label key={a} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: checked ? "#fff" : C.mid, background: checked ? C.accent : "#fff", border: `1.5px solid ${checked ? C.accent : C.border}`, borderRadius: 16, padding: "4px 10px", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                              <input type="checkbox" checked={checked} onChange={() => setEditRec(r => ({ ...r, allergens: checked ? (r.allergens || []).filter(x => x !== a) : [...(r.allergens || []), a] }))} style={{ margin: 0 }} />
+                              {a}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <label style={s.label}>Ingredients List (optional — not required under Texas law)</label>
+                      <textarea placeholder="e.g. Enriched flour, sugar, butter, eggs, vanilla extract..." value={editRec.ingredientsList || ""} onChange={e => setEditRec(r => ({ ...r, ingredientsList: e.target.value }))} style={{ ...s.input, height: 50, resize: "vertical", marginBottom: 8 }} />
                       <div style={{ display: "flex", gap: 8 }}>
                         <button onClick={saveRecipeEdit} style={s.btn}>Save Changes</button>
                         <button onClick={() => setEditRec(null)} style={s.btnSec}>Cancel</button>
@@ -1606,6 +1676,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
                         <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ padding: "4px 10px", borderRadius: 16, border: `1.5px solid ${C.dark}`, background: "transparent", color: C.dark, cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>Edit</button>
                         <button onClick={() => printInvoice(o)} style={{ padding: "5px 13px", borderRadius: 16, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>📄 Invoice</button>
+                        <button onClick={() => printLabel(o)} style={{ padding: "5px 13px", borderRadius: 16, border: `1.5px solid ${C.accent}`, background: "#fff", color: C.accent, cursor: "pointer", fontSize: 11, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>🏷 Label</button>
                         <button onClick={() => genEmail(o)} style={{ padding: "4px 10px", borderRadius: 16, border: "1px solid #ccc", background: "transparent", color: "#999", cursor: "pointer", fontSize: 11, fontFamily: "'Inter', sans-serif" }}>✉️ Email</button>
                         <button onClick={() => deleteOrder(o.id)} style={{ background: "none", border: "none", color: "#bbb", cursor: "pointer", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>🗑</button>
                       </div>
@@ -1861,6 +1932,65 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         {tab === "Bakery Profile" && (
           <div>
             <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>🏪 Bakery Profile</div>
+
+            {/* Cottage Food Law Compliance */}
+            <div style={s.card}>
+              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>🧾 Cottage Food Law Compliance</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Tell BakeFlo which cottage food rules apply so your labels stay compliant.</div>
+
+              <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+                {[{ v: "TX", l: "Texas (TX)" }, { v: "Other", l: "Other US State" }, { v: "None", l: "No Cottage Regulations" }].map(opt => (
+                  <button key={opt.v} onClick={() => setCottageLawState(opt.v)} style={{ padding: "7px 16px", borderRadius: 20, border: `1.5px solid ${C.accent}`, background: cottageLawState === opt.v ? C.accent : "#fff", color: cottageLawState === opt.v ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>{opt.l}</button>
+                ))}
+              </div>
+
+              {cottageLawState === "TX" && (
+                <div style={{ background: "#fdf3e7", border: `1px solid ${C.accent}55`, borderRadius: 10, padding: 14, fontSize: 13, color: C.dark, lineHeight: 1.7, marginBottom: 16 }}>
+                  <strong style={{ color: C.accent }}>Texas Cottage Food Law (SB 541) Compliant Mode:</strong>
+                  <div style={{ marginTop: 8 }}>• <strong>Labeling Rules:</strong> Labels require your business/production name, the product name, and an allergen declaration for any of the nine major allergens present. A full ingredient list is NOT required by Texas law. The exact statutory disclosure statement is added automatically to every label BakeFlo generates for you.</div>
+                  <div style={{ marginTop: 8 }}>• <strong>Address or Registration Number:</strong> You must print either your home kitchen's physical address, or, if you've registered with Texas DSHS, your DSHS registration number in its place. Only one is required.</div>
+                  <div style={{ marginTop: 8 }}>• <strong>Transaction Handover:</strong> Mail or common-carrier shipping is not permitted. At least one part of the purchase (ordering, payment, or delivery) must happen face-to-face.</div>
+                </div>
+              )}
+
+              {cottageLawState === "Other" && (
+                <div style={{ background: C.light, borderRadius: 10, padding: 14, fontSize: 13, color: C.mid, lineHeight: 1.6, marginBottom: 16 }}>
+                  Cottage food laws vary significantly from state to state. Check with your state's Department of Health, Department of Agriculture, or local health department for labeling, registration, and sales requirements before selling homemade food products.
+                </div>
+              )}
+
+              {cottageLawState !== "None" && (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+                    <label style={{ ...s.label, marginBottom: 0 }}>I have a DSHS registration number instead of listing my address</label>
+                    <button onClick={() => setUseDshsReg(v => !v)} style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: "700", cursor: "pointer", border: `1.5px solid ${C.accent}`, background: useDshsReg ? C.accent : "#fff", color: useDshsReg ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>{useDshsReg ? "Yes" : "No"}</button>
+                  </div>
+
+                  {useDshsReg ? (
+                    <div style={{ marginBottom: 4 }}>
+                      <label style={s.label}>DSHS Registration Number{cottageLawState === "TX" && <span style={{ color: C.accent }}> *</span>}</label>
+                      <input value={dshsRegistrationNumber} onChange={e => setDshsRegistrationNumber(e.target.value)} placeholder="e.g. DSHS-123456" style={s.input} />
+                    </div>
+                  ) : (
+                    <div style={{ marginBottom: 4 }}>
+                      <label style={s.label}>Home Kitchen Physical Address{cottageLawState === "TX" && <span style={{ color: C.accent }}> *</span>}</label>
+                      <input value={physicalAddress} onChange={e => setPhysicalAddress(e.target.value)} placeholder="123 Main St, Your City, TX" style={s.input} />
+                    </div>
+                  )}
+                  {cottageLawState === "TX" && !(useDshsReg ? dshsRegistrationNumber : physicalAddress) && (
+                    <div style={{ fontSize: 11, color: "#c0522a", marginBottom: 10 }}>⚠ Required under Texas Cottage Food Law</div>
+                  )}
+
+                  <div style={{ marginTop: 10, marginBottom: 14 }}>
+                    <label style={s.label}>Business Website / Social Link</label>
+                    <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://instagram.com/yourbakery" style={s.input} />
+                  </div>
+
+                  <button onClick={saveProfile} style={s.btn}>{settingsSaved ? "✓ Saved!" : "Save Compliance Info"}</button>
+                </>
+              )}
+            </div>
+
             <div className="bf-settings-grid">
 
               {/* LEFT — Bakery Branding */}
@@ -2226,6 +2356,91 @@ CREATE POLICY "owner_only" ON gifted_users
             {/* Bottom print button */}
             <div className="np" style={{ display: "flex", justifyContent: "center", padding: "24px 0 40px" }}>
               {pdfGenerating ? <button disabled style={{ padding: "12px 36px", borderRadius: 10, border: "none", background: "#9ca3af", color: "#fff", cursor: "not-allowed", fontSize: 15, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⏳ Generating PDF...</button> : <button onClick={downloadInvoicePdf} style={{ padding: "12px 36px", borderRadius: 10, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⬇️ Download PDF</button>}
+            </div>
+          </div>
+        );
+      })()}
+
+      {labelPrintOrder && (() => {
+        const recipe = recipes.find(r => String(r.id) === String(labelRecipeId)) || null;
+        const sizeDef = LABEL_SIZES.find(sz => sz.value === labelSize) || LABEL_SIZES[0];
+        const allowIngredients = labelSize === "rect" || labelSize === "box";
+        const allergenLine = recipe && recipe.allergens && recipe.allergens.length > 0 ? `Contains: ${recipe.allergens.join(", ")}` : "No major allergens declared";
+        const registrationLine = dshsRegistrationNumber || physicalAddress || null;
+        const isRound = labelSize === "round";
+        return (
+          <div id="bflabel" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#F9FAFB", overflowY: "auto", fontFamily: "'Inter', sans-serif", color: C.dark }}>
+            <style>{`@media print { body > *:not(#bflabel){display:none!important} #bflabel{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
+
+            {/* Toolbar */}
+            <div className="np" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "14px 24px", background: "#fff", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, zIndex: 1, flexWrap: "wrap" }}>
+              <div style={{ fontWeight: "bold", color: C.accent }}>🏷 Compliance Label Proofer</div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setLabelPrintOrder(null)} style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.dark, cursor: "pointer", fontSize: 13, fontFamily: "'Inter', sans-serif" }}>✕ Close</button>
+                <button onClick={() => window.print()} style={{ ...s.btn }}>🖨 Print</button>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="np" style={{ padding: "16px 24px", background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 12, maxWidth: 700, margin: "0 auto" }}>
+              <div>
+                <label style={s.label}>Recipe</label>
+                <select value={labelRecipeId} onChange={e => setLabelRecipeId(e.target.value)} style={s.input}>
+                  <option value="">— Select a recipe —</option>
+                  {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={s.label}>Label Size</label>
+                <select value={labelSize} onChange={e => { setLabelSize(e.target.value); if (e.target.value !== "rect" && e.target.value !== "box") setLabelIncludeIngredients(false); }} style={s.input}>
+                  {LABEL_SIZES.map(sz => <option key={sz.value} value={sz.value}>{sz.label}</option>)}
+                </select>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{sizeDef.desc}</div>
+              </div>
+              <div>
+                <label style={s.label}>Label Description (optional)</label>
+                <input value={labelDescription} onChange={e => setLabelDescription(e.target.value)} placeholder="e.g. Best enjoyed same day" style={s.input} />
+              </div>
+              {allowIngredients && recipe && recipe.ingredientsList && (
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.mid, cursor: "pointer" }}>
+                  <input type="checkbox" checked={labelIncludeIngredients} onChange={e => setLabelIncludeIngredients(e.target.checked)} />
+                  Include ingredient list on label
+                </label>
+              )}
+            </div>
+
+            {/* Preview */}
+            <div style={{ display: "flex", justifyContent: "center", padding: "32px 20px" }}>
+              <div id="bflabel-content" style={{ width: sizeDef.w, height: isRound ? sizeDef.w : sizeDef.h, borderRadius: sizeDef.radius, border: `2px solid ${C.dark}`, background: "#fff", padding: labelSize === "mini" ? 10 : 16, display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden", boxSizing: "border-box" }}>
+                {!recipe ? (
+                  <div style={{ margin: "auto", color: C.muted, fontSize: 13, textAlign: "center" }}>Select a recipe above to preview the label.</div>
+                ) : (
+                  <>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        {bakeryLogo && <img src={bakeryLogo} alt="" style={{ height: labelSize === "mini" ? 20 : 30, width: "auto", objectFit: "contain" }} />}
+                        <div style={{ fontWeight: "bold", fontSize: labelSize === "mini" ? 10 : 13, color: C.dark }}>{bakeryName}</div>
+                      </div>
+                      <div style={{ fontWeight: "bold", fontSize: labelSize === "mini" ? 12 : 16, color: C.dark }}>{recipe.name}</div>
+                      {labelDescription && <div style={{ fontSize: labelSize === "mini" ? 9 : 12, color: C.mid, marginTop: 2 }}>{labelDescription}</div>}
+                    </div>
+                    <div style={{ fontSize: labelSize === "mini" ? 8 : 11, lineHeight: 1.5 }}>
+                      <div style={{ fontWeight: "700", color: C.dark }}>{allergenLine}</div>
+                      {allowIngredients && labelIncludeIngredients && recipe.ingredientsList && (
+                        <div style={{ marginTop: 4, color: C.mid }}><strong>Ingredients:</strong> {recipe.ingredientsList}</div>
+                      )}
+                      <div style={{ marginTop: 4 }}>
+                        {registrationLine
+                          ? registrationLine
+                          : <span style={{ color: "#c0522a", fontWeight: "700" }}>⚠ Producer address/registration missing — do not distribute this label</span>}
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: labelSize === "mini" ? 6 : 8, fontWeight: "700", color: C.dark }}>
+                        THIS PRODUCT WAS PRODUCED IN A PRIVATE RESIDENCE THAT IS NOT SUBJECT TO GOVERNMENTAL LICENSING OR INSPECTION.
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         );
