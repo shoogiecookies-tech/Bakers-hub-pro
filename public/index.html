@@ -32,7 +32,16 @@
     <title>BakeFlo</title>
 
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
+      /*
+       * Layered so Tailwind's own utility classes (Phase 2 ported tabs) still win.
+       * Unlayered CSS always beats layered CSS regardless of specificity, and
+       * Tailwind wraps all its utilities in `@layer utilities` — so this legacy
+       * reset must be explicitly layered too, or it silently zeroes every
+       * Tailwind padding/margin class app-wide.
+       */
+      @layer legacy-reset {
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+      }
       body {
         margin: 0;
         font-family: Georgia, serif;

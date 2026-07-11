@@ -1955,7 +1955,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
         {/* ══════════ BAKERY PROFILE ══════════ */}
         {tab === "Bakery Profile" && (
-          <div className="max-w-3xl mx-auto">
+          <div>
             <div className="flex items-center gap-2 mb-4">
               <Store className="h-5 w-5 text-accent" />
               <h2 className="font-display font-bold text-foreground text-xl">Bakery Profile</h2>
