@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard } from "lucide-react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -20,6 +21,17 @@ const s = {
   btnSec: { padding: "9px 18px", borderRadius: 22, border: `1.5px solid #d4a07a`, background: "#fff", color: C.accent, cursor: "pointer", fontSize: 13, fontWeight: "600", fontFamily: "'Inter', sans-serif" },
   label: { fontSize: 12, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", display: "block", marginBottom: 4 },
   tag: (color) => ({ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: color + "22", color, fontWeight: "700", letterSpacing: 0.5, display: "inline-block" }),
+};
+
+// Tailwind classes (Phase-1 theme tokens) for the Phase-2-ported Bakery Profile section only.
+// Rest of the app still uses the inline C/s style objects above until it's ported tab-by-tab.
+const tw = {
+  card: "p-6 rounded-card bg-card border border-border shadow-card",
+  section: "text-[11px] font-label font-bold uppercase text-foreground/50 tracking-wider",
+  eyebrow: "block text-[10px] font-label font-bold uppercase text-foreground/50 mb-1.5",
+  input: "w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none font-body",
+  btn: "px-5 py-2 bg-accent text-white font-bold rounded-lg text-xs font-body cursor-pointer hover:opacity-90 transition-opacity",
+  btnSec: "px-4 py-1.5 rounded-full text-xs font-bold font-body cursor-pointer border transition-colors",
 };
 
 const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Bakery Profile", "Settings", "Admin"];
@@ -1943,169 +1955,199 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
         {/* ══════════ BAKERY PROFILE ══════════ */}
         {tab === "Bakery Profile" && (
-          <div>
-            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>🏪 Bakery Profile</div>
-
-            {/* Cottage Food Law Compliance */}
-            <div style={s.card}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>🧾 Cottage Food Law Compliance</div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Tell BakeFlo which cottage food rules apply so your labels stay compliant.</div>
-
-              <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-                {[{ v: "TX", l: "Texas (TX)" }, { v: "Other", l: "Other US State" }, { v: "None", l: "No Cottage Regulations" }].map(opt => (
-                  <button key={opt.v} onClick={() => setCottageLawState(opt.v)} style={{ padding: "7px 16px", borderRadius: 20, border: `1.5px solid ${C.accent}`, background: cottageLawState === opt.v ? C.accent : "#fff", color: cottageLawState === opt.v ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>{opt.l}</button>
-                ))}
-              </div>
-
-              {cottageLawState === "TX" && (
-                <div style={{ background: "#fdf3e7", border: `1px solid ${C.accent}55`, borderRadius: 10, padding: 14, fontSize: 13, color: C.dark, lineHeight: 1.7, marginBottom: 16 }}>
-                  <strong style={{ color: C.accent }}>Texas Cottage Food Law (SB 541) Compliant Mode:</strong>
-                  <div style={{ marginTop: 8 }}>• <strong>Labeling Rules:</strong> Labels require your business/production name, the product name, and an allergen declaration for any of the nine major allergens present. A full ingredient list is NOT required by Texas law. The exact statutory disclosure statement is added automatically to every label BakeFlo generates for you.</div>
-                  <div style={{ marginTop: 8 }}>• <strong>Address or Registration Number:</strong> You must print either your home kitchen's physical address, or, if you've registered with Texas DSHS, your DSHS registration number in its place. Only one is required.</div>
-                  <div style={{ marginTop: 8 }}>• <strong>Transaction Handover:</strong> Mail or common-carrier shipping is not permitted. At least one part of the purchase (ordering, payment, or delivery) must happen face-to-face.</div>
-                </div>
-              )}
-
-              {cottageLawState === "Other" && (
-                <div style={{ background: C.light, borderRadius: 10, padding: 14, fontSize: 13, color: C.mid, lineHeight: 1.6, marginBottom: 16 }}>
-                  Cottage food laws vary significantly from state to state. Check with your state's Department of Health, Department of Agriculture, or local health department for labeling, registration, and sales requirements before selling homemade food products.
-                </div>
-              )}
-
-              {cottageLawState !== "None" && (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-                    <label style={{ ...s.label, marginBottom: 0 }}>I have a DSHS registration number instead of listing my address</label>
-                    <button onClick={() => setUseDshsReg(v => !v)} style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: "700", cursor: "pointer", border: `1.5px solid ${C.accent}`, background: useDshsReg ? C.accent : "#fff", color: useDshsReg ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>{useDshsReg ? "Yes" : "No"}</button>
-                  </div>
-
-                  {useDshsReg ? (
-                    <div style={{ marginBottom: 4 }}>
-                      <label style={s.label}>DSHS Registration Number{cottageLawState === "TX" && <span style={{ color: C.accent }}> *</span>}</label>
-                      <input value={dshsRegistrationNumber} onChange={e => setDshsRegistrationNumber(e.target.value)} placeholder="e.g. DSHS-123456" style={s.input} />
-                    </div>
-                  ) : (
-                    <div style={{ marginBottom: 4 }}>
-                      <label style={s.label}>Home Kitchen Physical Address{cottageLawState === "TX" && <span style={{ color: C.accent }}> *</span>}</label>
-                      <input value={physicalAddress} onChange={e => setPhysicalAddress(e.target.value)} placeholder="123 Main St, Your City, TX" style={s.input} />
-                    </div>
-                  )}
-                  {cottageLawState === "TX" && !(useDshsReg ? dshsRegistrationNumber : physicalAddress) && (
-                    <div style={{ fontSize: 11, color: "#c0522a", marginBottom: 10 }}>⚠ Required under Texas Cottage Food Law</div>
-                  )}
-
-                  <div style={{ marginTop: 10, marginBottom: 14 }}>
-                    <label style={s.label}>Business Website / Social Link</label>
-                    <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://instagram.com/yourbakery" style={s.input} />
-                  </div>
-
-                  <button onClick={saveProfile} style={s.btn}>{settingsSaved ? "✓ Saved!" : "Save Compliance Info"}</button>
-                </>
-              )}
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center gap-2 mb-4">
+              <Store className="h-5 w-5 text-accent" />
+              <h2 className="font-display font-bold text-foreground text-xl">Bakery Profile</h2>
             </div>
 
-            <div className="bf-settings-grid">
+            <div className={`${tw.card} flex flex-col gap-6 mb-4`}>
 
-              {/* LEFT — Bakery Branding */}
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🏷 Bakery Branding</div>
-                <label style={s.label}>Bakery Name</label>
-                <input value={bakeryName} onChange={e => setBakeryName(e.target.value)} placeholder="My Home Bakery" style={s.input} />
-                <div style={{ marginTop: 10 }}>
-                  <label style={s.label}>State</label>
-                  <select value={bakerState} onChange={e => setBakerState(e.target.value)} style={s.input}>
-                    <option value="">— Select your state —</option>
-                    {["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"].map(st => <option key={st}>{st}</option>)}
-                  </select>
+              {/* Business Identity */}
+              <div className="flex flex-col gap-4">
+                <h3 className={tw.section}>Business Identity</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={tw.eyebrow}>Bakery Name</label>
+                    <input value={bakeryName} onChange={e => setBakeryName(e.target.value)} placeholder="My Home Bakery" className={tw.input} />
+                  </div>
+                  <div>
+                    <label className={tw.eyebrow}>State</label>
+                    <select value={bakerState} onChange={e => setBakerState(e.target.value)} className={tw.input}>
+                      <option value="">— Select your state —</option>
+                      {["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"].map(st => <option key={st}>{st}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div style={{ marginTop: 12 }}>
-                  <label style={s.label}>Bakery Logo</label>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              </div>
+
+              {/* Financial Costing Parameters */}
+              <div className="flex flex-col gap-4 pt-4 border-t border-border/60">
+                <div className="flex items-center gap-1.5">
+                  <DollarSign className="h-4 w-4 text-accent" />
+                  <h3 className={tw.section}>Financial Costing Parameters</h3>
+                </div>
+                <div className="text-[11px] text-foreground/50">These defaults pre-fill the Pricing Calculator each time you open it.</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={tw.eyebrow}>Currency</label>
+                    <select value={currency} onChange={e => setCurrency(e.target.value)} className={tw.input}>
+                      {["USD","CAD","GBP","EUR","AUD","MXN"].map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={tw.eyebrow}>Default Labor Rate ($/hr)</label>
+                    <input type="number" min="0" max="200" step="1" value={defaultLaborRate} onChange={e => setDefaultLaborRate(parseFloat(e.target.value) || 0)} className={tw.input} />
+                  </div>
+                  <div>
+                    <label className={tw.eyebrow}>Default Markup %</label>
+                    <input type="number" min="0" max="200" step="1" value={defaultMarkup} onChange={e => setDefaultMarkup(parseFloat(e.target.value) || 0)} className={tw.input} />
+                  </div>
+                  <div>
+                    <label className={tw.eyebrow}>Default Overhead %</label>
+                    <input type="number" min="0" max="100" step="1" value={defaultOverhead} onChange={e => setDefaultOverhead(parseFloat(e.target.value) || 0)} className={tw.input} />
+                  </div>
+                </div>
+                <button onClick={saveProfile} className={tw.btn}>{settingsSaved ? "✓ Saved!" : "Save Preferences"}</button>
+              </div>
+
+              {/* Brand Personalization */}
+              <div className="flex flex-col gap-4 pt-4 border-t border-border/60">
+                <div className="flex items-center gap-1.5">
+                  <Palette className="h-4 w-4 text-accent" />
+                  <h3 className={tw.section}>Brand Personalization</h3>
+                </div>
+                <div>
+                  <label className={tw.eyebrow}>Bakery Logo</label>
+                  <div className="flex items-center gap-3">
                     {bakeryLogo
-                      ? <img src={bakeryLogo} alt="logo" style={{ width: 72, height: 72, borderRadius: 14, objectFit: "cover", border: `2px solid ${C.border}` }} />
-                      : <div style={{ width: 72, height: 72, borderRadius: 14, background: C.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, border: `2px dashed ${C.border}` }}>🧁</div>
+                      ? <img src={bakeryLogo} alt="logo" className="w-[72px] h-[72px] rounded-2xl object-cover border-2 border-border" />
+                      : <div className="w-[72px] h-[72px] rounded-2xl bg-background flex items-center justify-center text-2xl border-2 border-dashed border-border">🧁</div>
                     }
                     <div>
                       <PhotoUpload value={null} onChange={v => setBakeryLogo(v)} small />
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Tap to upload your logo</div>
-                      <div style={{ fontSize: 11, color: C.muted, opacity: 0.7, marginTop: 5, lineHeight: 1.4 }}>For best results, use a PNG with a transparent background.</div>
-                      {bakeryLogo && <button onClick={() => setBakeryLogo(null)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove</button>}
+                      <div className="text-[11px] text-foreground/50 mt-1">Tap to upload your logo</div>
+                      <div className="text-[11px] text-foreground/40 mt-1 leading-snug">For best results, use a PNG with a transparent background.</div>
+                      {bakeryLogo && <button onClick={() => setBakeryLogo(null)} className={`${tw.btnSec} border-border text-accent bg-background mt-1.5 px-2.5 py-1`}>Remove</button>}
                     </div>
                   </div>
                 </div>
-                <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
                     { label: "Invoice Header Color", value: invoiceHeaderColor, set: setInvoiceHeaderColor, def: "#1e2d4a" },
                     { label: "Invoice Accent Color",  value: invoiceAccentColor, set: setInvoiceAccentColor, def: "#C0653D" },
                   ].map(({ label, value, set, def }) => (
-                    <div key={label} style={{ flex: 1, minWidth: 150 }}>
-                      <label style={s.label}>{label}</label>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-                        <label style={{ cursor: "pointer", flexShrink: 0 }}>
-                          <div style={{ width: 38, height: 38, borderRadius: 8, background: value, border: `2px solid ${C.border}`, boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }} />
-                          <input type="color" value={value} onChange={e => set(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }} />
+                    <div key={label}>
+                      <label className={tw.eyebrow}>{label}</label>
+                      <div className="flex items-center gap-2">
+                        <label className="cursor-pointer shrink-0 relative">
+                          <div className="w-9 h-9 rounded-lg border-2 border-border shadow-sm" style={{ background: value }} />
+                          <input type="color" value={value} onChange={e => set(e.target.value)} className="absolute opacity-0 w-0 h-0 pointer-events-none" />
                         </label>
-                        <input value={value} onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) set(e.target.value); }} maxLength={7} style={{ ...s.input, width: 88, fontFamily: "monospace", fontSize: 13, padding: "6px 8px" }} />
-                        <button onClick={() => set(def)} style={{ ...s.btnSec, padding: "4px 8px", fontSize: 11, flexShrink: 0 }}>Reset</button>
+                        <input value={value} onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) set(e.target.value); }} maxLength={7} className={`${tw.input} w-24 font-mono text-xs py-1.5`} />
+                        <button onClick={() => set(def)} className={`${tw.btnSec} border-border text-accent bg-background shrink-0 px-2.5 py-1`}>Reset</button>
                       </div>
                     </div>
                   ))}
                 </div>
-                <button onClick={saveProfile} style={{ ...s.btn, marginTop: 14 }}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
+                <button onClick={saveProfile} className={tw.btn}>{settingsSaved ? "✓ Saved!" : "Save Branding"}</button>
               </div>
 
-              {/* RIGHT — Payment Methods */}
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>💳 Payment Methods</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Only filled-in methods appear on your invoices.</div>
-                {[
-                  { label: "Venmo",  val: venmo,   set: setVenmo,   ph: "@yourhandle" },
-                  { label: "PayPal", val: paypal,  set: setPaypal,  ph: "email or @handle" },
-                  { label: "Zelle",  val: zelle,   set: setZelle,   ph: "phone or email" },
-                ].map(({ label, val, set, ph }) => (
-                  <div key={label} style={{ marginBottom: 10 }}>
-                    <label style={s.label}>{label}</label>
-                    <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={s.input} />
-                  </div>
-                ))}
-                <div style={{ marginBottom: 10 }}>
-                  <label style={s.label}>Other</label>
-                  <input value={otherPay} onChange={e => setOtherPay(e.target.value)} placeholder="e.g. Bank transfer: ..." style={s.input} />
+              {/* Payment Methods */}
+              <div className="flex flex-col gap-4 pt-4 border-t border-border/60">
+                <div className="flex items-center gap-1.5">
+                  <CreditCard className="h-4 w-4 text-accent" />
+                  <h3 className={tw.section}>Payment Methods</h3>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                  <label style={{ ...s.label, marginBottom: 0 }}>Accept Cash?</label>
-                  <button onClick={() => setAcceptsCash(v => !v)} style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: "700", cursor: "pointer", border: `1.5px solid ${C.accent}`, background: acceptsCash ? C.accent : "#fff", color: acceptsCash ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>
+                <div className="text-[11px] text-foreground/50">Only filled-in methods appear on your invoices.</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { label: "Venmo",  val: venmo,   set: setVenmo,   ph: "@yourhandle" },
+                    { label: "PayPal", val: paypal,  set: setPaypal,  ph: "email or @handle" },
+                    { label: "Zelle",  val: zelle,   set: setZelle,   ph: "phone or email" },
+                  ].map(({ label, val, set, ph }) => (
+                    <div key={label}>
+                      <label className={tw.eyebrow}>{label}</label>
+                      <input value={val} onChange={e => set(e.target.value)} placeholder={ph} className={tw.input} />
+                    </div>
+                  ))}
+                  <div>
+                    <label className={tw.eyebrow}>Other</label>
+                    <input value={otherPay} onChange={e => setOtherPay(e.target.value)} placeholder="e.g. Bank transfer: ..." className={tw.input} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-[10px] font-label font-bold uppercase text-foreground/50">Accept Cash?</label>
+                  <button onClick={() => setAcceptsCash(v => !v)} className={`${tw.btnSec} ${acceptsCash ? "bg-accent text-white border-accent" : "bg-background text-accent border-accent"}`}>
                     {acceptsCash ? "Yes" : "No"}
                   </button>
                 </div>
-                <button onClick={saveProfile} style={{ ...s.btn, marginTop: 2 }}>{settingsSaved ? "✓ Saved!" : "Save Payment Methods"}</button>
+                <button onClick={saveProfile} className={tw.btn}>{settingsSaved ? "✓ Saved!" : "Save Payment Methods"}</button>
               </div>
 
-              {/* FULL WIDTH — Workflow Preferences */}
-              <div className="bf-settings-full" style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 4 }}>⚙️ Workflow Preferences</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>These defaults pre-fill the Pricing Calculator each time you open it.</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                  <div>
-                    <label style={s.label}>Default Labor Rate ($/hr)</label>
-                    <input type="number" min="0" max="200" step="1" value={defaultLaborRate} onChange={e => setDefaultLaborRate(parseFloat(e.target.value) || 0)} style={s.input} />
-                  </div>
-                  <div>
-                    <label style={s.label}>Default Markup %</label>
-                    <input type="number" min="0" max="200" step="1" value={defaultMarkup} onChange={e => setDefaultMarkup(parseFloat(e.target.value) || 0)} style={s.input} />
-                  </div>
-                  <div>
-                    <label style={s.label}>Default Overhead %</label>
-                    <input type="number" min="0" max="100" step="1" value={defaultOverhead} onChange={e => setDefaultOverhead(parseFloat(e.target.value) || 0)} style={s.input} />
-                  </div>
-                  <div>
-                    <label style={s.label}>Currency</label>
-                    <select value={currency} onChange={e => setCurrency(e.target.value)} style={s.input}>
-                      {["USD","CAD","GBP","EUR","AUD","MXN"].map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
+              {/* Cottage Food Law Compliance */}
+              <div className="flex flex-col gap-4 pt-4 border-t border-border/60">
+                <div className="flex items-center gap-1.5">
+                  <ShieldAlert className="h-4 w-4 text-warning" />
+                  <h3 className={tw.section}>Cottage Food Law Compliance</h3>
                 </div>
-                <button onClick={saveProfile} style={{ ...s.btn, marginTop: 16 }}>{settingsSaved ? "✓ Saved!" : "Save Preferences"}</button>
+                <div className="text-[11px] text-foreground/50">Tell BakeFlo which cottage food rules apply so your labels stay compliant.</div>
+
+                <div className="p-4 rounded-xl bg-warning/5 border border-warning/20 flex flex-col gap-4">
+                  <div className="flex gap-2 flex-wrap">
+                    {[{ v: "TX", l: "Texas (TX)" }, { v: "Other", l: "Other US State" }, { v: "None", l: "No Cottage Regulations" }].map(opt => (
+                      <button key={opt.v} onClick={() => setCottageLawState(opt.v)} className={`${tw.btnSec} rounded-full ${cottageLawState === opt.v ? "bg-warning text-white border-warning" : "bg-background text-warning border-warning"}`}>{opt.l}</button>
+                    ))}
+                  </div>
+
+                  {cottageLawState === "TX" && (
+                    <div className="p-3.5 rounded-lg bg-warning/10 border border-warning/20 text-[13px] text-foreground leading-relaxed">
+                      <strong className="text-warning">Texas Cottage Food Law (SB 541) Compliant Mode:</strong>
+                      <ul className="list-disc pl-4 mt-2 flex flex-col gap-2">
+                        <li><strong>Labeling Rules:</strong> Labels require your business/production name, the product name, and an allergen declaration for any of the nine major allergens present. A full ingredient list is NOT required by Texas law. The exact statutory disclosure statement is added automatically to every label BakeFlo generates for you.</li>
+                        <li><strong>Address or Registration Number:</strong> You must print either your home kitchen's physical address, or, if you've registered with Texas DSHS, your DSHS registration number in its place. Only one is required.</li>
+                        <li><strong>Transaction Handover:</strong> Mail or common-carrier shipping is not permitted. At least one part of the purchase (ordering, payment, or delivery) must happen face-to-face.</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {cottageLawState === "Other" && (
+                    <div className="p-3 rounded-lg bg-background text-foreground/70 text-[13px] leading-relaxed">
+                      Cottage food laws vary significantly from state to state. Check with your state's Department of Health, Department of Agriculture, or local health department for labeling, registration, and sales requirements before selling homemade food products.
+                    </div>
+                  )}
+
+                  {cottageLawState !== "None" && (
+                    <>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <label className="text-[10px] font-label font-bold uppercase text-foreground/50">I have a DSHS registration number instead of listing my address</label>
+                        <button onClick={() => setUseDshsReg(v => !v)} className={`${tw.btnSec} ${useDshsReg ? "bg-warning text-white border-warning" : "bg-background text-warning border-warning"}`}>{useDshsReg ? "Yes" : "No"}</button>
+                      </div>
+
+                      {useDshsReg ? (
+                        <div>
+                          <label className={tw.eyebrow}>DSHS Registration Number{cottageLawState === "TX" && <span className="text-warning"> *</span>}</label>
+                          <input value={dshsRegistrationNumber} onChange={e => setDshsRegistrationNumber(e.target.value)} placeholder="e.g. DSHS-123456" className={tw.input} />
+                        </div>
+                      ) : (
+                        <div>
+                          <label className={tw.eyebrow}>Home Kitchen Physical Address{cottageLawState === "TX" && <span className="text-warning"> *</span>}</label>
+                          <input value={physicalAddress} onChange={e => setPhysicalAddress(e.target.value)} placeholder="123 Main St, Your City, TX" className={tw.input} />
+                        </div>
+                      )}
+                      {cottageLawState === "TX" && !(useDshsReg ? dshsRegistrationNumber : physicalAddress) && (
+                        <div className="text-[11px] text-danger">⚠ Required under Texas Cottage Food Law</div>
+                      )}
+
+                      <div>
+                        <label className={tw.eyebrow}>Business Website / Social Link</label>
+                        <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://instagram.com/yourbakery" className={tw.input} />
+                      </div>
+
+                      <button onClick={saveProfile} className={tw.btn}>{settingsSaved ? "✓ Saved!" : "Save Compliance Info"}</button>
+                    </>
+                  )}
+                </div>
               </div>
 
             </div>
