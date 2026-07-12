@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2 } from "lucide-react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -1583,62 +1583,81 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
         {/* ══════════ ORDERS ══════════ */}
         {tab === "Orders" && (
-          <div>
+          <div className="flex flex-col gap-4">
             {emailModal && (
-              <div style={{ position: "fixed", inset: 0, background: "rgba(44,26,14,0.55)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-                <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 20, width: "100%", maxWidth: 720, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(0,0,0,0.2)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <div><div style={{ fontWeight: "bold", fontSize: 16, color: C.dark }}>✉️ Order Confirmation</div><div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>For {emailModal.customer} · {emailModal.item}</div></div>
-                    <button onClick={() => setEmailModal(null)} style={{ background: C.light, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 16, color: C.mid }}>✕</button>
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center">
+                <div className="bg-card rounded-t-2xl p-5 w-full max-w-[720px] max-h-[85vh] flex flex-col shadow-2xl">
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <div className="font-display font-bold text-base text-foreground">✉️ Order Confirmation</div>
+                      <div className="text-xs text-foreground/50 mt-0.5">For {emailModal.customer} · {emailModal.item}</div>
+                    </div>
+                    <button onClick={() => setEmailModal(null)} className="bg-background rounded-full w-8 h-8 shrink-0 text-foreground/60 hover:text-foreground">✕</button>
                   </div>
                   {emailLoading
-                    ? <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: C.muted }}><div style={{ fontSize: 32 }}>✨</div><div style={{ fontSize: 14 }}>Writing your confirmation email...</div></div>
+                    ? <div className="flex-1 flex flex-col items-center justify-center gap-3 text-foreground/50">
+                        <div className="text-3xl">✨</div>
+                        <div className="text-sm">Writing your confirmation email...</div>
+                      </div>
                     : <>
-                      <div style={{ marginBottom: 8 }}><label style={s.label}>Subject line</label><div style={{ ...s.input, fontSize: 13, color: C.mid, background: C.light }}>Order Confirmed! {emailModal.item} — {emailModal.due}</div></div>
-                      <label style={s.label}>Email body</label>
-                      <textarea placeholder="Add your message to get started…" value={emailBody} onChange={e => setEmailBody(e.target.value)} style={{ ...s.input, flex: 1, resize: "none", fontSize: 13, lineHeight: 1.7, minHeight: 220 }} />
-                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                        <button onClick={copyEmail} style={{ ...s.btn, flex: 1 }}>{emailCopied ? "✓ Copied!" : "📋 Copy Email"}</button>
-                        <button onClick={() => genEmail(emailModal)} style={{ ...s.btnSec, fontSize: 12 }}>↺ Regenerate</button>
-                        <button onClick={() => setEmailModal(null)} style={{ ...s.btnSec, fontSize: 12 }}>Close</button>
+                      <div className="mb-2">
+                        <label className={tw.eyebrow}>Subject line</label>
+                        <div className={`${tw.input} text-foreground/70 bg-background`}>Order Confirmed! {emailModal.item} — {emailModal.due}</div>
+                      </div>
+                      <label className={tw.eyebrow}>Email body</label>
+                      <textarea placeholder="Add your message to get started…" value={emailBody} onChange={e => setEmailBody(e.target.value)} className={`${tw.input} !flex-1 resize-none text-sm leading-relaxed min-h-[220px]`} />
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={copyEmail} className={`${tw.btn} flex-1`}>{emailCopied ? "✓ Copied!" : "📋 Copy Email"}</button>
+                        <button onClick={() => genEmail(emailModal)} className={`${tw.btnSec} bg-background text-accent border-accent`}>↺ Regenerate</button>
+                        <button onClick={() => setEmailModal(null)} className={`${tw.btnSec} bg-background text-accent border-accent`}>Close</button>
                       </div>
                     </>
                   }
                 </div>
               </div>
             )}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ fontSize: 18, fontWeight: "bold" }}>Orders</div>
-              <button onClick={() => setShowNewOrder(true)} style={s.btn}>+ New Order</button>
+
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-accent" />
+                <h2 className="font-display font-bold text-foreground text-xl">Orders</h2>
+              </div>
+              <button onClick={() => setShowNewOrder(true)} className={tw.btn}>+ New Order</button>
             </div>
-            <input
-              placeholder="🔍 Search by customer or item..."
-              value={orderSearch}
-              onChange={e => setOrderSearch(e.target.value)}
-              style={{ ...s.input, marginBottom: 14 }}
-            />
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+              <input
+                placeholder="Search by customer or item..."
+                value={orderSearch}
+                onChange={e => setOrderSearch(e.target.value)}
+                className={`${tw.input} pl-9`}
+              />
+            </div>
+
             {showNewOrder && (
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Order</div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input placeholder="Customer name" value={newOrder.customer} onChange={e => setNewOrder(o => ({ ...o, customer: e.target.value }))} style={{ ...s.input, flex: 1 }} />
-                  <input placeholder="Phone" value={newOrder.phone} onChange={e => setNewOrder(o => ({ ...o, phone: formatPhone(e.target.value) }))} style={{ ...s.input, width: 110 }} />
+              <div className={`${tw.card} flex flex-col gap-3`}>
+                <h3 className={tw.section}>New Order</h3>
+                <div className="flex gap-2">
+                  <input placeholder="Customer name" value={newOrder.customer} onChange={e => setNewOrder(o => ({ ...o, customer: e.target.value }))} className={`${tw.input} !flex-1`} />
+                  <input placeholder="Phone" value={newOrder.phone} onChange={e => setNewOrder(o => ({ ...o, phone: formatPhone(e.target.value) }))} className={`${tw.input} !w-28`} />
                 </div>
-                <input placeholder="Customer email (for invoicing)" value={newOrder.email} onChange={e => setNewOrder(o => ({ ...o, email: e.target.value }))} style={{ ...s.input, marginTop: 8 }} />
-                <input placeholder="Item(s) ordered" value={newOrder.item} onChange={e => setNewOrder(o => ({ ...o, item: e.target.value }))} style={{ ...s.input, marginTop: 8 }} />
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <input type="date" value={newOrder.due} onChange={e => setNewOrder(o => ({ ...o, due: e.target.value }))} style={{ ...s.input, flex: 1 }} />
-                  <input type="number" placeholder="Total $" value={newOrder.total} onChange={e => setNewOrder(o => ({ ...o, total: e.target.value }))} style={{ ...s.input, width: 90 }} />
-                  <select value={newOrder.status} onChange={e => setNewOrder(o => ({ ...o, status: e.target.value }))} style={{ ...s.input, width: 130 }}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>
+                <input placeholder="Customer email (for invoicing)" value={newOrder.email} onChange={e => setNewOrder(o => ({ ...o, email: e.target.value }))} className={tw.input} />
+                <input placeholder="Item(s) ordered" value={newOrder.item} onChange={e => setNewOrder(o => ({ ...o, item: e.target.value }))} className={tw.input} />
+                <div className="flex gap-2">
+                  <input type="date" value={newOrder.due} onChange={e => setNewOrder(o => ({ ...o, due: e.target.value }))} className={`${tw.input} !flex-1`} />
+                  <input type="number" placeholder="Total $" value={newOrder.total} onChange={e => setNewOrder(o => ({ ...o, total: e.target.value }))} className={`${tw.input} !w-24`} />
+                  <select value={newOrder.status} onChange={e => setNewOrder(o => ({ ...o, status: e.target.value }))} className={`${tw.input} !w-36`}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>
                 </div>
-                <textarea placeholder="Customer notes..." value={newOrder.notes} onChange={e => setNewOrder(o => ({ ...o, notes: e.target.value }))} style={{ ...s.input, marginTop: 8, height: 60, resize: "vertical" }} />
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button onClick={addOrder} style={s.btn}>Save & Auto-Schedule</button>
-                  <button onClick={() => setShowNewOrder(false)} style={s.btnSec}>Cancel</button>
+                <textarea placeholder="Customer notes..." value={newOrder.notes} onChange={e => setNewOrder(o => ({ ...o, notes: e.target.value }))} className={`${tw.input} h-16 resize-y`} />
+                <div className="flex gap-2">
+                  <button onClick={addOrder} className={tw.btn}>Save & Auto-Schedule</button>
+                  <button onClick={() => setShowNewOrder(false)} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
                 </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>✨ Tasks will be auto-added to your schedule</div>
+                <div className="text-[11px] text-foreground/50">✨ Tasks will be auto-added to your schedule</div>
               </div>
             )}
+
             {orders.filter(o => {
                 const q = orderSearch.toLowerCase();
                 return !q || o.customer?.toLowerCase().includes(q) || o.item?.toLowerCase().includes(q);
@@ -1651,59 +1670,84 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 const _tom = _d && _diff === 1;
                 const _rp  = ["Complete","Invoiced"].includes(o.status);
                 const _dl  = _ov ? "🔴 Overdue" : _tod ? "🟡 Due Today" : _tom ? "🟠 Due Tomorrow" : _rp ? "🟢 Ready for Pickup" : (o.due || "—");
-                const _dc  = _ov ? "#c0522a" : _tod ? "#d97706" : _tom ? "#ea7c0a" : _rp ? "#5a7a5c" : C.muted;
+                const _dc  = _ov ? "#c0522a" : _tod ? "#d97706" : _tom ? "#ea7c0a" : _rp ? "#5a7a5c" : undefined;
                 const _si  = STATUS_LIST.indexOf(o.status);
                 return (
-              <div key={o.id} style={{ ...s.card, borderLeft: `4px solid ${_ov ? "#c0522a" : C.accent}`, background: _ov ? "#fff8f6" : (_tod||_tom) ? "#fffbf4" : C.card }}>
+              <div key={o.id} className={`${tw.card} flex flex-col gap-4`} style={{ borderLeft: `4px solid ${_ov ? "#c0522a" : "var(--color-accent)"}` }}>
                 {editingOrder === o.id ? (
-                  <div>
-                    <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>✏️ Edit Order</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input placeholder="Customer name" value={editOrder.customer} onChange={e => setEditOrder(x => ({ ...x, customer: e.target.value }))} style={{ ...s.input, flex: 1 }} />
-                      <input placeholder="Phone" value={editOrder.phone} onChange={e => setEditOrder(x => ({ ...x, phone: formatPhone(e.target.value) }))} style={{ ...s.input, width: 110 }} />
+                  <div className="flex flex-col gap-2">
+                    <h3 className={tw.section}>✏️ Edit Order</h3>
+                    <div className="flex gap-2">
+                      <input placeholder="Customer name" value={editOrder.customer} onChange={e => setEditOrder(x => ({ ...x, customer: e.target.value }))} className={`${tw.input} !flex-1`} />
+                      <input placeholder="Phone" value={editOrder.phone} onChange={e => setEditOrder(x => ({ ...x, phone: formatPhone(e.target.value) }))} className={`${tw.input} !w-28`} />
                     </div>
-                    <input placeholder="Customer email (for invoicing)" value={editOrder.email || ""} onChange={e => setEditOrder(x => ({ ...x, email: e.target.value }))} style={{ ...s.input, marginTop: 8 }} />
-                    <input placeholder="Item(s)" value={editOrder.item} onChange={e => setEditOrder(x => ({ ...x, item: e.target.value }))} style={{ ...s.input, marginTop: 8 }} />
-                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                      <input type="date" value={editOrder.due} onChange={e => setEditOrder(x => ({ ...x, due: e.target.value }))} style={{ ...s.input, flex: 1 }} />
-                      <input type="number" placeholder="Total $" value={editOrder.total} onChange={e => setEditOrder(x => ({ ...x, total: e.target.value }))} style={{ ...s.input, width: 90 }} />
-                      <select value={editOrder.status} onChange={e => setEditOrder(x => ({ ...x, status: e.target.value }))} style={{ ...s.input, width: 130 }}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>
+                    <input placeholder="Customer email (for invoicing)" value={editOrder.email || ""} onChange={e => setEditOrder(x => ({ ...x, email: e.target.value }))} className={tw.input} />
+                    <input placeholder="Item(s)" value={editOrder.item} onChange={e => setEditOrder(x => ({ ...x, item: e.target.value }))} className={tw.input} />
+                    <div className="flex gap-2">
+                      <input type="date" value={editOrder.due} onChange={e => setEditOrder(x => ({ ...x, due: e.target.value }))} className={`${tw.input} !flex-1`} />
+                      <input type="number" placeholder="Total $" value={editOrder.total} onChange={e => setEditOrder(x => ({ ...x, total: e.target.value }))} className={`${tw.input} !w-24`} />
+                      <select value={editOrder.status} onChange={e => setEditOrder(x => ({ ...x, status: e.target.value }))} className={`${tw.input} !w-36`}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>
                     </div>
-                    <textarea placeholder="Notes..." value={editOrder.notes} onChange={e => setEditOrder(x => ({ ...x, notes: e.target.value }))} style={{ ...s.input, marginTop: 8, height: 60, resize: "vertical" }} />
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      <button onClick={saveEditOrder} style={s.btn}>Save Changes</button>
-                      <button onClick={() => { setEditingOrder(null); setEditOrder(null); }} style={s.btnSec}>Cancel</button>
+                    <textarea placeholder="Notes..." value={editOrder.notes} onChange={e => setEditOrder(x => ({ ...x, notes: e.target.value }))} className={`${tw.input} h-16 resize-y`} />
+                    <div className="flex gap-2">
+                      <button onClick={saveEditOrder} className={tw.btn}>Save Changes</button>
+                      <button onClick={() => { setEditingOrder(null); setEditOrder(null); }} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div className="flex justify-between gap-3 border-b border-border/60 pb-3">
                       <div>
-                        <div style={{ fontWeight: "bold", fontSize: 15 }}>{o.customer}</div>
-                        <div style={{ fontSize: 13, color: C.mid, marginTop: 2 }}>{o.item}</div>
-                        <div style={{ fontSize: 12, color: _dc, marginTop: 4, fontWeight: (_ov||_tod||_tom) ? "600" : "400" }}>
-                          {_dl}{o.phone && <span style={{ color: C.muted, fontWeight: "400" }}> · {o.phone}</span>}
+                        <h3 className="font-display font-bold text-foreground text-base">{o.customer}</h3>
+                        <div className="text-xs text-foreground/60 mt-0.5">{o.item}</div>
+                        <div className="text-xs mt-1" style={{ color: _dc || "var(--color-foreground)", opacity: _dc ? 1 : 0.5, fontWeight: (_ov||_tod||_tom) ? 600 : 400 }}>
+                          {_dl}{o.phone && <span className="text-foreground/50 font-normal"> · {o.phone}</span>}
                         </div>
                       </div>
-                      <div style={{ textAlign: "right" }}><div style={{ fontWeight: "bold", fontSize: 18, color: C.dark }}>${o.total}</div><span style={s.tag(STATUS_COLORS[o.status])}>{o.status}</span></div>
+                      <div className="text-right shrink-0">
+                        <div className="font-mono font-bold text-lg text-foreground">${o.total}</div>
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block mt-1" style={{ background: STATUS_COLORS[o.status] + "22", color: STATUS_COLORS[o.status] }}>{o.status}</span>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", margin: "10px 0 4px" }}>
-                      {STATUS_LIST.map((st, i) => [
-                        <div key={st} title={st} style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: i < _si ? C.accent : i === _si ? C.dark : "#ddd5c3", outline: i === _si ? `2px solid ${C.dark}` : "none", outlineOffset: 2 }} />,
-                        i < STATUS_LIST.length - 1 ? <div key={st+"l"} style={{ flex: 1, height: 2, background: i < _si ? C.accent : "#e2d9cc", minWidth: 8 }} /> : null,
-                      ])}
+
+                    {/* Progress timeline */}
+                    <div className="relative py-2">
+                      <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-0.5 bg-border" />
+                      <div className="absolute left-2 h-0.5 bg-accent transition-all duration-300" style={{ top: "50%", transform: "translateY(-50%)", width: `calc(${(_si / (STATUS_LIST.length - 1)) * 100}% - 16px)` }} />
+                      <div className="relative flex justify-between">
+                        {STATUS_LIST.map((st, i) => (
+                          <div key={st} className="flex flex-col items-center gap-1">
+                            <div title={st} className={`h-3.5 w-3.5 rounded-full border-[3px] z-10 transition-all ${i === _si ? "bg-accent border-accent scale-125 ring-4 ring-accent/20" : i < _si ? "bg-accent border-accent" : "bg-card border-border"}`} />
+                            <span className="text-[9px] font-bold text-foreground/40 uppercase tracking-wide hidden sm:block">{st}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    {o.notes && <div style={{ background: C.light, borderRadius: 8, padding: "8px 10px", marginTop: 8, fontSize: 13, color: C.mid, fontStyle: "italic" }}>📝 {o.notes}</div>}
-                    <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      {STATUS_LIST.map(st => (
-                        <button key={st} onClick={() => updateOrderStatus(o.id, st)} style={{ padding: "4px 10px", borderRadius: 20, border: "none", background: o.status === st ? C.accent : "transparent", color: o.status === st ? "#fff" : "#aaa", cursor: "pointer", fontSize: 11, fontWeight: o.status === st ? "700" : "500", fontFamily: "'Inter', sans-serif" }}>{st}</button>
-                      ))}
-                      <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} style={{ padding: "4px 10px", borderRadius: 16, border: `1.5px solid ${C.dark}`, background: "transparent", color: C.dark, cursor: "pointer", fontSize: 11, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>Edit</button>
-                        <button onClick={() => printInvoice(o)} style={{ padding: "5px 13px", borderRadius: 16, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>📄 Invoice</button>
-                        <button onClick={() => printLabel(o)} style={{ padding: "5px 13px", borderRadius: 16, border: `1.5px solid ${C.accent}`, background: "#fff", color: C.accent, cursor: "pointer", fontSize: 11, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>🏷 Label</button>
-                        <button onClick={() => genEmail(o)} style={{ padding: "4px 10px", borderRadius: 16, border: "1px solid #ccc", background: "transparent", color: "#999", cursor: "pointer", fontSize: 11, fontFamily: "'Inter', sans-serif" }}>✉️ Email</button>
-                        <button onClick={() => deleteOrder(o.id)} style={{ background: "none", border: "none", color: "#bbb", cursor: "pointer", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>🗑</button>
+
+                    {o.notes && <div className="bg-background rounded-lg px-3 py-2 text-xs text-foreground/70 italic">📝 {o.notes}</div>}
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <div className="flex flex-wrap items-center gap-1 bg-background p-1 rounded-xl border border-border">
+                        {STATUS_LIST.map(st => (
+                          <button key={st} onClick={() => updateOrderStatus(o.id, st)} className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors" style={o.status === st ? { background: "var(--color-accent)", color: "#fff" } : { color: "var(--color-foreground)", opacity: 0.5 }}>{st}</button>
+                        ))}
+                      </div>
+                      <div className="ml-auto flex items-center gap-1.5">
+                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
+                          <Edit3 className="h-3.5 w-3.5" /><span>Edit</span>
+                        </button>
+                        <button onClick={() => printInvoice(o)} className={`${tw.btn} px-3 py-1.5 flex items-center gap-1.5`}>
+                          <FileText className="h-3.5 w-3.5" /><span>Invoice</span>
+                        </button>
+                        <button onClick={() => printLabel(o)} className={`${tw.btnSec} bg-background text-accent border-accent px-3 py-1.5 flex items-center gap-1.5`}>
+                          <Printer className="h-3.5 w-3.5" /><span>Label</span>
+                        </button>
+                        <button onClick={() => genEmail(o)} className="px-3 py-1.5 rounded-lg border border-border text-foreground/50 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
+                          <Mail className="h-3.5 w-3.5" /><span>Email</span>
+                        </button>
+                        <button onClick={() => deleteOrder(o.id)} className="p-1.5 rounded-lg text-foreground/30 hover:text-danger transition-colors">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </>
@@ -1711,7 +1755,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
                 );
               })}
-            {orders.length === 0 && <div style={{ ...s.card, textAlign: "center", color: C.muted, fontSize: 14 }}>No orders yet — add your first one! 🎂</div>}
+            {orders.length === 0 && <div className={`${tw.card} text-center text-foreground/50 text-sm`}>No orders yet — add your first one! 🎂</div>}
           </div>
         )}
 
@@ -2044,7 +2088,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                           <div className="w-9 h-9 rounded-lg border-2 border-border shadow-sm" style={{ background: value }} />
                           <input type="color" value={value} onChange={e => set(e.target.value)} className="absolute opacity-0 w-0 h-0 pointer-events-none" />
                         </label>
-                        <input value={value} onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) set(e.target.value); }} maxLength={7} className={`${tw.input} w-24 font-mono text-xs py-1.5`} />
+                        <input value={value} onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) set(e.target.value); }} maxLength={7} className={`${tw.input} !w-24 font-mono text-xs py-1.5`} />
                         <button onClick={() => set(def)} className={`${tw.btnSec} border-border text-accent bg-background shrink-0 px-2.5 py-1`}>Reset</button>
                       </div>
                     </div>
@@ -2305,13 +2349,15 @@ CREATE POLICY "owner_only" ON gifted_users
         const total = parseFloat(ord.total || 0).toFixed(2);
         const NAVY = invoiceHeaderColor; const RUST = invoiceAccentColor; const CREAM = "#F9FAFB"; const BORDER = "#e2e8f0";
         return (
-          <div id="bfinv" style={{ position: "fixed", inset: 0, zIndex: 9999, background: CREAM, overflowY: "auto", fontFamily: "Georgia, serif", color: NAVY }}>
+          <div id="bfinv" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "var(--color-background)", overflowY: "auto", fontFamily: "Georgia, serif", color: NAVY }}>
             <style>{`@media print { body > *:not(#bfinv){display:none!important} #bfinv{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
 
             {/* Toolbar */}
-            <div className="np" style={{ display: "flex", justifyContent: "flex-end", gap: 10, padding: "14px 24px", background: "#fff", borderBottom: "1px solid " + BORDER, position: "sticky", top: 0, zIndex: 1 }}>
-              <button onClick={() => setInvoicePrintOrder(null)} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid " + BORDER, background: "#fff", color: NAVY, cursor: "pointer", fontSize: 13, fontFamily: "Georgia, serif" }}>✕ Close</button>
-              {pdfGenerating ? <button disabled style={{ padding: "8px 22px", borderRadius: 8, border: "none", background: "#9ca3af", color: "#fff", cursor: "not-allowed", fontSize: 13, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⏳ Generating...</button> : <button onClick={downloadInvoicePdf} style={{ padding: "8px 22px", borderRadius: 8, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⬇️ Download PDF</button>}
+            <div className="np bg-card border-b border-border" style={{ display: "flex", justifyContent: "flex-end", gap: 10, padding: "14px 24px", position: "sticky", top: 0, zIndex: 1 }}>
+              <button onClick={() => setInvoicePrintOrder(null)} className="border border-border bg-background text-foreground text-sm rounded-lg px-4 py-2 font-body">✕ Close</button>
+              {pdfGenerating
+                ? <button disabled className="rounded-lg px-5 py-2 text-sm font-bold font-body bg-gray-400 text-white cursor-not-allowed">⏳ Generating...</button>
+                : <button onClick={downloadInvoicePdf} className={tw.btn}>⬇️ Download PDF</button>}
             </div>
 
             {/* Invoice */}
@@ -2409,8 +2455,10 @@ CREATE POLICY "owner_only" ON gifted_users
             </div>
 
             {/* Bottom print button */}
-            <div className="np" style={{ display: "flex", justifyContent: "center", padding: "24px 0 40px" }}>
-              {pdfGenerating ? <button disabled style={{ padding: "12px 36px", borderRadius: 10, border: "none", background: "#9ca3af", color: "#fff", cursor: "not-allowed", fontSize: 15, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⏳ Generating PDF...</button> : <button onClick={downloadInvoicePdf} style={{ padding: "12px 36px", borderRadius: 10, border: "none", background: RUST, color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: "bold", fontFamily: "Georgia, serif" }}>⬇️ Download PDF</button>}
+            <div className="np flex justify-center" style={{ padding: "24px 0 40px" }}>
+              {pdfGenerating
+                ? <button disabled className="rounded-lg px-9 py-3 text-base font-bold font-body bg-gray-400 text-white cursor-not-allowed">⏳ Generating PDF...</button>
+                : <button onClick={downloadInvoicePdf} className={`${tw.btn} px-9 py-3 text-base`}>⬇️ Download PDF</button>}
             </div>
           </div>
         );
@@ -2427,67 +2475,67 @@ CREATE POLICY "owner_only" ON gifted_users
         const quickIdValue = labelQuickIdText !== null ? labelQuickIdText : quickIdDefault;
         const quickIdFontPx = (QUICK_ID_FONT_SIZES.find(fs => fs.value === labelQuickIdFontSize) || QUICK_ID_FONT_SIZES[1]).px;
         return (
-          <div id="bflabel" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#F9FAFB", overflowY: "auto", fontFamily: "'Inter', sans-serif", color: C.dark }}>
+          <div id="bflabel" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "var(--color-background)", overflowY: "auto", fontFamily: "'Inter', sans-serif", color: C.dark }}>
             <style>{`@media print { body > *:not(#bflabel){display:none!important} #bflabel{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
 
             {/* Toolbar */}
-            <div className="np" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "14px 24px", background: "#fff", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, zIndex: 1, flexWrap: "wrap" }}>
-              <div style={{ fontWeight: "bold", color: C.accent }}>🏷 Compliance Label Proofer</div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setLabelPrintOrder(null)} style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.dark, cursor: "pointer", fontSize: 13, fontFamily: "'Inter', sans-serif" }}>✕ Close</button>
-                <button onClick={() => window.print()} style={{ ...s.btn }}>🖨 Print</button>
+            <div className="np bg-card border-b border-border flex-wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "14px 24px", position: "sticky", top: 0, zIndex: 1 }}>
+              <div className="font-bold text-accent font-display">🏷 Compliance Label Proofer</div>
+              <div className="flex gap-2.5">
+                <button onClick={() => setLabelPrintOrder(null)} className="border border-border bg-background text-foreground text-sm rounded-lg px-4 py-2 font-body">✕ Close</button>
+                <button onClick={() => window.print()} className={tw.btn}>🖨 Print</button>
               </div>
             </div>
 
             {/* Controls */}
-            <div className="np" style={{ padding: "16px 24px", background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 12, maxWidth: 700, margin: "0 auto" }}>
+            <div className="np bg-card border-b border-border flex flex-col gap-3" style={{ padding: "16px 24px", maxWidth: 700, margin: "0 auto" }}>
               <div>
-                <label style={s.label}>Recipe</label>
-                <select value={labelRecipeId} onChange={e => { setLabelRecipeId(e.target.value); setLabelQuickIdText(null); }} style={s.input}>
+                <label className={tw.eyebrow}>Recipe</label>
+                <select value={labelRecipeId} onChange={e => { setLabelRecipeId(e.target.value); setLabelQuickIdText(null); }} className={tw.input}>
                   <option value="">— Select a recipe —</option>
                   {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               </div>
               <div>
-                <label style={s.label}>Label Size</label>
-                <select value={labelSize} onChange={e => { setLabelSize(e.target.value); if (e.target.value !== "rect" && e.target.value !== "box") setLabelIncludeIngredients(false); }} style={s.input}>
+                <label className={tw.eyebrow}>Label Size</label>
+                <select value={labelSize} onChange={e => { setLabelSize(e.target.value); if (e.target.value !== "rect" && e.target.value !== "box") setLabelIncludeIngredients(false); }} className={tw.input}>
                   {LABEL_SIZES.map(sz => <option key={sz.value} value={sz.value}>{sz.label}</option>)}
                 </select>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{sizeDef.desc}</div>
+                <div className="text-xs text-foreground/50 mt-1">{sizeDef.desc}</div>
                 {isRound && (
-                  <div style={{ fontSize: 12, color: "#c0522a", background: "#fff3ee", border: "1px solid #f3c9b8", borderRadius: 8, padding: "8px 10px", marginTop: 8 }}>
+                  <div className="text-xs text-danger bg-danger/10 border border-danger/25 rounded-lg px-2.5 py-2 mt-2">
                     ⚠ Quick-ID label only — must be paired with a fully compliant label elsewhere on the packaging (e.g. the container itself).
                   </div>
                 )}
               </div>
               {isRound ? (
                 <div>
-                  <label style={s.label}>Quick-ID Label Text</label>
-                  <textarea value={quickIdValue} onChange={e => setLabelQuickIdText(e.target.value)} placeholder="e.g. Business Name — Recipe Name" rows={3} style={{ ...s.input, resize: "vertical", fontFamily: "'Inter', sans-serif" }} />
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Press Enter to control exactly where lines break.</div>
-                  <div style={{ display: "flex", gap: 20, marginTop: 12, flexWrap: "wrap" }}>
+                  <label className={tw.eyebrow}>Quick-ID Label Text</label>
+                  <textarea value={quickIdValue} onChange={e => setLabelQuickIdText(e.target.value)} placeholder="e.g. Business Name — Recipe Name" rows={3} className={`${tw.input} resize-y`} />
+                  <div className="text-xs text-foreground/50 mt-1">Press Enter to control exactly where lines break.</div>
+                  <div className="flex gap-5 mt-3 flex-wrap">
                     <div>
-                      <label style={s.label}>Font Size</label>
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <label className={tw.eyebrow}>Font Size</label>
+                      <div className="flex gap-1.5">
                         {QUICK_ID_FONT_SIZES.map(fs => (
-                          <button key={fs.value} type="button" onClick={() => setLabelQuickIdFontSize(fs.value)} style={{ padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${C.accent}`, background: labelQuickIdFontSize === fs.value ? C.accent : "#fff", color: labelQuickIdFontSize === fs.value ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>{fs.label}</button>
+                          <button key={fs.value} type="button" onClick={() => setLabelQuickIdFontSize(fs.value)} className={`${tw.btnSec} ${labelQuickIdFontSize === fs.value ? "bg-accent text-white border-accent" : "bg-background text-accent border-accent"}`}>{fs.label}</button>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <label style={s.label}>Bold</label>
-                      <button type="button" onClick={() => setLabelQuickIdBold(b => !b)} style={{ padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${C.accent}`, background: labelQuickIdBold ? C.accent : "#fff", color: labelQuickIdBold ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>{labelQuickIdBold ? "On" : "Off"}</button>
+                      <label className={tw.eyebrow}>Bold</label>
+                      <button type="button" onClick={() => setLabelQuickIdBold(b => !b)} className={`${tw.btnSec} ${labelQuickIdBold ? "bg-accent text-white border-accent" : "bg-background text-accent border-accent"}`}>{labelQuickIdBold ? "On" : "Off"}</button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div>
-                  <label style={s.label}>Label Description (optional)</label>
-                  <input value={labelDescription} onChange={e => setLabelDescription(e.target.value)} placeholder="e.g. Best enjoyed same day" style={s.input} />
+                  <label className={tw.eyebrow}>Label Description (optional)</label>
+                  <input value={labelDescription} onChange={e => setLabelDescription(e.target.value)} placeholder="e.g. Best enjoyed same day" className={tw.input} />
                 </div>
               )}
               {allowIngredients && recipe && recipe.ingredientsList && (
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.mid, cursor: "pointer" }}>
+                <label className="flex items-center gap-2 text-sm text-foreground/70 cursor-pointer">
                   <input type="checkbox" checked={labelIncludeIngredients} onChange={e => setLabelIncludeIngredients(e.target.checked)} />
                   Include ingredient list on label
                 </label>
