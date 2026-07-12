@@ -801,9 +801,14 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Compliance Label Proofer ─────────────────────────────────────────────
   const printLabel = (order) => {
-    const match = recipes.find(r => r.name.trim().toLowerCase() === (order.item || "").trim().toLowerCase());
-    setLabelRecipeId(match ? String(match.id) : "");
-    setLabelSize(LABEL_SIZES[0].value);
+    // order.item is free text and may list more than one recipe (e.g. "Cinnamon Rolls, Sugar Cookies")
+    const itemNames = (order.item || "").split(/,|&|\+|;|\/|\n| and /i).map(s => s.trim()).filter(Boolean);
+    const matches = itemNames
+      .map(name => recipes.find(r => r.name.trim().toLowerCase() === name.toLowerCase()))
+      .filter(Boolean);
+    const firstMatch = matches[0] || null;
+    setLabelRecipeId(firstMatch ? String(firstMatch.id) : "");
+    setLabelSize("mini"); // compliant default for an order label — round is quick-ID only, no statutory content
     setLabelDescription("");
     setLabelIncludeIngredients(false);
     setLabelQuickIdText(null);
