@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare } from "lucide-react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -441,6 +441,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [captionLoading, setCaptionLoading] = useState(false);
   const [expandedPost,   setExpandedPost]   = useState(null);
   const [socialFilter,   setSocialFilter]   = useState("All");
+  const [socialSearch,   setSocialSearch]   = useState("");
+  const [socialModalTab, setSocialModalTab] = useState("copilot");
 
   // Admin UI
   const [giftEmail,    setGiftEmail]    = useState("");
@@ -2068,72 +2070,92 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
         {/* ══════════ SOCIAL ══════════ */}
         {tab === "Social" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ fontSize: 18, fontWeight: "bold" }}>Social Media Planner</div>
-              <button onClick={() => setShowNewPost(true)} style={s.btn}>+ New Post</button>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-accent" />
+                <h2 className="font-display font-bold text-foreground text-xl">Social Media Planner</h2>
+              </div>
+              <button onClick={() => setShowNewPost(true)} className={`${tw.btn} flex items-center gap-1.5`}>
+                <Plus className="h-3.5 w-3.5" /><span>New Post</span>
+              </button>
             </div>
+
             <div className="bf-social-layout">
 
               {/* ── LEFT COLUMN ── */}
-              <div style={{ flex: "1 1 65%", minWidth: 0 }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto" }}>
+              <div style={{ flex: "1 1 65%", minWidth: 0 }} className="flex flex-col gap-4">
+                <div className="flex gap-2.5 overflow-x-auto pb-1">
                   {PLATFORMS.map(p => { const count = social.filter(post => post.platform === p).length; return (
-                    <div key={p} style={{ ...s.card, padding: "10px 14px", flexShrink: 0, textAlign: "center", minWidth: 80, marginBottom: 0 }}>
-                      <div style={{ fontSize: 18 }}>{p === "Instagram" ? "📸" : p === "Facebook" ? "👥" : p === "TikTok" ? "🎵" : "📌"}</div>
-                      <div style={{ fontWeight: "bold", fontSize: 16, color: C.accent }}>{count}</div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{p}</div>
+                    <div key={p} className={`${tw.card} !p-3 text-center shrink-0`} style={{ minWidth: 84 }}>
+                      <div className="text-lg">{p === "Instagram" ? "📸" : p === "Facebook" ? "👥" : p === "TikTok" ? "🎵" : "📌"}</div>
+                      <div className="font-bold text-lg text-accent">{count}</div>
+                      <div className="text-[10px] text-foreground/50">{p}</div>
                     </div>
                   ); })}
                 </div>
-                <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-                  {["All", "Draft", "Scheduled", "Posted"].map(f => {
-                    const color = f === "Posted" ? "#10b981" : f === "Scheduled" ? "#3b82f6" : f === "Draft" ? "#9a7a65" : C.dark;
-                    return (
-                      <button key={f} onClick={() => setSocialFilter(f)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif", border: `1.5px solid ${color}`, background: socialFilter === f ? color : "#fff", color: socialFilter === f ? "#fff" : color }}>{f}</button>
-                    );
-                  })}
-                </div>
-                {showNewPost && (
-                  <div style={s.card}>
-                    <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Post</div>
-                    <PhotoUpload value={newPost.photo} onChange={v => setNewPost(p => ({ ...p, photo: v }))} />
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      <select value={newPost.platform} onChange={e => setNewPost(p => ({ ...p, platform: e.target.value }))} style={{ ...s.input, flex: 1 }}>{PLATFORMS.map(p => <option key={p}>{p}</option>)}</select>
-                      <select value={newPost.type} onChange={e => setNewPost(p => ({ ...p, type: e.target.value }))} style={{ ...s.input, flex: 1 }}>{POST_TYPES.map(t => <option key={t}>{t}</option>)}</select>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                      <input type="date" value={newPost.date} onChange={e => setNewPost(p => ({ ...p, date: e.target.value }))} style={{ ...s.input, flex: 1 }} />
-                      <select value={newPost.status} onChange={e => setNewPost(p => ({ ...p, status: e.target.value }))} style={{ ...s.input, flex: 1 }}>{["Draft", "Scheduled", "Posted"].map(st => <option key={st}>{st}</option>)}</select>
-                    </div>
-                    <textarea placeholder="Caption... or use AI ✨" value={newPost.caption} onChange={e => setNewPost(p => ({ ...p, caption: e.target.value }))} style={{ ...s.input, marginTop: 8, height: 90, resize: "vertical" }} />
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      <button onClick={genCaption} disabled={captionLoading} style={{ ...s.btnSec, fontSize: 12 }}>{captionLoading ? "✨ Writing..." : "✨ AI Caption"}</button>
-                      <button onClick={addPost} style={s.btn}>Save Post</button>
-                      <button onClick={() => setShowNewPost(false)} style={s.btnSec}>Cancel</button>
-                    </div>
+
+                {/* Search + status filter */}
+                <div className={`${tw.card} flex flex-col sm:flex-row sm:items-center gap-3`}>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+                    <input placeholder="Search captions..." value={socialSearch} onChange={e => setSocialSearch(e.target.value)} className={`${tw.input} pl-9`} />
                   </div>
-                )}
-                {social.filter(post => socialFilter === "All" || post.status === socialFilter).map(post => (
-                  <div key={post.id} style={s.card}>
-                    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                      {post.photo ? <img src={post.photo} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
-                        : <div style={{ width: 64, height: 64, borderRadius: 10, background: C.light, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{post.platform === "Instagram" ? "📸" : post.platform === "Facebook" ? "👥" : post.platform === "TikTok" ? "🎵" : "📌"}</div>}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: "700", color: C.accent }}>{post.platform}</span>
-                          <span style={{ fontSize: 11, color: C.muted }}>· {post.type}{post.date && ` · ${post.date}`}</span>
-                          <span style={s.tag(post.status === "Posted" ? "#10b981" : post.status === "Scheduled" ? "#3b82f6" : "#9a7a65")}>{post.status}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["All", "Draft", "Scheduled", "Posted"].map(f => (
+                      <button key={f} onClick={() => setSocialFilter(f)} className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-colors ${socialFilter === f ? "bg-accent text-white" : "bg-background text-foreground/60 hover:text-foreground"}`}>
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Post list */}
+                {(() => {
+                  const _q = socialSearch.trim().toLowerCase();
+                  const _filtered = social.filter(post =>
+                    (socialFilter === "All" || post.status === socialFilter) &&
+                    (!_q || (post.caption || "").toLowerCase().includes(_q) || (post.type || "").toLowerCase().includes(_q))
+                  );
+                  if (_filtered.length === 0) {
+                    return (
+                      <div className={`${tw.card} text-center py-12 text-foreground/40`}>
+                        <Camera className="h-8 w-8 mx-auto mb-2 text-foreground/20" />
+                        <p className="text-sm font-bold">{social.length === 0 ? "No posts yet — create your first one!" : "No posts found for this search/filter."}</p>
+                      </div>
+                    );
+                  }
+                  return _filtered.map(post => (
+                    <div key={post.id} className={tw.card}>
+                      <div className="flex gap-3 items-start">
+                        {post.photo
+                          ? <img src={post.photo} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
+                          : <div className="w-16 h-16 rounded-lg bg-background flex items-center justify-center text-2xl shrink-0">{post.platform === "Instagram" ? "📸" : post.platform === "Facebook" ? "👥" : post.platform === "TikTok" ? "🎵" : "📌"}</div>
+                        }
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="text-xs font-bold text-accent">{post.platform}</span>
+                            <span className="text-[11px] text-foreground/50">· {post.type}{post.date && ` · ${post.date}`}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${post.status === "Posted" ? "bg-success/15 text-success" : post.status === "Scheduled" ? "bg-info/15 text-info" : "bg-foreground/10 text-foreground/60"}`}>{post.status}</span>
+                          </div>
+                          <div className={`text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap ${expandedPost === post.id ? "" : "line-clamp-3"}`}>{post.caption}</div>
+                          {post.caption?.length > 100 && (
+                            <button onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)} className="text-accent text-xs font-bold mt-1 cursor-pointer">
+                              {expandedPost === post.id ? "Show less" : "Show more"}
+                            </button>
+                          )}
                         </div>
-                        <div style={{ fontSize: 13, lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: expandedPost === post.id ? "unset" : 3, WebkitBoxOrient: "vertical" }}>{post.caption}</div>
-                        {post.caption?.length > 100 && <button onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)} style={{ background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", padding: 0, marginTop: 4, fontFamily: "'Inter', sans-serif" }}>{expandedPost === post.id ? "Show less" : "Show more"}</button>}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/60">
+                        {["Draft", "Scheduled", "Posted"].map(st => (
+                          <button key={st} onClick={() => updatePostStatus(post.id, st)} className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${post.status === st ? (st === "Posted" ? "bg-success text-white" : st === "Scheduled" ? "bg-info text-white" : "bg-foreground/70 text-background") : "bg-background text-foreground/50 hover:text-foreground"}`}>
+                            {st}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                      {["Draft", "Scheduled", "Posted"].map(st => <button key={st} onClick={() => updatePostStatus(post.id, st)} style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif", border: `1px solid ${st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65"}`, background: post.status === st ? (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") : "#fff", color: post.status === st ? "#fff" : (st === "Posted" ? "#10b981" : st === "Scheduled" ? "#3b82f6" : "#9a7a65") }}>{st}</button>)}
-                    </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
 
               {/* ── RIGHT COLUMN — Post Ideas sidebar ── */}
@@ -2172,16 +2194,16 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   }
 
                   return (
-                    <div style={{ ...s.card, background: C.light, padding: "16px 14px" }}>
-                      <div style={{ fontWeight: "bold", fontSize: 14, color: C.text, marginBottom: 2 }}>💡 Post Ideas</div>
-                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>Based on your orders</div>
+                    <div className={`${tw.card} bg-background`}>
+                      <div className="font-bold text-sm text-foreground mb-0.5">💡 Post Ideas</div>
+                      <div className="text-[11px] text-foreground/50 mb-3.5">Based on your orders</div>
                       {_ideas.length === 0
-                        ? <div style={{ fontSize: 12, color: C.muted }}>Add orders to get post ideas.</div>
-                        : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        ? <div className="text-xs text-foreground/50">Add orders to get post ideas.</div>
+                        : <div className="flex flex-col gap-2.5">
                             {_ideas.map((caption, i) => (
-                              <div key={i} style={{ background: C.card, borderRadius: 10, borderLeft: `4px solid ${C.accent}`, padding: "12px 12px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
-                                <div style={{ fontSize: 12, color: C.text, lineHeight: 1.55 }}>{caption}</div>
-                                <button onClick={() => { setNewPost(p => ({ ...p, caption })); setShowNewPost(true); }} style={{ ...s.btn, padding: "5px 12px", fontSize: 11, alignSelf: "flex-start" }}>+ Create Post</button>
+                              <div key={i} className="bg-card rounded-lg border-l-4 border-l-accent p-3 flex flex-col gap-2.5">
+                                <div className="text-xs text-foreground/80 leading-relaxed">{caption}</div>
+                                <button onClick={() => { setNewPost(p => ({ ...p, caption })); setShowNewPost(true); }} className={`${tw.btn} !px-3 !py-1 text-[11px] self-start`}>+ Create Post</button>
                               </div>
                             ))}
                           </div>
@@ -2192,6 +2214,211 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
 
             </div>
+
+            {/* ── New Post modal ── */}
+            {showNewPost && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                <div className="bg-card border border-border rounded-card shadow-card w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row md:divide-x md:divide-border">
+
+                  {/* Left pane: form */}
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="flex items-center justify-between p-5 border-b border-border/60">
+                      <h3 className="font-display font-bold text-foreground text-lg">New Social Post</h3>
+                      <button onClick={() => setShowNewPost(false)} className="text-foreground/40 hover:text-foreground text-xl leading-none px-1 md:hidden">✕</button>
+                    </div>
+                    <div className="p-5 flex flex-col gap-3.5">
+                      <div>
+                        <label className={tw.eyebrow}>Photo</label>
+                        <PhotoUpload value={newPost.photo} onChange={v => setNewPost(p => ({ ...p, photo: v }))} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={tw.eyebrow}>Platform</label>
+                          <select value={newPost.platform} onChange={e => setNewPost(p => ({ ...p, platform: e.target.value }))} className={tw.input}>{PLATFORMS.map(p => <option key={p}>{p}</option>)}</select>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Post Type</label>
+                          <select value={newPost.type} onChange={e => setNewPost(p => ({ ...p, type: e.target.value }))} className={tw.input}>{POST_TYPES.map(t => <option key={t}>{t}</option>)}</select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={tw.eyebrow}>Date</label>
+                          <input type="date" value={newPost.date} onChange={e => setNewPost(p => ({ ...p, date: e.target.value }))} className={tw.input} />
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Status</label>
+                          <select value={newPost.status} onChange={e => setNewPost(p => ({ ...p, status: e.target.value }))} className={tw.input}>{["Draft", "Scheduled", "Posted"].map(st => <option key={st}>{st}</option>)}</select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className={tw.eyebrow}>Caption</label>
+                        <textarea placeholder="Caption... or use AI Caption →" value={newPost.caption} onChange={e => setNewPost(p => ({ ...p, caption: e.target.value }))} className={`${tw.input} h-24 resize-y`} />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-3 border-t border-border/60 mt-auto">
+                        <button onClick={() => setShowNewPost(false)} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
+                        <button onClick={addPost} className={tw.btn}>Save Post</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right pane: AI Caption / Live Preview */}
+                  <div className="flex-1 min-w-0 bg-background/50 p-5 flex flex-col">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="h-5 w-5 text-accent" />
+                        <h3 className="font-display font-bold text-foreground text-base">Content Workspace</h3>
+                      </div>
+                      <button onClick={() => setShowNewPost(false)} className="text-foreground/40 hover:text-foreground text-xl leading-none px-1 hidden md:block">✕</button>
+                    </div>
+
+                    <div className="flex bg-card p-1 rounded-xl mb-4 text-xs font-bold border border-border/60">
+                      <button onClick={() => setSocialModalTab("copilot")} className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${socialModalTab === "copilot" ? "bg-background text-foreground shadow-card" : "text-foreground/40 hover:text-foreground/70"}`}>
+                        <Sparkles className="h-3.5 w-3.5 text-accent" /><span>AI Caption</span>
+                      </button>
+                      <button onClick={() => setSocialModalTab("preview")} className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${socialModalTab === "preview" ? "bg-background text-foreground shadow-card" : "text-foreground/40 hover:text-foreground/70"}`}>
+                        <Eye className="h-3.5 w-3.5 text-info" /><span>Live Preview</span>
+                      </button>
+                    </div>
+
+                    {socialModalTab === "copilot" ? (
+                      <div className="flex flex-col gap-3.5">
+                        <div className="text-xs text-foreground/60 leading-relaxed">
+                          Generates a caption for <strong className="text-foreground">{newPost.platform}</strong> · <strong className="text-foreground">{newPost.type}</strong> using your Anthropic API key, and writes it straight into the Caption field.
+                        </div>
+                        <button onClick={genCaption} disabled={captionLoading} className={`${tw.btn} flex items-center justify-center gap-1.5 disabled:opacity-50`}>
+                          <Sparkles className="h-4 w-4" /><span>{captionLoading ? "Writing caption..." : "Generate Caption"}</span>
+                        </button>
+                        {newPost.caption && !captionLoading && (
+                          <div className="bg-card border border-border rounded-lg p-3.5 text-xs text-foreground/70 leading-relaxed whitespace-pre-wrap">
+                            {newPost.caption}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center py-1">
+                        {/* Device Frame — fixed dark bezel like a real phone, not app-theme-aware */}
+                        <div className="w-[260px] h-[350px] rounded-[36px] p-2.5 shadow-xl border-4 relative flex flex-col overflow-hidden select-none" style={{ background: "#0f1115", borderColor: "#27272a" }}>
+                          <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-16 h-3 rounded-full z-20 flex items-center justify-center" style={{ background: "#18181b" }}>
+                            <div className="w-1 h-1 rounded-full mr-2" style={{ background: "#000" }} />
+                            <div className="w-6 h-0.5 rounded-full" style={{ background: "#3f3f46" }} />
+                          </div>
+                          <div className="w-full h-full rounded-[28px] overflow-hidden flex flex-col relative text-[10px]" style={{ background: "#fff", color: "#0f172a" }}>
+
+                            {newPost.platform === "Instagram" && (
+                              <div className="flex-1 flex flex-col h-full">
+                                <div className="flex items-center justify-between p-2 border-b mt-2 shrink-0" style={{ borderColor: "#f1f5f9" }}>
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-6 h-6 rounded-full p-0.5 flex items-center justify-center shrink-0" style={{ background: "linear-gradient(to top right, #f59e0b, #ec4899)" }}>
+                                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[8px] font-black" style={{ color: "#c0653d" }}>B</div>
+                                    </div>
+                                    <p className="font-bold text-[9px]">shoogiecookies</p>
+                                  </div>
+                                  <span className="font-bold text-xs" style={{ color: "#94a3b8" }}>•••</span>
+                                </div>
+                                <div className="aspect-video overflow-hidden relative shrink-0 flex items-center justify-center" style={{ background: "#f1f5f9" }}>
+                                  {newPost.photo
+                                    ? <img src={newPost.photo} alt="" className="w-full h-full object-cover" />
+                                    : <div className="flex flex-col items-center gap-1" style={{ color: "#94a3b8" }}><span className="text-lg">📷</span><span className="text-[7px] font-bold">Upload a photo to preview</span></div>
+                                  }
+                                </div>
+                                <div className="p-2 space-y-1.5 flex-1 overflow-y-auto text-left">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Heart className="h-4 w-4" style={{ color: "#f43f5e", fill: "#f43f5e" }} />
+                                      <MessageSquare className="h-3.5 w-3.5" style={{ color: "#334155" }} />
+                                      <Send className="h-3.5 w-3.5" style={{ color: "#334155" }} />
+                                    </div>
+                                    <Bookmark className="h-3.5 w-3.5" style={{ color: "#334155" }} />
+                                  </div>
+                                  <p className="text-[8px] leading-relaxed">
+                                    <span className="font-bold mr-1">shoogiecookies</span>
+                                    <span className="whitespace-pre-wrap">{newPost.caption || "No caption drafted yet — try AI Caption!"}</span>
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {newPost.platform === "TikTok" && (
+                              <div className="flex-1 flex flex-col relative h-full" style={{ background: "#000", color: "#fff" }}>
+                                <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden">
+                                  {newPost.photo
+                                    ? <img src={newPost.photo} alt="" className="w-full h-full object-cover opacity-60" style={{ filter: "blur(2px)" }} />
+                                    : <div className="flex flex-col items-center gap-1" style={{ color: "#71717a" }}><span className="text-lg">📷</span><span className="text-[7px] font-bold">Upload a photo to preview</span></div>
+                                  }
+                                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #000, transparent, rgba(0,0,0,0.4))" }} />
+                                </div>
+                                <div className="relative z-10 flex justify-center gap-3 py-2 border-b mt-2 text-[9px] font-bold" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+                                  <span style={{ color: "rgba(255,255,255,0.6)" }}>Following</span>
+                                  <span className="border-b-2 pb-0.5">For You</span>
+                                </div>
+                                <div className="absolute right-2 bottom-10 z-10 flex flex-col items-center gap-3">
+                                  <div className="flex flex-col items-center">
+                                    <Heart className="h-4.5 w-4.5" style={{ color: "#f43f5e", fill: "#f43f5e" }} />
+                                    <span className="text-[7px] font-bold">—</span>
+                                  </div>
+                                  <div className="flex flex-col items-center">
+                                    <MessageSquare className="h-4.5 w-4.5" style={{ fill: "#fff", color: "#000" }} />
+                                    <span className="text-[7px] font-bold">—</span>
+                                  </div>
+                                  <Music className="h-4 w-4" />
+                                </div>
+                                <div className="absolute left-2.5 bottom-2.5 right-10 z-10 space-y-1 text-left">
+                                  <p className="font-bold text-[9px]">@shoogiecookies</p>
+                                  <p className="text-[8px] leading-relaxed whitespace-pre-wrap line-clamp-3" style={{ color: "#e2e8f0" }}>{newPost.caption || "Tap AI Caption to draft your TikTok copy!"}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {newPost.platform === "Facebook" && (
+                              <div className="flex-1 flex flex-col overflow-y-auto mt-2 h-full text-left" style={{ background: "#f8fafc" }}>
+                                <div className="p-2.5 border-b flex items-center gap-2 shrink-0" style={{ background: "#fff", borderColor: "#f1f5f9" }}>
+                                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black text-white" style={{ background: "#2563eb" }}>B</div>
+                                  <div>
+                                    <p className="font-bold text-[9px]">Shoogie Bakery</p>
+                                    <p className="text-[7px]" style={{ color: "#94a3b8" }}>Scheduled · Public 🌐</p>
+                                  </div>
+                                </div>
+                                <div className="p-2.5 text-[8px] leading-relaxed whitespace-pre-wrap shrink-0" style={{ background: "#fff", color: "#334155" }}>
+                                  {newPost.caption || "Drafting the sweet story... try AI Caption!"}
+                                </div>
+                                <div className="aspect-video overflow-hidden relative shrink-0 flex items-center justify-center" style={{ background: "#e2e8f0" }}>
+                                  {newPost.photo
+                                    ? <img src={newPost.photo} alt="" className="w-full h-full object-cover" />
+                                    : <div className="flex flex-col items-center gap-1" style={{ color: "#94a3b8" }}><span className="text-lg">📷</span><span className="text-[7px] font-bold">Upload a photo to preview</span></div>
+                                  }
+                                </div>
+                                <div className="p-2 border-t mt-auto flex justify-between items-center text-[8px] shrink-0" style={{ background: "#fff", borderColor: "#f1f5f9", color: "#64748b" }}>
+                                  <span>👍 Like</span><span>💬 Comment</span><span>➡️ Share</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {newPost.platform === "Pinterest" && (
+                              <div className="flex-1 flex flex-col h-full text-left" style={{ background: "#fff" }}>
+                                <div className="aspect-square overflow-hidden relative shrink-0 flex items-center justify-center" style={{ background: "#f1f5f9" }}>
+                                  {newPost.photo
+                                    ? <img src={newPost.photo} alt="" className="w-full h-full object-cover" />
+                                    : <div className="flex flex-col items-center gap-1" style={{ color: "#94a3b8" }}><span className="text-lg">📷</span><span className="text-[7px] font-bold">Upload a photo to preview</span></div>
+                                  }
+                                  <span className="absolute top-2 right-2 text-[8px] font-bold text-white px-2 py-1 rounded-full" style={{ background: "#e60023" }}>Save</span>
+                                </div>
+                                <div className="p-2.5 space-y-1 shrink-0">
+                                  <p className="font-bold text-[8.5px]" style={{ color: "#334155" }}>shoogiecookies</p>
+                                  <p className="text-[8px] leading-relaxed whitespace-pre-wrap line-clamp-3" style={{ color: "#64748b" }}>{newPost.caption || "Tap AI Caption to draft your Pinterest copy!"}</p>
+                                </div>
+                              </div>
+                            )}
+
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+            )}
           </div>
         )}
 
