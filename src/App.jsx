@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive } from "lucide-react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -375,6 +375,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [editingPantry, setEditingPantry] = useState(null);
   const [editPantryForm, setEditPantryForm] = useState({});
   const [pantryFilter,  setPantryFilter]  = useState("All");
+  const [pantrySearch,  setPantrySearch]  = useState("");
   const [newPantry,     setNewPantry]     = useState({ name: "", category: "Flour & Grains", storeCost: "", yields: "", unit: "cups", storeUnit: "" });
 
   // Recipes UI
@@ -947,7 +948,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", minHeight: "100vh", background: "var(--color-background)", color: "var(--color-foreground)" }}>
       <style>{`
-        @media (max-width: 768px) { .watermark-logo { display: none !important; } .bf-pantry-layout { flex-direction: column !important; } .bf-pantry-sidebar { position: static !important; width: 100% !important; min-width: 0 !important; flex: none !important; } }
+        @media (max-width: 768px) { .watermark-logo { display: none !important; } }
         .bf-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
         .bf-settings-grid > * { margin-bottom: 0 !important; }
         .bf-settings-full { grid-column: 1 / -1; }
@@ -1142,124 +1143,248 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
           const _unusedCount = pantry.filter(p => !_usedIds.has(String(p.id)) && !_usedNames.has((p.name||"").toLowerCase())).length;
           const _catCount = new Set(pantry.map(p => p.category).filter(Boolean)).size;
           const _oldest2 = [...pantry].filter(p => p.updated_at||p.created_at).sort((a,b) => new Date(a.updated_at||a.created_at) - new Date(b.updated_at||b.created_at)).slice(0,2);
+          const _totalValue = pantry.reduce((sum, p) => sum + (p.storeCost || 0), 0);
+          const _q = pantrySearch.trim().toLowerCase();
+          const _filteredPantry = pantry.filter(p => (!_q || (p.name||"").toLowerCase().includes(_q)));
+          const closePantryModal = () => { setShowNewPantry(false); setEditingPantry(null); setEditPantryForm({}); };
           return (
-          <div>
-            {seedMsg && <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 12 }}>{seedMsg}</div>}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <div style={{ fontSize: 18, fontWeight: "bold" }}>🫙 Ingredient Pantry</div>
-              <button onClick={() => setShowNewPantry(true)} style={s.btn}>+ Add Item</button>
-            </div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Master cost list — update prices here and everything recalculates automatically.</div>
-            <div style={{ ...s.card, marginBottom: 14, background: "#E5E7EB", border: `1.5px solid ${C.dark}` }}>
-              <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 10, fontSize: 13 }}>Filter Existing Pantry Items Below</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {["All", ...PANTRY_CATS].map(cat => (
-                  <button key={cat} onClick={() => setPantryFilter(cat)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: "600", cursor: "pointer", border: `1px solid ${C.accent}`, background: pantryFilter === cat ? C.accent : "#fff", color: pantryFilter === cat ? "#fff" : C.accent, fontFamily: "'Inter', sans-serif" }}>{cat}</button>
-                ))}
+          <div className="flex flex-col gap-4">
+            {seedMsg && <div className="bg-danger/15 border border-danger/30 text-danger rounded-lg px-3.5 py-2.5 text-xs font-bold">{seedMsg}</div>}
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Archive className="h-5 w-5 text-accent" />
+                <h2 className="font-display font-bold text-foreground text-xl">Ingredient Pantry</h2>
               </div>
+              <button onClick={() => setShowNewPantry(true)} className={`${tw.btn} flex items-center gap-1.5`}>
+                <Plus className="h-3.5 w-3.5" /><span>Add Item</span>
+              </button>
             </div>
-            <div className="bf-pantry-layout" style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-            <div style={{ flex: "1 1 60%", minWidth: 0 }}>
-            {showNewPantry && (
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Pantry Item</div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input placeholder="Ingredient name" value={newPantry.name} onChange={e => setNewPantry(p => ({ ...p, name: e.target.value }))} style={{ ...s.input, flex: 2 }} />
-                  <select value={newPantry.category} onChange={e => setNewPantry(p => ({ ...p, category: e.target.value }))} style={{ ...s.input, flex: 1 }}>{PANTRY_CATS.map(c => <option key={c}>{c}</option>)}</select>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <div style={{ flex: 1 }}><label style={s.label}>Store unit</label><input placeholder="5lb bag" value={newPantry.storeUnit} onChange={e => setNewPantry(p => ({ ...p, storeUnit: e.target.value }))} style={s.input} /></div>
-                  <div style={{ width: 100 }}><label style={s.label}>Store cost $</label><input type="number" step="0.01" value={newPantry.storeCost} onChange={e => setNewPantry(p => ({ ...p, storeCost: e.target.value }))} style={s.input} /></div>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <div style={{ flex: 1 }}><label style={s.label}>Recipe unit</label><select value={newPantry.unit} onChange={e => setNewPantry(p => ({ ...p, unit: e.target.value }))} style={s.input}>{UNITS.map(u => <option key={u}>{u}</option>)}</select></div>
-                  <div style={{ flex: 1 }}><label style={s.label}>Yields ({newPantry.unit})</label><input type="number" step="0.1" value={newPantry.yields} onChange={e => setNewPantry(p => ({ ...p, yields: e.target.value }))} style={s.input} /></div>
-                </div>
-                {newPantry.storeCost && newPantry.yields && <div style={{ background: C.light, borderRadius: 8, padding: "8px 12px", marginTop: 10, fontSize: 13, color: C.mid }}>💡 Cost per {newPantry.unit}: <strong>${(parseFloat(newPantry.storeCost) / parseFloat(newPantry.yields)).toFixed(3)}</strong></div>}
-                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button onClick={addPantryItem} style={s.btn}>Save Item</button>
-                  <button onClick={() => setShowNewPantry(false)} style={s.btnSec}>Cancel</button>
+            <div className="text-xs text-foreground/60 -mt-2">Master cost list — update prices here and everything recalculates automatically.</div>
+
+            {/* Overview stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`${tw.card} flex items-center gap-4`}>
+                <div className="p-3 rounded-xl bg-accent/10 text-accent"><Archive className="h-5 w-5" /></div>
+                <div>
+                  <div className={tw.section}>Total Ingredients</div>
+                  <div className="text-xl font-display font-bold text-foreground mt-0.5">{pantry.length} tracked</div>
                 </div>
               </div>
-            )}
-            {PANTRY_CATS.filter(cat => pantryFilter === "All" || pantryFilter === cat).map(cat => {
-              const items = pantry.filter(p => p.category === cat);
-              if (!items.length) return null;
-              return (
-                <div key={cat}>
-                  <div style={{ fontSize: 11, fontWeight: "700", letterSpacing: 2, textTransform: "uppercase", color: C.accent, margin: "14px 0 6px" }}>{cat}</div>
-                  {items.map(item => (
-                    <div key={item.id} style={s.card}>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <div><div style={{ fontWeight: "600", fontSize: 14 }}>{item.name}</div><div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{item.storeUnit} · ${item.storeCost?.toFixed(2)} → {item.yields} {item.unit}</div></div>
-                        <div style={{ textAlign: "right" }}><div style={{ fontWeight: "bold", fontSize: 16, color: C.dark }}>${item.costPer?.toFixed(3)}</div><div style={{ fontSize: 11, color: C.muted }}>per {item.unit}</div></div>
-                      </div>
-                      {editingPantry === item.id ? (
-                        <div style={{ marginTop: 10 }}>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                            <div style={{ flex: 2, minWidth: 130 }}><label style={s.label}>Name</label><input value={editPantryForm.name || ""} onChange={e => setEditPantryForm(f => ({ ...f, name: e.target.value }))} style={s.input} /></div>
-                            <div style={{ flex: 1, minWidth: 120 }}><label style={s.label}>Category</label><select value={editPantryForm.category || ""} onChange={e => setEditPantryForm(f => ({ ...f, category: e.target.value }))} style={s.input}>{PANTRY_CATS.map(c => <option key={c}>{c}</option>)}</select></div>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                            <div style={{ flex: 1, minWidth: 90 }}><label style={s.label}>Store cost $</label><input type="number" step="0.01" value={editPantryForm.storeCost || ""} onChange={e => setEditPantryForm(f => ({ ...f, storeCost: e.target.value }))} style={s.input} /></div>
-                            <div style={{ flex: 1, minWidth: 90 }}><label style={s.label}>Yields</label><input type="number" step="0.1" value={editPantryForm.yields || ""} onChange={e => setEditPantryForm(f => ({ ...f, yields: e.target.value }))} style={s.input} /></div>
-                            <div style={{ flex: 1, minWidth: 90 }}><label style={s.label}>Unit</label><select value={editPantryForm.unit || ""} onChange={e => setEditPantryForm(f => ({ ...f, unit: e.target.value }))} style={s.input}>{UNITS.map(u => <option key={u}>{u}</option>)}</select></div>
-                            <div style={{ flex: 1, minWidth: 110 }}><label style={s.label}>Store unit</label><input value={editPantryForm.storeUnit || ""} onChange={e => setEditPantryForm(f => ({ ...f, storeUnit: e.target.value }))} placeholder="e.g. 5 lb bag" style={s.input} /></div>
-                          </div>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button onClick={savePantryEdit} style={{ ...s.btn, padding: "7px 14px", fontSize: 12 }}>Save</button>
-                            <button onClick={() => { setEditingPantry(null); setEditPantryForm({}); }} style={{ ...s.btnSec, padding: "6px 14px", fontSize: 12 }}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => { setEditingPantry(item.id); setEditPantryForm({ id: item.id, name: item.name, category: item.category, storeCost: item.storeCost, yields: item.yields, unit: item.unit, storeUnit: item.storeUnit || "" }); }} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12 }}>✏️ Edit</button>
-                        <button onClick={() => deletePantryItem(item.id)} style={{ ...s.btnSec, marginTop: 8, padding: "5px 12px", fontSize: 12, color: "#c0522a", border: "1px solid #c0522a" }}>🗑 Delete</button>
-                      </div>}
-                    </div>
+              <div className={`${tw.card} flex items-center gap-4`}>
+                <div className="p-3 rounded-xl bg-success/10 text-success"><DollarSign className="h-5 w-5" /></div>
+                <div>
+                  <div className={tw.section}>Total Pantry Value</div>
+                  <div className="text-xl font-display font-bold text-foreground mt-0.5">${_totalValue.toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Search + category filter */}
+            <div className={`${tw.card} flex flex-col gap-3`}>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+                <input placeholder="Search ingredients..." value={pantrySearch} onChange={e => setPantrySearch(e.target.value)} className={`${tw.input} pl-9`} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-label font-bold uppercase text-foreground/50 tracking-wider shrink-0">
+                  <Filter className="h-3.5 w-3.5" /><span>Category</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {["All", ...PANTRY_CATS].map(cat => (
+                    <button key={cat} onClick={() => setPantryFilter(cat)} className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-colors ${pantryFilter === cat ? "bg-accent text-white" : "bg-background text-foreground/60 hover:text-foreground"}`}>
+                      {cat}
+                    </button>
                   ))}
                 </div>
-              );
-            })}
-          </div>
-          <div className="bf-pantry-sidebar" style={{ flex: "0 0 38%", minWidth: 220, position: "sticky", top: 20, alignSelf: "flex-start", paddingTop: 31 }}>
-            <div style={{ ...s.card, marginBottom: 12 }}>
-              <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, marginBottom: 12 }}>📊 Pantry Snapshot</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {[
-                  { label: "Total ingredients", value: pantry.length, color: C.dark },
-                  { label: "Categories",         value: _catCount,     color: C.dark },
-                  { label: "Most used",          value: _mostUsed ? _mostUsed.name : "—", color: C.accent },
-                  { label: "Priciest",           value: _priciest ? _priciest.name : "—", color: C.accent },
-                  { label: "Unused items",       value: _unusedCount, color: C.dark },
-                ].map(row => (
-                  <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 13 }}>
-                    <span style={{ color: C.muted }}>{row.label}</span>
-                    <span style={{ fontWeight: "700", color: row.color, maxWidth: "55%", textAlign: "right", wordBreak: "break-word" }}>{row.value}</span>
-                  </div>
-                ))}
               </div>
             </div>
-            {_mostUsed && _mostUsed._usage > 0 && (
-              <div style={{ ...s.card, marginBottom: 12, background: C.dark, border: "none" }}>
-                <div style={{ fontWeight: "700", fontSize: 13, color: "#fff", marginBottom: 8 }}>💡 Ingredient Insight</div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", lineHeight: 1.6 }}>
-                  <strong style={{ color: "#fff" }}>{_mostUsed.name}</strong> appears in <strong style={{ color: "#fff" }}>{_mostUsed._usage}</strong> of your recipes. A $1 price change here ripples into <strong style={{ color: C.caramel }}>${(_mostUsed._usage).toFixed(2)}</strong> of recipe cost shifts.
-                </div>
-              </div>
-            )}
-            {_oldest2.length > 0 && (
-              <div style={{ ...s.card, borderLeft: `4px solid ${C.accent}` }}>
-                <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, marginBottom: 8 }}>⏰ Price Check Reminder</div>
-                <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
-                  {_oldest2.length >= 2
-                    ? <><strong style={{ color: C.text }}>{_oldest2[0].name}</strong>{" & "}<strong style={{ color: C.text }}>{_oldest2[1].name}</strong>{" haven't been updated in 60+ days. Costs may have shifted."}</>
-                    : <><strong style={{ color: C.text }}>{_oldest2[0].name}</strong>{" hasn't been updated in 60+ days. Costs may have shifted."}</>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* ── Left: ingredient list ── */}
+              <div className="md:col-span-2 flex flex-col gap-4">
+                {(() => {
+                  const _groups = PANTRY_CATS
+                    .filter(cat => pantryFilter === "All" || pantryFilter === cat)
+                    .map(cat => ({ cat, items: _filteredPantry.filter(p => p.category === cat) }))
+                    .filter(g => g.items.length > 0);
+                  if (_groups.length === 0) {
+                    return (
+                      <div className={`${tw.card} text-center py-12 text-foreground/40`}>
+                        <Archive className="h-8 w-8 mx-auto mb-2 text-foreground/20" />
+                        <p className="text-sm font-bold">{pantry.length === 0 ? "No ingredients yet — add your first one!" : "No ingredients found for this search/filter."}</p>
+                      </div>
+                    );
                   }
+                  return _groups.map(({ cat, items }) => (
+                    <div key={cat} className="flex flex-col gap-2">
+                      <h3 className={tw.section}>{cat}</h3>
+                      <div className="flex flex-col gap-2">
+                        {items.map(item => (
+                          <div key={item.id} className={`${tw.card} flex items-center justify-between gap-4`}>
+                            <div className="min-w-0">
+                              <div className="font-bold text-foreground text-sm truncate">{item.name}</div>
+                              <div className="text-xs text-foreground/50 mt-0.5 truncate">{item.storeUnit} · ${item.storeCost?.toFixed(2)} → {item.yields} {item.unit}</div>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="text-right">
+                                <div className="font-mono font-bold text-foreground">${item.costPer?.toFixed(2)}</div>
+                                <div className="text-[10px] text-foreground/40">per {item.unit}</div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => { setEditingPantry(item.id); setEditPantryForm({ id: item.id, name: item.name, category: item.category, storeCost: item.storeCost, yields: item.yields, unit: item.unit, storeUnit: item.storeUnit || "" }); }} className="p-1.5 rounded-lg text-foreground/40 hover:text-accent hover:bg-background transition-colors">
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                </button>
+                                <button onClick={() => deletePantryItem(item.id)} className="p-1.5 rounded-lg text-foreground/40 hover:text-danger hover:bg-background transition-colors">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+
+              {/* ── Right: sidebar ── */}
+              <div className="flex flex-col gap-4">
+                <div className={tw.card}>
+                  <h3 className={`${tw.section} mb-3`}>Pantry Snapshot</h3>
+                  <div className="flex flex-col gap-2.5">
+                    {[
+                      { label: "Total ingredients", value: pantry.length },
+                      { label: "Categories", value: _catCount },
+                      { label: "Most used", value: _mostUsed ? _mostUsed.name : "—" },
+                      { label: "Priciest", value: _priciest ? _priciest.name : "—" },
+                      { label: "Unused items", value: _unusedCount },
+                    ].map(row => (
+                      <div key={row.label} className="flex justify-between items-baseline gap-3 text-xs">
+                        <span className="text-foreground/50 shrink-0">{row.label}</span>
+                        <span className="font-bold text-foreground text-right break-words">{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {_mostUsed && _mostUsed._usage > 0 && (
+                  <div className="bg-foreground text-background rounded-card p-5">
+                    <h3 className="font-bold text-xs mb-2 opacity-90">💡 Ingredient Insight</h3>
+                    <p className="text-xs leading-relaxed opacity-80">
+                      <strong>{_mostUsed.name}</strong> appears in <strong>{_mostUsed._usage}</strong> of your recipes. A $1 price change here ripples into <strong>${(_mostUsed._usage).toFixed(2)}</strong> of recipe cost shifts.
+                    </p>
+                  </div>
+                )}
+
+                {_oldest2.length > 0 && (
+                  <div className={`${tw.card} border-l-4 border-l-accent`}>
+                    <h3 className={`${tw.section} mb-2`}>⏰ Price Check Reminder</h3>
+                    <p className="text-xs text-foreground/60 leading-relaxed">
+                      {_oldest2.length >= 2
+                        ? <><strong className="text-foreground">{_oldest2[0].name}</strong>{" & "}<strong className="text-foreground">{_oldest2[1].name}</strong>{" haven't been updated in 60+ days. Costs may have shifted."}</>
+                        : <><strong className="text-foreground">{_oldest2[0].name}</strong>{" hasn't been updated in 60+ days. Costs may have shifted."}</>
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Add/Edit ingredient modal ── */}
+            {(showNewPantry || editingPantry) && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                <div className="bg-card border border-border rounded-card shadow-card w-full max-w-lg max-h-[85vh] overflow-y-auto">
+                  <div className="flex items-center justify-between p-5 border-b border-border/60">
+                    <h3 className="font-display font-bold text-foreground text-lg">{editingPantry ? "Edit Pantry Ingredient" : "Add Pantry Ingredient"}</h3>
+                    <button onClick={closePantryModal} className="text-foreground/40 hover:text-foreground text-xl leading-none px-1">✕</button>
+                  </div>
+                  <div className="p-5 flex flex-col gap-3.5">
+                    {editingPantry ? (
+                      <>
+                        <div>
+                          <label className={tw.eyebrow}>Ingredient Name</label>
+                          <input value={editPantryForm.name || ""} onChange={e => setEditPantryForm(f => ({ ...f, name: e.target.value }))} className={tw.input} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={tw.eyebrow}>Category</label>
+                            <select value={editPantryForm.category || ""} onChange={e => setEditPantryForm(f => ({ ...f, category: e.target.value }))} className={tw.input}>{PANTRY_CATS.map(c => <option key={c}>{c}</option>)}</select>
+                          </div>
+                          <div>
+                            <label className={tw.eyebrow}>Recipe Unit</label>
+                            <select value={editPantryForm.unit || ""} onChange={e => setEditPantryForm(f => ({ ...f, unit: e.target.value }))} className={tw.input}>{UNITS.map(u => <option key={u}>{u}</option>)}</select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={tw.eyebrow}>Store Unit</label>
+                            <input placeholder="e.g. 5 lb bag" value={editPantryForm.storeUnit || ""} onChange={e => setEditPantryForm(f => ({ ...f, storeUnit: e.target.value }))} className={tw.input} />
+                          </div>
+                          <div>
+                            <label className={tw.eyebrow}>Store Cost ($)</label>
+                            <input type="number" step="0.01" value={editPantryForm.storeCost || ""} onChange={e => setEditPantryForm(f => ({ ...f, storeCost: e.target.value }))} className={tw.input} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Yields ({editPantryForm.unit})</label>
+                          <input type="number" step="0.1" value={editPantryForm.yields || ""} onChange={e => setEditPantryForm(f => ({ ...f, yields: e.target.value }))} className={tw.input} />
+                        </div>
+                        {editPantryForm.storeCost && editPantryForm.yields && (
+                          <div className="bg-background rounded-lg px-3.5 py-2.5 text-xs text-foreground/70">
+                            💡 Cost per {editPantryForm.unit}: <strong className="text-foreground">${(parseFloat(editPantryForm.storeCost) / parseFloat(editPantryForm.yields)).toFixed(2)}</strong>
+                          </div>
+                        )}
+                        <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
+                          <button onClick={closePantryModal} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
+                          <button onClick={savePantryEdit} className={tw.btn}>Update Ingredient</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label className={tw.eyebrow}>Ingredient Name</label>
+                          <input placeholder="e.g. Unbleached Bread Flour" value={newPantry.name} onChange={e => setNewPantry(p => ({ ...p, name: e.target.value }))} className={tw.input} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={tw.eyebrow}>Category</label>
+                            <select value={newPantry.category} onChange={e => setNewPantry(p => ({ ...p, category: e.target.value }))} className={tw.input}>{PANTRY_CATS.map(c => <option key={c}>{c}</option>)}</select>
+                          </div>
+                          <div>
+                            <label className={tw.eyebrow}>Recipe Unit</label>
+                            <select value={newPantry.unit} onChange={e => setNewPantry(p => ({ ...p, unit: e.target.value }))} className={tw.input}>{UNITS.map(u => <option key={u}>{u}</option>)}</select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={tw.eyebrow}>Store Unit</label>
+                            <input placeholder="e.g. 5lb bag" value={newPantry.storeUnit} onChange={e => setNewPantry(p => ({ ...p, storeUnit: e.target.value }))} className={tw.input} />
+                          </div>
+                          <div>
+                            <label className={tw.eyebrow}>Store Cost ($)</label>
+                            <input type="number" step="0.01" value={newPantry.storeCost} onChange={e => setNewPantry(p => ({ ...p, storeCost: e.target.value }))} className={tw.input} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Yields ({newPantry.unit})</label>
+                          <input type="number" step="0.1" value={newPantry.yields} onChange={e => setNewPantry(p => ({ ...p, yields: e.target.value }))} className={tw.input} />
+                        </div>
+                        {newPantry.storeCost && newPantry.yields && (
+                          <div className="bg-background rounded-lg px-3.5 py-2.5 text-xs text-foreground/70">
+                            💡 Cost per {newPantry.unit}: <strong className="text-foreground">${(parseFloat(newPantry.storeCost) / parseFloat(newPantry.yields)).toFixed(2)}</strong>
+                          </div>
+                        )}
+                        <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
+                          <button onClick={closePantryModal} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
+                          <button onClick={addPantryItem} className={tw.btn}>Save Item</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
-          </div>
-          </div>
           </div>
           );
         })()}
