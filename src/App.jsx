@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2 } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles } from "lucide-react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -432,6 +432,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [aiTaskError,    setAiTaskError]    = useState("");
   const [expandedDates,  setExpandedDates]  = useState(new Set());
   const [editingAutoTaskId, setEditingAutoTaskId] = useState(null);
+  const [scheduleFilter, setScheduleFilter] = useState("all");
 
   // Social UI
   const [showNewPost,    setShowNewPost]    = useState(false);
@@ -1766,110 +1767,187 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
         {/* ══════════ SCHEDULE ══════════ */}
         {tab === "Schedule" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ fontSize: 18, fontWeight: "bold" }}>Schedule</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={getAiTasks} disabled={aiTaskLoading} style={{ ...s.btnSec, fontSize: 12, padding: "7px 12px" }}>{aiTaskLoading ? "⏳..." : "✨ AI Suggest"}</button>
-                <button onClick={() => setShowNewTask(true)} style={s.btn}>+ Task</button>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-accent" />
+                <h2 className="font-display font-bold text-foreground text-xl">Schedule</h2>
               </div>
+              <button onClick={getAiTasks} disabled={aiTaskLoading} className={`${tw.btnSec} bg-background text-accent border-accent flex items-center gap-1.5`}>
+                <Sparkles className="h-3.5 w-3.5" /><span>{aiTaskLoading ? "Thinking…" : "AI Suggest"}</span>
+              </button>
             </div>
-            {aiTaskError && <div style={{ background: "#fef3c7", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#92400e", marginBottom: 12 }}>{aiTaskError}</div>}
-            <div style={{ ...s.card, background: C.light, marginBottom: 14 }}>
-              <div style={{ height: 8, background: "#e8d5c0", borderRadius: 10, overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 10, background: `linear-gradient(90deg, ${C.dark}, ${C.accent})`, width: `${schedule.length ? (schedule.filter(t => t.done).length / schedule.length) * 100 : 0}%`, transition: "width 0.4s" }} />
-              </div>
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>{schedule.filter(t => t.done).length} of {schedule.length} tasks complete</div>
-            </div>
-            {showNewTask && (
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Task</div>
-                <label style={s.label}>Date</label>
-                <input type="date" value={newTask.date} onChange={e => setNewTask(t => ({ ...t, date: e.target.value }))} style={s.input} />
-                <label style={{ ...s.label, marginTop: 10 }}>Task Description</label>
-                <input placeholder="What needs to be done?" value={newTask.task} onChange={e => setNewTask(t => ({ ...t, task: e.target.value }))} style={s.input} />
-                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button onClick={addTask} style={s.btn}>Add Task</button>
-                  <button onClick={() => setShowNewTask(false)} style={s.btnSec}>Cancel</button>
-                </div>
-              </div>
-            )}
-            {/* ── Overdue section ── */}
-            {(() => {
-              const _ov = schedule.filter(t => !t.done && t.date && t.date < todayStr);
-              if (!_ov.length) return null;
-              return (
-                <div style={{ marginBottom: 22 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                    <div style={{ fontSize: 15, fontWeight: "700", color: "#c0522a", whiteSpace: "nowrap" }}>🔴 Overdue</div>
-                    <div style={{ flex: 1, height: 1, background: "#c0522a", opacity: 0.3 }} />
-                    <span style={{ fontSize: 11, color: "#c0522a", fontWeight: "600", flexShrink: 0 }}>{_ov.length} task{_ov.length !== 1 ? "s" : ""}</span>
+
+            {aiTaskError && <div className="bg-warning/15 border border-warning/30 text-warning rounded-lg px-3.5 py-2.5 text-xs font-bold">{aiTaskError}</div>}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+              {/* ── Left: timeline list ── */}
+              <div className="md:col-span-2 flex flex-col gap-4">
+
+                {/* Progress */}
+                <div className={tw.card}>
+                  <div className="h-2 rounded-full bg-border/60 overflow-hidden">
+                    <div className="h-full rounded-full bg-accent transition-all duration-300" style={{ width: `${schedule.length ? (schedule.filter(t => t.done).length / schedule.length) * 100 : 0}%` }} />
                   </div>
-                  {_ov.map(t => (
-                    <div key={t.id} style={{ ...s.card, padding: "11px 14px", marginBottom: 6, background: "#fff8f6", borderLeft: "3px solid #c0522a" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${C.accent}`, background: "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} />
-                        <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, cursor: "pointer" }}>{t.task}</span>
-                        {t.auto && <span onClick={e => { e.stopPropagation(); setEditingAutoTaskId(editingAutoTaskId === t.id ? null : t.id); }} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700", cursor: "pointer" }}>auto</span>}
-                        {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
-                        <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
+                  <div className="text-xs text-foreground/60 mt-2">{schedule.filter(t => t.done).length} of {schedule.length} tasks complete</div>
+                </div>
+
+                {/* Filter chips */}
+                <div className={`${tw.card} flex flex-col sm:flex-row sm:items-center gap-3`}>
+                  <div className="flex items-center gap-1.5 text-[11px] font-label font-bold uppercase text-foreground/50 tracking-wider shrink-0">
+                    <Filter className="h-3.5 w-3.5" /><span>Filter</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { key: "all", label: "All Tasks" },
+                      { key: "manual", label: "Manual" },
+                      { key: "auto", label: "Auto (Order)" },
+                      { key: "ai", label: "AI Suggested" },
+                    ].map(f => (
+                      <button key={f.key} onClick={() => setScheduleFilter(f.key)} className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-colors ${scheduleFilter === f.key ? "bg-accent text-white" : "bg-background text-foreground/60 hover:text-foreground"}`}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {(() => {
+                  const isOverdue = (t) => !t.done && t.date && t.date < todayStr;
+                  const matchesFilter = (t) => scheduleFilter === "all"
+                    || (scheduleFilter === "auto" && t.auto)
+                    || (scheduleFilter === "ai" && t.aiSuggested)
+                    || (scheduleFilter === "manual" && !t.auto && !t.aiSuggested);
+
+                  const _ov = schedule.filter(t => isOverdue(t) && matchesFilter(t));
+                  const _overdueIds = new Set(schedule.filter(isOverdue).map(t => t.id));
+                  const _grouped = schedule
+                    .filter(t => !_overdueIds.has(t.id) && matchesFilter(t))
+                    .reduce((acc, t) => { const d = t.date || "Undated"; if (!acc[d]) acc[d] = []; acc[d].push(t); return acc; }, {});
+                  const _dateEntries = Object.entries(_grouped).sort(([a], [b]) => a.localeCompare(b));
+                  const _isEmpty = _ov.length === 0 && _dateEntries.length === 0;
+
+                  const renderTaskCard = (t) => (
+                    <div key={t.id} className={`rounded-xl border flex flex-col gap-2 px-3.5 py-3 transition-colors ${t.done ? "bg-background/60 border-border/60 opacity-60" : "bg-card border-border"}`}>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => toggleTask(t.id)} className={`h-5 w-5 rounded-md border-2 shrink-0 flex items-center justify-center transition-colors ${t.done ? "bg-success border-success text-white" : "border-border hover:border-accent text-transparent"}`}>
+                          <Check className="h-3 w-3 stroke-[3]" />
+                        </button>
+                        <span onClick={() => toggleTask(t.id)} className={`text-sm flex-1 cursor-pointer ${t.done ? "line-through text-foreground/40" : "text-foreground"}`}>{t.task}</span>
+                        {t.auto && (
+                          <button onClick={e => { e.stopPropagation(); setEditingAutoTaskId(editingAutoTaskId === t.id ? null : t.id); }} className="text-[9px] px-2 py-0.5 rounded bg-info/15 text-info border border-info/20 font-bold uppercase tracking-wide shrink-0">
+                            Auto
+                          </button>
+                        )}
+                        {t.aiSuggested && (
+                          <span className="text-[9px] px-2 py-0.5 rounded bg-[#8b5cf6]/15 text-[#8b5cf6] border border-[#8b5cf6]/20 font-bold uppercase tracking-wide flex items-center gap-0.5 shrink-0">
+                            <Sparkles className="h-2.5 w-2.5" />AI
+                          </span>
+                        )}
+                        <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} className="text-foreground/30 hover:text-danger transition-colors shrink-0">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                       {t.auto && editingAutoTaskId === t.id && (
-                        <div style={{ marginTop: 8, marginLeft: 30 }}>
-                          <input type="date" defaultValue={t.date || ""} onChange={e => { if (e.target.value) rescheduleTask(t.id, e.target.value); }} style={{ fontSize: 12, padding: "3px 8px", borderRadius: 6, border: `1px solid ${C.border}`, color: C.text, fontFamily: "'Inter', sans-serif" }} />
+                        <input type="date" defaultValue={t.date || ""} onChange={e => { if (e.target.value) rescheduleTask(t.id, e.target.value); }} className={`${tw.input} !w-auto ml-8`} />
+                      )}
+                    </div>
+                  );
+
+                  return (
+                    <div className="flex flex-col gap-5">
+                      {_ov.length > 0 && (
+                        <div className="flex flex-col gap-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-full bg-danger text-white font-display font-black text-xs flex items-center justify-center shrink-0">!</div>
+                            <h3 className="font-display font-black text-danger text-sm uppercase tracking-tight">Overdue <span className="font-label text-[10px] text-foreground/40 font-normal normal-case">({_ov.length} task{_ov.length !== 1 ? "s" : ""})</span></h3>
+                          </div>
+                          <div className="pl-[42px] flex flex-col gap-2">
+                            {_ov.map(renderTaskCard)}
+                          </div>
+                        </div>
+                      )}
+
+                      {_dateEntries.map(([date, tasks], _gi) => {
+                        const _isToday  = date === todayStr;
+                        const _isPast   = date !== "Undated" && date < todayStr;
+                        const _incomplete = tasks.filter(t => !t.done);
+                        const _allDone  = _incomplete.length === 0;
+                        const _collapsed = _isPast && _allDone && !expandedDates.has(date);
+                        const _toggle   = () => setExpandedDates(prev => { const n = new Set(prev); n.has(date) ? n.delete(date) : n.add(date); return n; });
+                        const _label    = date === "Undated" ? "Undated"
+                          : (_isToday ? "Today · " : "") + new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+                        return (
+                          <div key={date} className="flex flex-col gap-2.5">
+                            <div onClick={_isPast && _allDone ? _toggle : undefined} className={`flex items-center gap-2.5 ${_isPast && _allDone ? "cursor-pointer" : ""} ${_isToday ? "bg-accent/5 rounded-lg -mx-2.5 px-2.5 py-1.5" : ""}`}>
+                              <div className={`h-8 w-8 rounded-full font-display font-black text-xs flex items-center justify-center shrink-0 ${_isToday ? "bg-accent text-white" : "bg-foreground/10 text-foreground/60"}`}>
+                                {_isToday ? "T" : date === "Undated" ? "—" : new Date(date + "T12:00:00").getDate()}
+                              </div>
+                              <h3 className={`font-display font-black text-sm uppercase tracking-tight shrink-0 ${_isToday ? "text-accent" : "text-foreground/70"}`}>{_label}</h3>
+                              <div className="flex-1 h-px bg-border" />
+                              {_allDone
+                                ? <span className="text-[11px] text-success font-bold shrink-0">✓ All done{_isPast ? (_collapsed ? " ▸" : " ▾") : ""}</span>
+                                : <span className="text-[11px] text-foreground/50 font-bold shrink-0">{_incomplete.length} task{_incomplete.length !== 1 ? "s" : ""}</span>
+                              }
+                            </div>
+                            {!_collapsed && (
+                              <div className="pl-[42px] flex flex-col gap-2">
+                                {tasks.map(renderTaskCard)}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {_isEmpty && (
+                        <div className={`${tw.card} text-center py-12 text-foreground/40`}>
+                          <Calendar className="h-8 w-8 mx-auto mb-2 text-foreground/20" />
+                          <p className="text-sm font-bold">No scheduled tasks found{scheduleFilter !== "all" ? " for this filter" : ""}.</p>
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              );
-            })()}
+                  );
+                })()}
+              </div>
 
-            {/* ── Date groups (excluding overdue incomplete) ── */}
-            {(() => {
-              const _ovIds = new Set(schedule.filter(t => !t.done && t.date && t.date < todayStr).map(t => t.id));
-              const _grouped = schedule
-                .filter(t => !_ovIds.has(t.id))
-                .reduce((acc, t) => { const d = t.date || "Undated"; if (!acc[d]) acc[d] = []; acc[d].push(t); return acc; }, {});
-              return Object.entries(_grouped).sort(([a],[b]) => a.localeCompare(b)).map(([date, tasks], _gi) => {
-                const _isToday  = date === todayStr;
-                const _isPast   = date !== "Undated" && date < todayStr;
-                const _incomplete = tasks.filter(t => !t.done);
-                const _allDone  = _incomplete.length === 0;
-                const _collapsed = _isPast && _allDone && !expandedDates.has(date);
-                const _toggle   = () => setExpandedDates(prev => { const n = new Set(prev); n.has(date) ? n.delete(date) : n.add(date); return n; });
-                const _label    = date === "Undated" ? "Undated"
-                  : (_isToday ? "Today · " : "") + new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
-                return (
-                  <div key={date} style={{ marginBottom: 18 }}>
-                    <div onClick={_isPast && _allDone ? _toggle : undefined} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: _gi === 0 ? 0 : 22, marginBottom: 10, cursor: _isPast && _allDone ? "pointer" : "default", ...(_isToday ? { background: `${C.dark}0a`, borderRadius: 8, padding: "7px 10px", marginLeft: -10, marginRight: -10 } : {}) }}>
-                      <div style={{ fontSize: 15, fontWeight: "700", color: _isToday ? C.dark : C.accent, whiteSpace: "nowrap" }}>{_label}</div>
-                      <div style={{ flex: 1, height: 1, background: _isToday ? C.dark : C.border, opacity: _isToday ? 0.15 : 0.6 }} />
-                      {_allDone
-                        ? <span style={{ fontSize: 11, color: "#10b981", fontWeight: "700", flexShrink: 0 }}>✓ All done{_isPast ? (_collapsed ? " ▸" : " ▾") : ""}</span>
-                        : <span style={{ fontSize: 11, color: C.muted, fontWeight: "600", flexShrink: 0 }}>{_incomplete.length} task{_incomplete.length !== 1 ? "s" : ""}</span>
-                      }
+              {/* ── Right: event creator + tip ── */}
+              <div className="flex flex-col gap-4">
+                {showNewTask ? (
+                  <div className={`${tw.card} flex flex-col gap-3.5`}>
+                    <div className="flex items-center gap-1.5 border-b border-border/60 pb-3">
+                      <Plus className="h-4 w-4 text-accent" />
+                      <h3 className="font-display font-bold text-foreground text-sm">New Task</h3>
                     </div>
-                    {!_collapsed && tasks.map(t => (
-                      <div key={t.id} style={{ ...s.card, opacity: t.done ? 0.45 : 1, padding: "11px 14px", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div onClick={() => toggleTask(t.id)} style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${t.done ? "#10b981" : C.accent}`, background: t.done ? "#10b981" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, cursor: "pointer" }}>{t.done ? "✓" : ""}</div>
-                          <span onClick={() => toggleTask(t.id)} style={{ fontSize: 13, flex: 1, textDecoration: t.done ? "line-through" : "none", cursor: "pointer" }}>{t.task}</span>
-                          {t.auto && <span onClick={e => { e.stopPropagation(); setEditingAutoTaskId(editingAutoTaskId === t.id ? null : t.id); }} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#3b82f611", color: "#3b82f6", fontWeight: "700", cursor: "pointer" }}>auto</span>}
-                          {t.aiSuggested && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#8b5cf611", color: "#8b5cf6", fontWeight: "700" }}>AI</span>}
-                          <button onClick={e => { e.stopPropagation(); deleteTask(t.id); }} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 14, padding: "0 4px" }}>🗑</button>
-                        </div>
-                        {t.auto && editingAutoTaskId === t.id && (
-                          <div style={{ marginTop: 8, marginLeft: 30 }}>
-                            <input type="date" defaultValue={t.date || ""} onChange={e => { if (e.target.value) rescheduleTask(t.id, e.target.value); }} style={{ fontSize: 12, padding: "3px 8px", borderRadius: 6, border: `1px solid ${C.border}`, color: C.text, fontFamily: "'Inter', sans-serif" }} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    <div>
+                      <label className={tw.eyebrow}>Date</label>
+                      <input type="date" value={newTask.date} onChange={e => setNewTask(t => ({ ...t, date: e.target.value }))} className={tw.input} />
+                    </div>
+                    <div>
+                      <label className={tw.eyebrow}>Task Description</label>
+                      <input placeholder="What needs to be done?" value={newTask.task} onChange={e => setNewTask(t => ({ ...t, task: e.target.value }))} className={tw.input} />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={addTask} className={`${tw.btn} flex-1 flex items-center justify-center gap-1.5`}><Plus className="h-3.5 w-3.5" /><span>Add Task</span></button>
+                      <button onClick={() => setShowNewTask(false)} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
+                    </div>
                   </div>
-                );
-              });
-            })()}
+                ) : (
+                  <button onClick={() => setShowNewTask(true)} className={`${tw.card} flex items-center justify-center gap-1.5 text-accent font-bold text-sm hover:opacity-80 transition-opacity cursor-pointer`}>
+                    <Plus className="h-4 w-4" /><span>Add Task</span>
+                  </button>
+                )}
+
+                <div className="bg-background rounded-xl border border-border p-4 flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5 text-info font-bold text-xs">
+                    <Info className="h-3.5 w-3.5" /><span>Weekly Tip</span>
+                  </div>
+                  <p className="text-[11px] text-foreground/60 leading-relaxed">
+                    Block out dough-chilling and icing prep a day or two before your busiest pickup days — it keeps oven and counter space from getting double-booked.
+                  </p>
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
 
