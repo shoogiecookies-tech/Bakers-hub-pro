@@ -939,13 +939,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const topItemPct     = totalRevenue > 0 && topItem ? Math.round(topItem[1] / totalRevenue * 100) : null;
 
   if (dbLoading) return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: C.muted, fontSize: 16 }}>
+    <div style={{ minHeight: "100vh", background: "var(--color-background)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "var(--color-foreground)", fontSize: 16 }}>
       🧁 Loading your bakery...
     </div>
   );
 
   return (
-    <div style={{ fontFamily: "'Inter', sans-serif", minHeight: "100vh", background: C.bg, color: C.text }}>
+    <div style={{ fontFamily: "'Inter', sans-serif", minHeight: "100vh", background: "var(--color-background)", color: "var(--color-foreground)" }}>
       <style>{`
         @media (max-width: 768px) { .watermark-logo { display: none !important; } .bf-pantry-layout { flex-direction: column !important; } .bf-pantry-sidebar { position: static !important; width: 100% !important; min-width: 0 !important; flex: none !important; } }
         .bf-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
