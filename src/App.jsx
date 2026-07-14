@@ -1143,7 +1143,6 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
           const _unusedCount = pantry.filter(p => !_usedIds.has(String(p.id)) && !_usedNames.has((p.name||"").toLowerCase())).length;
           const _catCount = new Set(pantry.map(p => p.category).filter(Boolean)).size;
           const _oldest2 = [...pantry].filter(p => p.updated_at||p.created_at).sort((a,b) => new Date(a.updated_at||a.created_at) - new Date(b.updated_at||b.created_at)).slice(0,2);
-          const _totalValue = pantry.reduce((sum, p) => sum + (p.storeCost || 0), 0);
           const _q = pantrySearch.trim().toLowerCase();
           const _filteredPantry = pantry.filter(p => (!_q || (p.name||"").toLowerCase().includes(_q)));
           const closePantryModal = () => { setShowNewPantry(false); setEditingPantry(null); setEditPantryForm({}); };
@@ -1163,20 +1162,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
             <div className="text-xs text-foreground/60 -mt-2">Master cost list — update prices here and everything recalculates automatically.</div>
 
             {/* Overview stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className={`${tw.card} flex items-center gap-4`}>
-                <div className="p-3 rounded-xl bg-accent/10 text-accent"><Archive className="h-5 w-5" /></div>
-                <div>
-                  <div className={tw.section}>Total Ingredients</div>
-                  <div className="text-xl font-display font-bold text-foreground mt-0.5">{pantry.length} tracked</div>
-                </div>
-              </div>
-              <div className={`${tw.card} flex items-center gap-4`}>
-                <div className="p-3 rounded-xl bg-success/10 text-success"><DollarSign className="h-5 w-5" /></div>
-                <div>
-                  <div className={tw.section}>Total Pantry Value</div>
-                  <div className="text-xl font-display font-bold text-foreground mt-0.5">${_totalValue.toFixed(2)}</div>
-                </div>
+            <div className={`${tw.card} flex items-center gap-4`}>
+              <div className="p-3 rounded-xl bg-accent/10 text-accent"><Archive className="h-5 w-5" /></div>
+              <div>
+                <div className={tw.section}>Total Ingredients</div>
+                <div className="text-xl font-display font-bold text-foreground mt-0.5">{pantry.length} tracked</div>
               </div>
             </div>
 
