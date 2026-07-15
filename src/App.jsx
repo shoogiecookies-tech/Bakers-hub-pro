@@ -438,6 +438,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // Social UI
   const [showNewPost,    setShowNewPost]    = useState(false);
   const [newPost,        setNewPost]        = useState({ platform: "Instagram", type: "Product Photo", caption: "", date: "", status: "Draft", photo: null });
+  const [editingPostId,  setEditingPostId]  = useState(null);
   const [captionLoading, setCaptionLoading] = useState(false);
   const [expandedPost,   setExpandedPost]   = useState(null);
   const [socialFilter,   setSocialFilter]   = useState("All");
@@ -900,15 +901,32 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   };
 
   // ── Social ────────────────────────────────────────────────────────────────
-  const addPost = async () => {
-    if (!newPost.platform) return;
-    const { data } = await supabase.from("social_posts").insert([{
-      user_id: uid, platform: newPost.platform, type: newPost.type,
-      caption: newPost.caption, date: newPost.date || null, status: newPost.status, photo: newPost.photo
-    }]).select().single();
-    if (data) setSocial(prev => [...prev, data]);
-    setNewPost({ platform: "Instagram", type: "Product Photo", caption: "", date: "", status: "Draft", photo: null });
+  const closeSocialModal = () => {
     setShowNewPost(false);
+    setEditingPostId(null);
+  };
+
+  const openPostForEdit = (post) => {
+    setNewPost({ platform: post.platform, type: post.type, caption: post.caption || "", date: post.date || "", status: post.status, photo: post.photo });
+    setEditingPostId(post.id);
+    setShowNewPost(true);
+  };
+
+  const savePost = async () => {
+    if (!newPost.platform) return;
+    if (editingPostId) {
+      const fields = { platform: newPost.platform, type: newPost.type, caption: newPost.caption, date: newPost.date || null, status: newPost.status, photo: newPost.photo };
+      await supabase.from("social_posts").update(fields).eq("id", editingPostId);
+      setSocial(prev => prev.map(p => p.id === editingPostId ? { ...p, ...fields } : p));
+    } else {
+      const { data } = await supabase.from("social_posts").insert([{
+        user_id: uid, platform: newPost.platform, type: newPost.type,
+        caption: newPost.caption, date: newPost.date || null, status: newPost.status, photo: newPost.photo
+      }]).select().single();
+      if (data) setSocial(prev => [...prev, data]);
+    }
+    setNewPost({ platform: "Instagram", type: "Product Photo", caption: "", date: "", status: "Draft", photo: null });
+    closeSocialModal();
   };
 
   const updatePostStatus = async (id, status) => {
@@ -2076,7 +2094,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 <Camera className="h-5 w-5 text-accent" />
                 <h2 className="font-display font-bold text-foreground text-xl">Social Media Planner</h2>
               </div>
-              <button onClick={() => setShowNewPost(true)} className={`${tw.btn} flex items-center gap-1.5`}>
+              <button onClick={() => { setNewPost({ platform: "Instagram", type: "Product Photo", caption: "", date: "", status: "Draft", photo: null }); setEditingPostId(null); setShowNewPost(true); }} className={`${tw.btn} flex items-center gap-1.5`}>
                 <Plus className="h-3.5 w-3.5" /><span>New Post</span>
               </button>
             </div>
@@ -2126,7 +2144,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     );
                   }
                   return _filtered.map(post => (
-                    <div key={post.id} className={tw.card}>
+                    <div key={post.id} onClick={() => openPostForEdit(post)} className={`${tw.card} cursor-pointer hover:border-accent/50 transition-colors`}>
                       <div className="flex gap-3 items-start">
                         {post.photo
                           ? <img src={post.photo} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
@@ -2140,7 +2158,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                           </div>
                           <div className={`text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap ${expandedPost === post.id ? "" : "line-clamp-3"}`}>{post.caption}</div>
                           {post.caption?.length > 100 && (
-                            <button onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)} className="text-accent text-xs font-bold mt-1 cursor-pointer">
+                            <button onClick={e => { e.stopPropagation(); setExpandedPost(expandedPost === post.id ? null : post.id); }} className="text-accent text-xs font-bold mt-1 cursor-pointer">
                               {expandedPost === post.id ? "Show less" : "Show more"}
                             </button>
                           )}
@@ -2148,7 +2166,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/60">
                         {["Draft", "Scheduled", "Posted"].map(st => (
-                          <button key={st} onClick={() => updatePostStatus(post.id, st)} className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${post.status === st ? (st === "Posted" ? "bg-success text-white" : st === "Scheduled" ? "bg-info text-white" : "bg-foreground/70 text-background") : "bg-background text-foreground/50 hover:text-foreground"}`}>
+                          <button key={st} onClick={e => { e.stopPropagation(); updatePostStatus(post.id, st); }} className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${post.status === st ? (st === "Posted" ? "bg-success text-white" : st === "Scheduled" ? "bg-info text-white" : "bg-foreground/70 text-background") : "bg-background text-foreground/50 hover:text-foreground"}`}>
                             {st}
                           </button>
                         ))}
@@ -2203,7 +2221,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                             {_ideas.map((caption, i) => (
                               <div key={i} className="bg-card rounded-lg border-l-4 border-l-accent p-3 flex flex-col gap-2.5">
                                 <div className="text-xs text-foreground/80 leading-relaxed">{caption}</div>
-                                <button onClick={() => { setNewPost(p => ({ ...p, caption })); setShowNewPost(true); }} className={`${tw.btn} !px-3 !py-1 text-[11px] self-start`}>+ Create Post</button>
+                                <button onClick={() => { setNewPost(p => ({ ...p, caption })); setEditingPostId(null); setShowNewPost(true); }} className={`${tw.btn} !px-3 !py-1 text-[11px] self-start`}>+ Create Post</button>
                               </div>
                             ))}
                           </div>
@@ -2223,8 +2241,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   {/* Left pane: form */}
                   <div className="flex-1 min-w-0 flex flex-col">
                     <div className="flex items-center justify-between p-5 border-b border-border/60">
-                      <h3 className="font-display font-bold text-foreground text-lg">New Social Post</h3>
-                      <button onClick={() => setShowNewPost(false)} className="text-foreground/40 hover:text-foreground text-xl leading-none px-1 md:hidden">✕</button>
+                      <h3 className="font-display font-bold text-foreground text-lg">{editingPostId ? "Edit Social Post" : "New Social Post"}</h3>
+                      <button onClick={closeSocialModal} className="text-foreground/40 hover:text-foreground text-xl leading-none px-1 md:hidden">✕</button>
                     </div>
                     <div className="p-5 flex flex-col gap-3.5">
                       <div>
@@ -2256,8 +2274,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         <textarea placeholder="Caption... or use AI Caption →" value={newPost.caption} onChange={e => setNewPost(p => ({ ...p, caption: e.target.value }))} className={`${tw.input} h-24 resize-y`} />
                       </div>
                       <div className="flex justify-end gap-2 pt-3 border-t border-border/60 mt-auto">
-                        <button onClick={() => setShowNewPost(false)} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
-                        <button onClick={addPost} className={tw.btn}>Save Post</button>
+                        <button onClick={closeSocialModal} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
+                        <button onClick={savePost} className={tw.btn}>{editingPostId ? "Update Post" : "Save Post"}</button>
                       </div>
                     </div>
                   </div>
@@ -2269,7 +2287,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         <Sparkles className="h-5 w-5 text-accent" />
                         <h3 className="font-display font-bold text-foreground text-base">Content Workspace</h3>
                       </div>
-                      <button onClick={() => setShowNewPost(false)} className="text-foreground/40 hover:text-foreground text-xl leading-none px-1 hidden md:block">✕</button>
+                      <button onClick={closeSocialModal} className="text-foreground/40 hover:text-foreground text-xl leading-none px-1 hidden md:block">✕</button>
                     </div>
 
                     <div className="flex bg-card p-1 rounded-xl mb-4 text-xs font-bold border border-border/60">
