@@ -1,21 +1,30 @@
 const { createClient } = require("@supabase/supabase-js");
 
+// Prices reflect typical 2026 grocery costs — placeholders for the baker to
+// update to what they actually paid, not fixed/authoritative values.
+// Kept in sync with the STARTER_ITEMS list in api/seed-starter.js.
 const STARTER_ITEMS = [
-  { name: "All-Purpose Flour",         category: "Flour & Grains", unit: "cup",  store_unit: "5 lb bag",        store_cost: 4.98, yields: 18   },
-  { name: "Granulated Sugar",           category: "Sweeteners",     unit: "cup",  store_unit: "5 lb bag",        store_cost: 4.98, yields: 11.5 },
-  { name: "Brown Sugar",                category: "Sweeteners",     unit: "cup",  store_unit: "2 lb bag",        store_cost: 3.49, yields: 4.5  },
-  { name: "Powdered Sugar",             category: "Sweeteners",     unit: "cup",  store_unit: "2 lb bag",        store_cost: 3.49, yields: 8    },
-  { name: "Unsalted Butter",            category: "Eggs & Fats",    unit: "tbsp", store_unit: "1 lb (4 sticks)", store_cost: 4.50, yields: 32   },
-  { name: "Large Eggs",                 category: "Eggs & Fats",    unit: "pc",   store_unit: "dozen",           store_cost: 6.99, yields: 12   },
-  { name: "Whole Milk",                 category: "Dairy",          unit: "cup",  store_unit: "half gallon",     store_cost: 3.99, yields: 8    },
-  { name: "Heavy Cream",                category: "Dairy",          unit: "cup",  store_unit: "pint",            store_cost: 3.99, yields: 2    },
-  { name: "Vanilla Extract",            category: "Flavoring",      unit: "tsp",  store_unit: "4 oz bottle",     store_cost: 8.99, yields: 24   },
-  { name: "Baking Soda",                category: "Leavening",      unit: "tsp",  store_unit: "16 oz box",       store_cost: 1.49, yields: 96   },
-  { name: "Baking Powder",              category: "Leavening",      unit: "tsp",  store_unit: "8 oz can",        store_cost: 2.99, yields: 48   },
-  { name: "Meringue Powder",            category: "Leavening",      unit: "tbsp", store_unit: "4 oz can",        store_cost: 7.99, yields: 12   },
-  { name: "Salt",                       category: "Flavoring",      unit: "tsp",  store_unit: "26 oz container", store_cost: 1.99, yields: 156  },
-  { name: "Semi-Sweet Chocolate Chips", category: "Chocolate",      unit: "cup",  store_unit: "12 oz bag",       store_cost: 4.99, yields: 2    },
-  { name: "Cocoa Powder",               category: "Chocolate",      unit: "cup",  store_unit: "8 oz can",        store_cost: 5.99, yields: 2.25 },
+  { name: "All-Purpose Flour",         category: "Flour & Grains", unit: "cup",  store_unit: "5 lb bag",        store_cost: 2.75,  yields: 18   },
+  { name: "Cake Flour",                category: "Flour & Grains", unit: "cup",  store_unit: "2 lb box",        store_cost: 1.90,  yields: 8    },
+  { name: "Granulated Sugar",           category: "Sweeteners",     unit: "cup",  store_unit: "5 lb bag",        store_cost: 4.75,  yields: 11.5 },
+  { name: "Brown Sugar",                category: "Sweeteners",     unit: "cup",  store_unit: "2 lb bag",        store_cost: 2.00,  yields: 4.5  },
+  { name: "Powdered Sugar",             category: "Sweeteners",     unit: "cup",  store_unit: "2 lb bag",        store_cost: 2.60,  yields: 8    },
+  { name: "Unsalted Butter",            category: "Eggs & Fats",    unit: "tbsp", store_unit: "1 lb (4 sticks)", store_cost: 3.99,  yields: 32   },
+  { name: "Large Eggs",                 category: "Eggs & Fats",    unit: "pc",   store_unit: "dozen",           store_cost: 2.16,  yields: 12   },
+  { name: "Whole Milk",                 category: "Dairy",          unit: "cup",  store_unit: "half gallon",     store_cost: 1.92,  yields: 8    },
+  { name: "Heavy Cream",                category: "Dairy",          unit: "cup",  store_unit: "pint",            store_cost: 4.00,  yields: 2    },
+  { name: "Vanilla Extract",            category: "Flavoring",      unit: "tsp",  store_unit: "4 oz bottle",     store_cost: 10.00, yields: 24   },
+  { name: "Almond Extract",             category: "Flavoring",      unit: "tsp",  store_unit: "4 oz bottle",     store_cost: 11.00, yields: 24   },
+  { name: "Lemon Extract",              category: "Flavoring",      unit: "tsp",  store_unit: "4 oz bottle",     store_cost: 11.00, yields: 24   },
+  { name: "Bakery Emulsion (LorAnn)",   category: "Flavoring",      unit: "tsp",  store_unit: "4 oz bottle",     store_cost: 8.00,  yields: 24   },
+  { name: "Baking Soda",                category: "Leavening",      unit: "tsp",  store_unit: "16 oz box",       store_cost: 1.60,  yields: 96   },
+  { name: "Baking Powder",              category: "Leavening",      unit: "tsp",  store_unit: "8 oz can",        store_cost: 2.40,  yields: 48   },
+  { name: "Meringue Powder",            category: "Leavening",      unit: "tbsp", store_unit: "4 oz can",        store_cost: 5.00,  yields: 12   },
+  { name: "Salt",                       category: "Flavoring",      unit: "tsp",  store_unit: "26 oz container", store_cost: 1.30,  yields: 156  },
+  { name: "Semi-Sweet Chocolate Chips", category: "Chocolate",      unit: "cup",  store_unit: "12 oz bag",       store_cost: 5.04,  yields: 2    },
+  { name: "Cocoa Powder",               category: "Chocolate",      unit: "cup",  store_unit: "8 oz can",        store_cost: 4.00,  yields: 2.25 },
+  { name: "Pecans",                     category: "Fruits & Nuts",  unit: "cup",  store_unit: "1 lb bag",        store_cost: 12.00, yields: 4    },
+  { name: "Walnuts",                    category: "Fruits & Nuts",  unit: "cup",  store_unit: "1 lb bag",        store_cost: 8.00,  yields: 4    },
 ];
 
 async function seedForUser(uid, supabase) {
