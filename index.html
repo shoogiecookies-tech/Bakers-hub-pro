@@ -242,6 +242,7 @@ nav img.nav-logo{height:34px;display:block;}
 .btn-pricing{background:var(--terracotta);color:white;border:none;padding:1.1rem 2rem;border-radius:2px;font-family:'Jost',sans-serif;font-weight:400;font-size:0.78rem;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;transition:all 0.25s;width:100%;text-align:center;display:block;text-decoration:none;}
 .btn-pricing:hover{background:var(--rust-muted);}
 .spots{font-size:0.75rem;color:rgba(196,114,74,0.65);text-align:center;margin-top:1rem;letter-spacing:0.5px;}
+.testi-grid{max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;}
 .what-pricing-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:stretch;}
 .what-guarantee{margin-top:1.5rem;text-align:center;padding:1rem 1.25rem;border:1px solid #e0d9ce;border-radius:4px;background:white;}
 .what-guarantee-title{font-size:0.8rem;color:var(--navy);font-weight:500;margin-bottom:0.35rem;}
@@ -370,6 +371,7 @@ footer img{height:32px;opacity:0.6;}
   <div class="nav-right">
     <a href="#pricing" class="nav-link">Features</a>
     <a href="/blog/" class="nav-link">Guides</a>
+    <a href="/texas-label-generator/" class="nav-link">Free Label Maker</a>
     <a href="#pricing" class="nav-link">Pricing</a>
     <a href="https://bakeflo.co" class="nav-link">Member Login</a>
     <a href="https://buy.stripe.com/aFaaEWeHvaRT1aq7w04ko00" class="btn-nav">Founding Member Pricing</a>
@@ -393,6 +395,19 @@ footer img{height:32px;opacity:0.6;}
     </div>
   </div>
   <div class="hero-pricing-row">
+    <div class="hero-worksheet-card">
+      <div class="hero-worksheet-heading">Calculate Your First Recipe For Free</div>
+      <p class="hero-worksheet-text">Stop losing money on your ingredients. Enter your email below to instantly download our 1-page Pricing Worksheet and fix your profit margins in under 5 minutes.</p>
+      <form id="hero-worksheet-form" name="worksheet-leads" data-netlify="true" netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="worksheet-leads">
+        <p style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></p>
+        <div class="hero-worksheet-input-row">
+          <input type="email" name="email" required placeholder="your@email.com" class="hero-worksheet-input">
+          <button type="submit" class="hero-worksheet-btn">Get My Worksheet</button>
+        </div>
+      </form>
+      <div id="hero-worksheet-success" class="hero-worksheet-success" style="display:none;">Check your email — the worksheet is on its way.</div>
+    </div>
     <div class="equation-table">
       <div class="equation-row">
         <div class="equation-op"></div>
@@ -414,19 +429,6 @@ footer img{height:32px;opacity:0.6;}
         <div class="equation-label"><strong>Your price</strong></div>
         <div class="equation-value">$115.00</div>
       </div>
-    </div>
-    <div class="hero-worksheet-card">
-      <div class="hero-worksheet-heading">Not ready yet?</div>
-      <p class="hero-worksheet-text">Grab the free Pricing Worksheet — price one recipe in 5 minutes.</p>
-      <form id="hero-worksheet-form" name="worksheet-leads" data-netlify="true" netlify-honeypot="bot-field">
-        <input type="hidden" name="form-name" value="worksheet-leads">
-        <p style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></p>
-        <div class="hero-worksheet-input-row">
-          <input type="email" name="email" required placeholder="your@email.com" class="hero-worksheet-input">
-          <button type="submit" class="hero-worksheet-btn">Send It</button>
-        </div>
-      </form>
-      <div id="hero-worksheet-success" class="hero-worksheet-success" style="display:none;">Check your email — the worksheet is on its way.</div>
     </div>
   </div>
   <div class="hero-mini-faq">
@@ -456,6 +458,11 @@ footer img{height:32px;opacity:0.6;}
       <span class="hero-proof-text">$97 one-time · before it goes to $14.99/month</span>
     </div>
   </div>
+</section>
+
+<!-- WHO IT'S FOR -->
+<section style="background:var(--navy);padding:1.15rem 1.5rem;text-align:center;">
+  <p style="font-family:'Jost',sans-serif;font-size:0.82rem;letter-spacing:0.4px;color:var(--cream);margin:0;font-weight:300;line-height:1.5;">Built for <strong style="font-weight:500;color:var(--terracotta);">cottage &amp; home bakers</strong> &mdash; one person, one kitchen, real orders. No wholesale accounts or staff required.</p>
 </section>
 
 <!-- INTRO STATEMENT -->
@@ -574,6 +581,7 @@ footer img{height:32px;opacity:0.6;}
           <div class="what-row what-row-last"><div class="what-col-feature">One-time founding price — own it forever</div><div class="what-col-check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0653d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> $97</div></div>
         </div>
         <div class="what-kicker">One price. No subscription. Yours forever.</div>
+        <div style="max-width:520px;margin:1.25rem auto 0;font-family:'Jost',sans-serif;font-size:0.82rem;line-height:1.6;color:var(--text-mid);text-align:center;font-weight:300;">Your costs come from what you actually paid &mdash; <strong style="font-weight:500;color:var(--rust);">never an AI guess.</strong> We save the AI for the fun part: turning your real orders into ready-to-post captions.</div>
         <div class="what-guarantee">
           <div class="what-guarantee-title">🛡️ 30-Day Money-Back Guarantee</div>
           <div class="what-guarantee-text">Try BakeFlo for 30 days. If it doesn't change the way you price your bakes, email us and we'll refund every penny. No questions asked.</div>
@@ -597,11 +605,27 @@ footer img{height:32px;opacity:0.6;}
             <div class="price-math-label">Every Year After</div>
           </div>
         </div>
-        <span class="price-mug-badge">☕ First 10 Founding Members get a BakeFlo mug!</span>
+        <span class="price-mug-badge">🎁 Only 10 founding member mugs available — first 10 to join get one, free.</span>
         <a href="https://buy.stripe.com/aFaaEWeHvaRT1aq7w04ko00" class="btn-pricing">Grab Founding Member Pricing →</a>
-        <p class="spots">Founding member pricing available for a limited time</p>
+        <div style="font-family:'Jost',sans-serif;font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.75);text-align:center;letter-spacing:0.3px;margin-top:1rem;">Founding Member Pricing — $97 one-time</div>
+        <p class="spots">Pay once, own it forever. Founding pricing ends when we open to the public at $149/year or $14.99/month.</p>
         <p style="font-size:0.72rem;color:rgba(255,255,255,0.45);text-align:center;margin-top:0.75rem;">After founding pricing: $149/year or $14.99/month</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIAL -->
+<section style="background:var(--cream-warm);padding:5rem 3rem;text-align:center;">
+  <div class="eyebrow" style="color:var(--rust);margin-bottom:1.5rem;">What bakers are saying</div>
+  <div class="testi-grid">
+    <div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:300;color:var(--navy);line-height:1.4;letter-spacing:-0.2px;margin-bottom:1.75rem;"><span style="color:var(--terracotta);font-size:1.4em;line-height:0;vertical-align:-0.35em;margin-right:0.05em;">&ldquo;</span>I was so lost on the pricing side. BakeFlo saved me &mdash; <em style="font-style:italic;color:var(--rust);">now I can relax knowing I&rsquo;ve priced my bakes correctly.</em>&rdquo;</div>
+      <p style="font-family:'Jost',sans-serif;font-size:0.75rem;font-weight:500;letter-spacing:1.5px;color:var(--rust);text-transform:uppercase;margin:0;">&mdash; JulieLynn R., home baker &amp; BakeFlo tester</p>
+    </div>
+    <div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:300;color:var(--navy);line-height:1.4;letter-spacing:-0.2px;margin-bottom:1.75rem;"><span style="color:var(--terracotta);font-size:1.4em;line-height:0;vertical-align:-0.35em;margin-right:0.05em;">&ldquo;</span>I like that everything&rsquo;s in one place &mdash; pantry, pricing, recipes, and tasks. <em style="font-style:italic;color:var(--rust);">The task list is a big deal for me; I can add what I need to do and check it off as I go.</em>&rdquo;</div>
+      <p style="font-family:'Jost',sans-serif;font-size:0.75rem;font-weight:500;letter-spacing:1.5px;color:var(--rust);text-transform:uppercase;margin:0;">&mdash; Tiana B., BakeFlo tester</p>
     </div>
   </div>
 </section>
@@ -626,8 +650,8 @@ footer img{height:32px;opacity:0.6;}
 <section id="worksheet" style="background:var(--cream-warm);padding:5rem 3rem;text-align:center;">
   <div style="max-width:520px;margin:0 auto;">
     <div class="eyebrow" style="color:var(--text-mid);margin-bottom:1.25rem;">Free Download</div>
-    <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.75rem,3vw,2.4rem);font-weight:300;color:var(--navy);line-height:1.25;margin-bottom:1rem;letter-spacing:-0.2px;">Not ready to buy?<br>Grab the free Pricing Worksheet</h2>
-    <p style="font-size:0.92rem;color:var(--text-mid);line-height:1.85;margin-bottom:2rem;font-weight:300;">A five-minute manual worksheet to price one recipe or order — so you know your number before you ever quote it.</p>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.75rem,3vw,2.4rem);font-weight:300;color:var(--navy);line-height:1.25;margin-bottom:1rem;letter-spacing:-0.2px;">Calculate Your First Recipe For Free</h2>
+    <p style="font-size:0.92rem;color:var(--text-mid);line-height:1.85;margin-bottom:2rem;font-weight:300;">Stop losing money on your ingredients. Enter your email below to instantly download our 1-page Pricing Worksheet and fix your profit margins in under 5 minutes.</p>
 
     <form id="worksheet-form" name="worksheet-leads" data-netlify="true" netlify-honeypot="bot-field" style="max-width:420px;margin:0 auto;">
       <input type="hidden" name="form-name" value="worksheet-leads">
@@ -636,10 +660,16 @@ footer img{height:32px;opacity:0.6;}
         <input type="email" name="email" required placeholder="your@email.com"
           style="flex:1;padding:0.9rem 1rem;border:none;font-family:'Jost',sans-serif;font-size:0.9rem;color:var(--text-dark);background:white;outline:none;min-width:0;">
         <button type="submit"
-          style="background:var(--navy);color:white;border:none;padding:0.9rem 1.4rem;font-family:'Jost',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background 0.2s;flex-shrink:0;">Send it →</button>
+          style="background:var(--navy);color:white;border:none;padding:0.9rem 1.4rem;font-family:'Jost',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background 0.2s;flex-shrink:0;">Get My Worksheet →</button>
       </div>
       <p style="font-size:0.72rem;color:var(--text-light);margin:0.75rem 0 0;letter-spacing:0.3px;">No spam. Unsubscribe any time.</p>
     </form>
+    <div style="margin-top:2.75rem;padding-top:2.25rem;border-top:1px solid var(--sand);">
+      <div class="eyebrow" style="color:var(--text-mid);margin-bottom:1rem;letter-spacing:2px;text-transform:uppercase;font-size:0.72rem;">Also Free · No Signup</div>
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.5rem,2.5vw,2rem);font-weight:300;color:var(--navy);line-height:1.2;margin-bottom:0.75rem;">Texas Cottage Food Label Maker</h3>
+      <p style="font-size:0.9rem;color:var(--text-mid);line-height:1.8;margin-bottom:1.5rem;font-weight:300;">Make a legally compliant SB&nbsp;541 label in about 60 seconds — updated for the September&nbsp;2025 law. Print-ready PDF for Avery sheets or a PNG for your thermal printer.</p>
+      <a href="/texas-label-generator/" style="display:inline-block;background:var(--navy);color:white;text-decoration:none;padding:0.9rem 1.9rem;border-radius:2px;font-family:'Jost',sans-serif;font-size:0.75rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;transition:all 0.25s;">Open the Label Maker&nbsp;&rarr;</a>
+    </div>
 
     <div id="worksheet-success" style="display:none;padding:1.75rem 2rem;background:white;border:1px solid var(--sand);border-radius:2px;margin-top:1rem;max-width:420px;margin-left:auto;margin-right:auto;">
       <p style="color:var(--navy);font-size:1rem;font-weight:500;margin:0 0 0.5rem;font-family:'Jost',sans-serif;">Check your email — the worksheet is on its way.</p>
