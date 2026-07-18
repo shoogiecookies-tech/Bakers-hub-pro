@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale } from "lucide-react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -1400,159 +1400,331 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         })()}
 
         {/* ══════════ RECIPES ══════════ */}
-        {tab === "Recipes" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ fontSize: 18, fontWeight: "bold" }}>Recipes</div>
-              <button onClick={() => setShowNewRec(true)} style={s.btn}>+ Add Recipe</button>
+        {tab === "Recipes" && (() => {
+          const _filteredRecipes = recipes.filter(r => r.name.toLowerCase().includes(recipeSearch.toLowerCase()));
+          const _selRecipe = selRecipe ? (recipes.find(x => x.id === selRecipe.id) || selRecipe) : null;
+          const _selCost = _selRecipe ? calcRecipeCost(_selRecipe, pantry) : 0;
+          const closeRecipeModal = () => { setShowNewRec(false); setEditRec(null); };
+          return (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-accent" />
+                <h2 className="font-display font-bold text-foreground text-xl">Recipes ({recipes.length})</h2>
+              </div>
+              <button onClick={() => setShowNewRec(true)} className={`${tw.btn} flex items-center gap-1.5`}>
+                <Plus className="h-3.5 w-3.5" /><span>Add Recipe</span>
+              </button>
             </div>
-            <input
-              placeholder="🔍 Search recipes..."
-              value={recipeSearch}
-              onChange={e => setRecipeSearch(e.target.value)}
-              style={{ ...s.input, marginBottom: 14, background: "#fff", border: `1.5px solid ${C.border}` }}
-            />
-            {showNewRec && (
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>New Recipe</div>
-                <PhotoUpload value={newRec.photo} onChange={v => setNewRec(r => ({ ...r, photo: v }))} />
-                <input placeholder="Recipe name" value={newRec.name} onChange={e => setNewRec(r => ({ ...r, name: e.target.value }))} style={{ ...s.input, marginTop: 10 }} />
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <select value={newRec.category} onChange={e => setNewRec(r => ({ ...r, category: e.target.value }))} style={{ ...s.input, flex: 1 }}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select>
-                  <input type="number" placeholder="Servings" value={newRec.servings} onChange={e => setNewRec(r => ({ ...r, servings: +e.target.value }))} style={{ ...s.input, width: 100 }} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* ── LEFT: Recipe Catalog ── */}
+              <div className="lg:col-span-1 flex flex-col gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+                  <input placeholder="Search recipes..." value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} className={`${tw.input} pl-9`} />
                 </div>
-                <div style={{ fontWeight: "600", fontSize: 12, color: C.mid, marginTop: 10, marginBottom: 6 }}>ADD FROM PANTRY</div>
-                {newRec.ingredients.map((ing, i) => <div key={i} style={{ fontSize: 12, color: C.mid, padding: "2px 0" }}>• {ing.amount} {ing.unit} {ing.name}</div>)}
-                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                  <select value={recIngInput.pantryId} onChange={e => { const item = pantry.find(p => p.id === parseInt(e.target.value)); setRecIngInput(x => ({ ...x, pantryId: e.target.value, unit: item?.unit || "cups" })); }} style={{ ...s.input, flex: 2 }}>
-                    <option value="">— Select ingredient —</option>
-                    {pantry.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                  <input type="number" step="0.25" placeholder="Amt" value={recIngInput.amount} onChange={e => setRecIngInput(x => ({ ...x, amount: e.target.value }))} style={{ ...s.input, width: 65 }} />
-                  <select value={recIngInput.unit} onChange={e => setRecIngInput(x => ({ ...x, unit: e.target.value }))} style={{ ...s.input, width: 80 }}>{UNITS.map(u => <option key={u}>{u}</option>)}</select>
-                  <button onClick={addRecipeIng} style={{ ...s.btn, padding: "8px 12px" }}>+</button>
-                </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 2 }}>💡 Fractions as decimals: 1/4 = 0.25 · 1/3 = 0.33 · 1/2 = 0.5 · 2/3 = 0.67 · 3/4 = 0.75</div>
-                <textarea placeholder="Notes / instructions" value={newRec.notes} onChange={e => setNewRec(r => ({ ...r, notes: e.target.value }))} style={{ ...s.input, marginTop: 8, height: 70, resize: "vertical" }} />
-                <label style={{ ...s.label, marginTop: 10 }}>Major Allergens</label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                  {ALLERGENS.map(a => {
-                    const checked = newRec.allergens.includes(a);
+                <div className="flex flex-col gap-2.5 max-h-[75vh] overflow-y-auto pr-0.5">
+                  {_filteredRecipes.map(r => {
+                    const totalCost = calcRecipeCost(r, pantry);
+                    const isSel = selRecipe?.id === r.id;
                     return (
-                      <label key={a} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: checked ? "#fff" : C.mid, background: checked ? C.accent : "#fff", border: `1.5px solid ${checked ? C.accent : C.border}`, borderRadius: 16, padding: "4px 10px", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                        <input type="checkbox" checked={checked} onChange={() => setNewRec(r => ({ ...r, allergens: checked ? r.allergens.filter(x => x !== a) : [...r.allergens, a] }))} style={{ margin: 0 }} />
-                        {a}
-                      </label>
+                      <div
+                        key={r.id}
+                        onClick={() => { setSelRecipe(r); setScale(1); }}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-colors ${isSel ? "bg-accent/5 border-accent/40" : "bg-card border-border hover:border-accent/30"}`}
+                      >
+                        <div className="flex gap-3 items-start">
+                          {r.photo
+                            ? <img src={r.photo} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
+                            : <div className="w-11 h-11 rounded-lg bg-background flex items-center justify-center text-lg shrink-0">🧁</div>}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-2">
+                              <h3 className={`text-sm font-bold leading-tight ${isSel ? "text-accent" : "text-foreground"}`}>{r.name}</h3>
+                              <span className="font-mono text-xs font-bold text-foreground/70 shrink-0">${totalCost.toFixed(2)}</span>
+                            </div>
+                            <div className="text-[11px] text-foreground/50 mt-1">{r.category} · {r.servings} servings</div>
+                            <div className="text-[11px] font-bold text-success mt-1">${(totalCost / r.servings).toFixed(3)} / piece</div>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
-                </div>
-                <label style={s.label}>Ingredients List (optional — not required under Texas law)</label>
-                <textarea placeholder="e.g. Enriched flour, sugar, butter, eggs, vanilla extract..." value={newRec.ingredientsList} onChange={e => setNewRec(r => ({ ...r, ingredientsList: e.target.value }))} style={{ ...s.input, height: 50, resize: "vertical", marginBottom: 4 }} />
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button onClick={addRecipe} style={s.btn}>Save Recipe</button>
-                  <button onClick={() => setShowNewRec(false)} style={s.btnSec}>Cancel</button>
-                </div>
-              </div>
-            )}
-            {recipes.filter(r => r.name.toLowerCase().includes(recipeSearch.toLowerCase())).map(r => {
-              const totalCost = calcRecipeCost(r, pantry);
-              return (
-                <div key={r.id} style={s.card}>
-                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                    <PhotoUpload value={r.photo} onChange={async v => { await supabase.from("recipes").update({ photo: v }).eq("id", r.id); setRecipes(prev => prev.map(x => x.id === r.id ? { ...x, photo: v } : x)); }} small />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: "bold", fontSize: 15 }}>{r.name}</div>
-                      <div style={{ fontSize: 12, color: C.accent, marginTop: 2 }}>{r.category} · {r.servings} servings</div>
-                      <div style={{ fontSize: 12, color: C.mid, marginTop: 3 }}>Cost: <strong style={{ color: C.dark }}>${totalCost.toFixed(2)}</strong> · <span style={{ color: C.muted }}>${(totalCost / r.servings).toFixed(3)}/serving</span></div>
-                      {(() => { const sp = totalCost * 1.30; const profit = sp - totalCost; const margin = (profit / sp * 100).toFixed(0); return <div style={{ fontSize: 12, color: "#10b981", marginTop: 2 }}>Potential profit: <strong>${profit.toFixed(2)}</strong> <span style={{ color: "#6b7280" }}>({margin}% margin at 30% markup)</span></div>; })()}
-                      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                        <button onClick={() => { setSelRecipe(selRecipe?.id === r.id ? null : r); setScale(1); }} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12 }}>{selRecipe?.id === r.id ? "Close" : "View / Scale"}</button>
-                        <button onClick={() => { setPricingRecId(String(r.id)); setPricingSvgs(r.servings); setSellQty(r.servings); setTab("Pricing"); }} style={{ ...s.btn, padding: "5px 12px", fontSize: 12 }}>→ Price It</button>
-                        <button onClick={() => { setEditRec(editRec?.id === r.id ? null : { ...r }); setEditIngInput({ pantryId: "", amount: "", unit: "cups" }); }} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12 }}>✏️ Edit</button>
-                        <button onClick={() => deleteRecipe(r.id)} style={{ ...s.btnSec, padding: "5px 12px", fontSize: 12, color: "#c0522a", border: "1px solid #c0522a" }}>🗑</button>
-                      </div>
-                    </div>
-                  </div>
-                  {selRecipe?.id === r.id && (
-                    <div style={{ marginTop: 14 }}>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
-                        <span style={{ fontSize: 12, color: C.mid }}>Scale:</span>
-                        {[0.5, 1, 1.5, 2, 3].map(f => <button key={f} onClick={() => setScale(f)} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid #d4a07a`, background: scale === f ? C.accent : "#fff", color: scale === f ? "#fff" : C.accent, cursor: "pointer", fontSize: 12, fontWeight: "600", fontFamily: "'Inter', sans-serif" }}>{f}×</button>)}
-                      </div>
-                      <div style={{ background: C.light, borderRadius: 10, padding: 12 }}>
-                        <div style={{ fontWeight: "600", fontSize: 12, marginBottom: 6, color: C.dark }}>INGREDIENTS — {Math.round(r.servings * scale)} servings · ${(totalCost * scale).toFixed(2)}</div>
-                        {r.ingredients.map((ing, i) => {
-                          const uc = calcIngCost(ing, pantry);
-                          return <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid #f0dece`, fontSize: 13 }}>
-                            <span>{ing.name}</span>
-                            <div><span style={{ fontWeight: "600", color: C.dark }}>{Math.round(ing.amount * scale * 100) / 100} {ing.unit}</span>{uc !== null && <span style={{ color: C.muted, fontSize: 11, marginLeft: 6 }}>(${(uc * scale).toFixed(2)})</span>}</div>
-                          </div>;
-                        })}
-                      </div>
-                      {r.notes && <div style={{ marginTop: 10, fontSize: 13, color: C.mid, fontStyle: "italic", lineHeight: 1.7 }}>{r.notes}</div>}
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontWeight: "600", fontSize: 12, color: C.dark, marginBottom: 6 }}>MAJOR ALLERGENS</div>
-                        {(r.allergens && r.allergens.length > 0) ? (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                            {r.allergens.map(a => <span key={a} style={s.tag(C.accent)}>{a}</span>)}
-                          </div>
-                        ) : (
-                          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>No major allergens declared</div>
-                        )}
-                      </div>
+                  {_filteredRecipes.length === 0 && (
+                    <div className={`${tw.card} text-center py-12 text-foreground/40`}>
+                      <BookOpen className="h-8 w-8 mx-auto mb-2 text-foreground/20" />
+                      <p className="text-sm font-bold">{recipes.length === 0 ? "No recipes yet — add your first one!" : "No recipes found for this search."}</p>
                     </div>
                   )}
-                  {editRec?.id === r.id && (
-                    <div style={{ marginTop: 14, background: C.light, borderRadius: 10, padding: 14 }}>
-                      <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 10, fontSize: 13 }}>EDIT RECIPE</div>
-                      <input placeholder="Recipe name" value={editRec.name} onChange={e => setEditRec(r => ({ ...r, name: e.target.value }))} style={{ ...s.input, marginBottom: 8 }} />
-                      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                        <select value={editRec.category} onChange={e => setEditRec(r => ({ ...r, category: e.target.value }))} style={{ ...s.input, flex: 1 }}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select>
-                        <input type="number" placeholder="Servings" value={editRec.servings} onChange={e => setEditRec(r => ({ ...r, servings: +e.target.value }))} style={{ ...s.input, width: 100 }} />
+                </div>
+              </div>
+
+              {/* ── RIGHT: Recipe Detail & Scaling ── */}
+              <div className="lg:col-span-2 flex flex-col gap-4">
+                {_selRecipe ? (
+                  <>
+                    {/* Header card */}
+                    <div className={`${tw.card} relative`}>
+                      <div className="absolute right-5 top-5 flex gap-1.5">
+                        <button onClick={() => { setPricingRecId(String(_selRecipe.id)); setPricingSvgs(_selRecipe.servings); setSellQty(_selRecipe.servings); setTab("Pricing"); }} className={`${tw.btnSec} bg-background text-accent border-accent`}>→ Price It</button>
+                        <button onClick={() => { setEditRec({ ..._selRecipe }); setEditIngInput({ pantryId: "", amount: "", unit: "cups" }); }} className="p-2 rounded-lg text-foreground/40 hover:text-accent hover:bg-background transition-colors">
+                          <Edit3 className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => deleteRecipe(_selRecipe.id)} className="p-2 rounded-lg text-foreground/40 hover:text-danger hover:bg-background transition-colors">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
-                      <div style={{ fontWeight: "600", fontSize: 12, color: C.mid, marginBottom: 4 }}>INGREDIENTS</div>
-                      {editRec.ingredients.map((ing, idx) => (
-                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: C.mid, padding: "2px 0" }}>
-                          <span>• {ing.amount} {ing.unit} {ing.name}</span>
-                          <button onClick={() => setEditRec(r => ({ ...r, ingredients: r.ingredients.filter((_, j) => j !== idx) }))} style={{ background: "none", border: "none", color: "#c0522a", cursor: "pointer", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
+                      <div className="flex gap-4 items-start pr-40">
+                        <PhotoUpload value={_selRecipe.photo} onChange={async v => { await supabase.from("recipes").update({ photo: v }).eq("id", _selRecipe.id); setRecipes(prev => prev.map(x => x.id === _selRecipe.id ? { ...x, photo: v } : x)); }} />
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase font-bold tracking-widest text-accent block mb-1">{_selRecipe.category}</span>
+                          <h1 className="text-2xl font-display font-black text-foreground tracking-tight">{_selRecipe.name}</h1>
                         </div>
-                      ))}
-                      <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 8 }}>
-                        <select value={editIngInput.pantryId} onChange={e => { const item = pantry.find(p => p.id === parseInt(e.target.value)); setEditIngInput(x => ({ ...x, pantryId: e.target.value, unit: item?.unit || "cups" })); }} style={{ ...s.input, flex: 2 }}>
-                          <option value="">— Add ingredient —</option>
-                          {pantry.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        <input type="number" step="0.25" placeholder="Amt" value={editIngInput.amount} onChange={e => setEditIngInput(x => ({ ...x, amount: e.target.value }))} style={{ ...s.input, width: 65 }} />
-                        <select value={editIngInput.unit} onChange={e => setEditIngInput(x => ({ ...x, unit: e.target.value }))} style={{ ...s.input, width: 80 }}>{UNITS.map(u => <option key={u}>{u}</option>)}</select>
-                        <button onClick={addEditRecipeIng} style={{ ...s.btn, padding: "8px 12px" }}>+</button>
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 2 }}>💡 Fractions as decimals: 1/4 = 0.25 · 1/3 = 0.33 · 1/2 = 0.5 · 2/3 = 0.67 · 3/4 = 0.75</div>
-                      <textarea placeholder="Notes / instructions" value={editRec.notes || ""} onChange={e => setEditRec(r => ({ ...r, notes: e.target.value }))} style={{ ...s.input, height: 60, resize: "vertical", marginBottom: 8 }} />
-                      <label style={s.label}>Major Allergens</label>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                        {ALLERGENS.map(a => {
-                          const checked = (editRec.allergens || []).includes(a);
+
+                      <div className="mt-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-warning flex items-center gap-1 mb-2">
+                          <ShieldAlert className="h-3.5 w-3.5" /><span>Major Allergens</span>
+                        </div>
+                        {(_selRecipe.allergens && _selRecipe.allergens.length > 0) ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {_selRecipe.allergens.map(a => (
+                              <span key={a} className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-accent/10 text-accent">{a}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-foreground/40 italic">No major allergens declared</span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border/60">
+                        <div className="bg-background rounded-lg px-3.5 py-2">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">Yield</div>
+                          <div className="text-sm font-bold text-foreground">{_selRecipe.servings} servings</div>
+                        </div>
+                        <div className="bg-background rounded-lg px-3.5 py-2">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">Batch Cost</div>
+                          <div className="text-sm font-bold text-foreground">${_selCost.toFixed(2)}</div>
+                        </div>
+                        <div className="bg-background rounded-lg px-3.5 py-2">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">Cost / Piece</div>
+                          <div className="text-sm font-bold text-success">${(_selCost / _selRecipe.servings).toFixed(3)}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Baking Scaling panel */}
+                    <div className={tw.card}>
+                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-border/60 mb-4">
+                        <div className="flex items-center gap-2">
+                          <Scale className="h-4.5 w-4.5 text-accent" />
+                          <h3 className="font-display font-bold text-foreground text-base">Baking Scaling Engine</h3>
+                        </div>
+                        <div className="flex gap-1 bg-background rounded-full p-1">
+                          {[0.5, 1, 1.5, 2, 3].map(f => (
+                            <button key={f} onClick={() => setScale(f)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${scale === f ? "bg-accent text-white" : "text-foreground/60 hover:text-foreground"}`}>{f}×</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-background rounded-xl p-3.5">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">Scaled Yield</div>
+                          <div className="text-xl font-display font-extrabold text-foreground mt-1">{Math.round(_selRecipe.servings * scale)} <span className="text-xs font-normal text-foreground/40">servings</span></div>
+                        </div>
+                        <div className="bg-background rounded-xl p-3.5">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">Scaled Ingredient Cost</div>
+                          <div className="text-xl font-display font-extrabold text-success mt-1">${(_selCost * scale).toFixed(2)}</div>
+                        </div>
+                      </div>
+
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-foreground/50 mb-2">Scaled Ingredients — {Math.round(_selRecipe.servings * scale)} servings</h4>
+                      <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-0.5">
+                        {_selRecipe.ingredients.map((ing, i) => {
+                          const uc = calcIngCost(ing, pantry);
                           return (
-                            <label key={a} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: checked ? "#fff" : C.mid, background: checked ? C.accent : "#fff", border: `1.5px solid ${checked ? C.accent : C.border}`, borderRadius: 16, padding: "4px 10px", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                              <input type="checkbox" checked={checked} onChange={() => setEditRec(r => ({ ...r, allergens: checked ? (r.allergens || []).filter(x => x !== a) : [...(r.allergens || []), a] }))} style={{ margin: 0 }} />
-                              {a}
-                            </label>
+                            <div key={i} className="flex justify-between items-center py-2 border-b border-border/50 text-sm">
+                              <span className="text-foreground/80">{ing.name}</span>
+                              <div className="text-right">
+                                <span className="font-mono font-bold text-foreground">{Math.round(ing.amount * scale * 100) / 100} {ing.unit}</span>
+                                {uc !== null && <span className="text-foreground/40 text-[11px] ml-1.5">(${(uc * scale).toFixed(2)})</span>}
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
-                      <label style={s.label}>Ingredients List (optional — not required under Texas law)</label>
-                      <textarea placeholder="e.g. Enriched flour, sugar, butter, eggs, vanilla extract..." value={editRec.ingredientsList || ""} onChange={e => setEditRec(r => ({ ...r, ingredientsList: e.target.value }))} style={{ ...s.input, height: 50, resize: "vertical", marginBottom: 8 }} />
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={saveRecipeEdit} style={s.btn}>Save Changes</button>
-                        <button onClick={() => setEditRec(null)} style={s.btnSec}>Cancel</button>
-                      </div>
+
+                      {_selRecipe.notes && (
+                        <div className="mt-4 pt-4 border-t border-border/60">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground/50 mb-1.5">Instructions</h4>
+                          <p className="text-sm text-foreground/70 leading-relaxed whitespace-pre-wrap">{_selRecipe.notes}</p>
+                        </div>
+                      )}
+
+                      {_selRecipe.ingredientsList && (
+                        <div className="mt-4 pt-4 border-t border-border/60">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground/50 mb-1.5">Ingredients List</h4>
+                          <p className="text-xs text-foreground/50 italic leading-relaxed">{_selRecipe.ingredientsList}</p>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </>
+                ) : (
+                  <div className={`${tw.card} text-center py-16 text-foreground/40`}>
+                    <BookOpen className="h-9 w-9 mx-auto mb-2 text-foreground/20" />
+                    <p className="text-sm font-bold">Select a recipe from the catalog to view details.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Add/Edit Recipe modal ── */}
+            {(showNewRec || editRec) && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                <div className="bg-card border border-border rounded-card shadow-card w-full max-w-lg max-h-[88vh] overflow-y-auto">
+                  <div className="flex items-center justify-between p-5 border-b border-border/60">
+                    <h3 className="font-display font-bold text-foreground text-lg">{editRec ? "Edit Recipe" : "New Recipe"}</h3>
+                    <button onClick={closeRecipeModal} className="text-foreground/40 hover:text-foreground text-xl leading-none px-1">✕</button>
+                  </div>
+                  <div className="p-5 flex flex-col gap-3.5">
+                    {editRec ? (
+                      <>
+                        <div>
+                          <label className={tw.eyebrow}>Recipe Name</label>
+                          <input value={editRec.name} onChange={e => setEditRec(r => ({ ...r, name: e.target.value }))} className={tw.input} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={tw.eyebrow}>Category</label>
+                            <select value={editRec.category} onChange={e => setEditRec(r => ({ ...r, category: e.target.value }))} className={tw.input}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select>
+                          </div>
+                          <div>
+                            <label className={tw.eyebrow}>Servings</label>
+                            <input type="number" value={editRec.servings} onChange={e => setEditRec(r => ({ ...r, servings: +e.target.value }))} className={tw.input} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Ingredients</label>
+                          <div className="bg-background rounded-lg p-3 flex flex-col gap-1">
+                            {editRec.ingredients.length === 0 && <span className="text-xs text-foreground/40">No ingredients yet.</span>}
+                            {editRec.ingredients.map((ing, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-xs text-foreground/70">
+                                <span>• {ing.amount} {ing.unit} {ing.name}</span>
+                                <button onClick={() => setEditRec(r => ({ ...r, ingredients: r.ingredients.filter((_, j) => j !== idx) }))} className="text-foreground/30 hover:text-danger px-1 text-base leading-none">×</button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-1.5 mt-2">
+                            <select value={editIngInput.pantryId} onChange={e => { const item = pantry.find(p => p.id === parseInt(e.target.value)); setEditIngInput(x => ({ ...x, pantryId: e.target.value, unit: item?.unit || "cups" })); }} className={`${tw.input} flex-1`}>
+                              <option value="">— Add ingredient —</option>
+                              {pantry.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            <input type="number" step="0.25" placeholder="Amt" value={editIngInput.amount} onChange={e => setEditIngInput(x => ({ ...x, amount: e.target.value }))} className={`${tw.input} w-16`} />
+                            <select value={editIngInput.unit} onChange={e => setEditIngInput(x => ({ ...x, unit: e.target.value }))} className={`${tw.input} w-20`}>{UNITS.map(u => <option key={u}>{u}</option>)}</select>
+                            <button onClick={addEditRecipeIng} className={`${tw.btn} !px-3`}>+</button>
+                          </div>
+                          <div className="text-[11px] text-foreground/40 mt-1">💡 Fractions as decimals: 1/4 = 0.25 · 1/3 = 0.33 · 1/2 = 0.5 · 2/3 = 0.67 · 3/4 = 0.75</div>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Instructions</label>
+                          <textarea placeholder="Notes / instructions" value={editRec.notes || ""} onChange={e => setEditRec(r => ({ ...r, notes: e.target.value }))} className={`${tw.input} h-20 resize-y`} />
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Major Allergens</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {ALLERGENS.map(a => {
+                              const checked = (editRec.allergens || []).includes(a);
+                              return (
+                                <label key={a} className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${checked ? "bg-accent text-white" : "bg-background text-foreground/60 border border-border"}`}>
+                                  <input type="checkbox" checked={checked} onChange={() => setEditRec(r => ({ ...r, allergens: checked ? (r.allergens || []).filter(x => x !== a) : [...(r.allergens || []), a] }))} className="hidden" />
+                                  {a}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Ingredients List (optional — not required under Texas law)</label>
+                          <textarea placeholder="e.g. Enriched flour, sugar, butter, eggs, vanilla extract..." value={editRec.ingredientsList || ""} onChange={e => setEditRec(r => ({ ...r, ingredientsList: e.target.value }))} className={`${tw.input} h-14 resize-y`} />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
+                          <button onClick={closeRecipeModal} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
+                          <button onClick={saveRecipeEdit} className={tw.btn}>Save Changes</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label className={tw.eyebrow}>Photo</label>
+                          <PhotoUpload value={newRec.photo} onChange={v => setNewRec(r => ({ ...r, photo: v }))} />
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Recipe Name</label>
+                          <input placeholder="e.g. Lavender Shortbread" value={newRec.name} onChange={e => setNewRec(r => ({ ...r, name: e.target.value }))} className={tw.input} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={tw.eyebrow}>Category</label>
+                            <select value={newRec.category} onChange={e => setNewRec(r => ({ ...r, category: e.target.value }))} className={tw.input}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select>
+                          </div>
+                          <div>
+                            <label className={tw.eyebrow}>Servings</label>
+                            <input type="number" value={newRec.servings} onChange={e => setNewRec(r => ({ ...r, servings: +e.target.value }))} className={tw.input} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Ingredients ({newRec.ingredients.length})</label>
+                          {newRec.ingredients.length > 0 && (
+                            <div className="bg-background rounded-lg p-3 flex flex-col gap-1 mb-2">
+                              {newRec.ingredients.map((ing, i) => <div key={i} className="text-xs text-foreground/70">• {ing.amount} {ing.unit} {ing.name}</div>)}
+                            </div>
+                          )}
+                          <div className="flex gap-1.5">
+                            <select value={recIngInput.pantryId} onChange={e => { const item = pantry.find(p => p.id === parseInt(e.target.value)); setRecIngInput(x => ({ ...x, pantryId: e.target.value, unit: item?.unit || "cups" })); }} className={`${tw.input} flex-1`}>
+                              <option value="">— Select ingredient —</option>
+                              {pantry.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            <input type="number" step="0.25" placeholder="Amt" value={recIngInput.amount} onChange={e => setRecIngInput(x => ({ ...x, amount: e.target.value }))} className={`${tw.input} w-16`} />
+                            <select value={recIngInput.unit} onChange={e => setRecIngInput(x => ({ ...x, unit: e.target.value }))} className={`${tw.input} w-20`}>{UNITS.map(u => <option key={u}>{u}</option>)}</select>
+                            <button onClick={addRecipeIng} className={`${tw.btn} !px-3`}>+</button>
+                          </div>
+                          <div className="text-[11px] text-foreground/40 mt-1">💡 Fractions as decimals: 1/4 = 0.25 · 1/3 = 0.33 · 1/2 = 0.5 · 2/3 = 0.67 · 3/4 = 0.75</div>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Instructions</label>
+                          <textarea placeholder="Notes / instructions" value={newRec.notes} onChange={e => setNewRec(r => ({ ...r, notes: e.target.value }))} className={`${tw.input} h-20 resize-y`} />
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Major Allergens</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {ALLERGENS.map(a => {
+                              const checked = newRec.allergens.includes(a);
+                              return (
+                                <label key={a} className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${checked ? "bg-accent text-white" : "bg-background text-foreground/60 border border-border"}`}>
+                                  <input type="checkbox" checked={checked} onChange={() => setNewRec(r => ({ ...r, allergens: checked ? r.allergens.filter(x => x !== a) : [...r.allergens, a] }))} className="hidden" />
+                                  {a}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Ingredients List (optional — not required under Texas law)</label>
+                          <textarea placeholder="e.g. Enriched flour, sugar, butter, eggs, vanilla extract..." value={newRec.ingredientsList} onChange={e => setNewRec(r => ({ ...r, ingredientsList: e.target.value }))} className={`${tw.input} h-14 resize-y`} />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
+                          <button onClick={closeRecipeModal} className={`${tw.btnSec} bg-background text-accent border-accent`}>Cancel</button>
+                          <button onClick={addRecipe} className={tw.btn}>Save Recipe</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {/* ══════════ PRICING ══════════ */}
         {tab === "Pricing" && (
