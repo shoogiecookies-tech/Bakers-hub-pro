@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp } from "lucide-react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -994,11 +994,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         .bf-task-check:hover { background: rgba(192,101,61,0.12) !important; }
         .bf-task-text { transition: color 0.5s ease, opacity 0.5s ease; }
         .bf-task-text.done { opacity: 0.45; }
-        .bf-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 4px; background: #ddd5c3; outline: none; cursor: pointer; display: block; }
-        .bf-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #c0653d; cursor: pointer; border: 2.5px solid #fff; box-shadow: 0 1px 6px rgba(192,101,61,0.35); }
-        .bf-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #c0653d; cursor: pointer; border: 2.5px solid #fff; box-shadow: 0 1px 6px rgba(192,101,61,0.35); border: none; }
-        .bf-slider::-webkit-slider-runnable-track { height: 5px; border-radius: 4px; background: #ddd5c3; }
-        .bf-slider::-moz-range-track { height: 5px; border-radius: 4px; background: #ddd5c3; }
+        .bf-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 4px; background: var(--color-border); outline: none; cursor: pointer; display: block; }
+        .bf-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--color-accent); cursor: pointer; border: 2.5px solid var(--color-card); box-shadow: 0 1px 6px rgba(0,0,0,0.25); }
+        .bf-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--color-accent); cursor: pointer; border: 2.5px solid var(--color-card); box-shadow: 0 1px 6px rgba(0,0,0,0.25); border: none; }
+        .bf-slider::-webkit-slider-runnable-track { height: 5px; border-radius: 4px; background: var(--color-border); }
+        .bf-slider::-moz-range-track { height: 5px; border-radius: 4px; background: var(--color-border); }
       `}</style>
 
       {/* HEADER */}
@@ -1728,12 +1728,21 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
         {/* ══════════ PRICING ══════════ */}
         {tab === "Pricing" && (
-          <div>
-            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 6 }}>Pricing Calculator</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>Enter your recipe costs and labor, then set your selling price or let BakeFlo suggest one.</div>
-            <div style={s.card}>
-              <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, marginBottom: 8 }}>STEP 1 — Link a Recipe (optional)</div>
-              <select value={pricingRecId} onChange={e => { setPricingRecId(e.target.value); if (e.target.value) { const r = recipes.find(r => r.id === parseInt(e.target.value)); if (r) { setPricingSvgs(r.servings); setSellQty(r.servings); } } }} style={s.input}>
+          <div className="flex flex-col gap-4">
+            <div>
+              <h2 className="font-display font-bold text-foreground text-xl">Pricing Calculator</h2>
+              <p className="text-xs text-foreground/60 mt-1 leading-relaxed">Enter your recipe costs and labor, then set your selling price or let BakeFlo suggest one.</p>
+            </div>
+
+            {/* Input parameters card */}
+            <div className={tw.card}>
+              <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                <Calculator className="h-5 w-5 text-accent" />
+                <h3 className="font-display font-bold text-foreground text-base">Costing &amp; Markup Calculator</h3>
+              </div>
+
+              <div className={`${tw.section} mb-2`}>Step 1 — Link a Recipe (optional)</div>
+              <select value={pricingRecId} onChange={e => { setPricingRecId(e.target.value); if (e.target.value) { const r = recipes.find(r => r.id === parseInt(e.target.value)); if (r) { setPricingSvgs(r.servings); setSellQty(r.servings); } } }} className={tw.input}>
                 <option value="">— No recipe, enter costs manually —</option>
                 {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
@@ -1743,23 +1752,30 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 const batchCost = calcRecipeCost(r, pantry);
                 const sf = pricingSvgs / r.servings;
                 return (
-                  <div style={{ background: C.light, borderRadius: 10, padding: 12, marginTop: 10 }}>
-                    <div style={{ marginBottom: 8 }}><label style={s.label}>Quantity / servings selling</label><input type="number" value={pricingSvgs} onChange={e => { setPricingSvgs(+e.target.value); setSellQty(+e.target.value); }} style={{ ...s.input, width: 120 }} /></div>
-                    <div style={{ fontSize: 13 }}>
-                      {r.ingredients.map((ing, i) => { const c = calcIngCost(ing, pantry); return <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: 12, color: C.muted }}><span>{+(ing.amount * sf).toFixed(2)} {ing.unit} {ing.name}</span><span>{c !== null ? `$${(c * sf).toFixed(2)}` : "—"}</span></div>; })}
-                      <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontWeight: "bold", color: C.dark, marginTop: 4, borderTop: `1px solid ${C.border}` }}><span>Scaled ingredient cost</span><span>${(batchCost * sf).toFixed(2)}</span></div>
+                  <div className="bg-background rounded-lg p-3 mt-3">
+                    <div className="mb-2">
+                      <label className={tw.eyebrow}>Quantity / servings selling</label>
+                      <input type="number" value={pricingSvgs} onChange={e => { setPricingSvgs(+e.target.value); setSellQty(+e.target.value); }} className={`${tw.input} w-32`} />
+                    </div>
+                    <div className="text-sm">
+                      {r.ingredients.map((ing, i) => { const c = calcIngCost(ing, pantry); return <div key={i} className="flex justify-between py-0.5 text-xs text-foreground/50"><span>{+(ing.amount * sf).toFixed(2)} {ing.unit} {ing.name}</span><span>{c !== null ? `$${(c * sf).toFixed(2)}` : "—"}</span></div>; })}
+                      <div className="flex justify-between py-1.5 font-bold text-foreground mt-1 border-t border-border">
+                        <span>Scaled ingredient cost</span><span>${(batchCost * sf).toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
                 );
               })()}
-              <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, margin: "14px 0 4px" }}>STEP 2 — Extra Costs</div>
-              {extraCosts.map((ec, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "3px 0", color: C.mid }}><span>{ec.name}</span><span>${parseFloat(ec.cost).toFixed(2)}</span></div>)}
-              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                <input placeholder="Item (e.g. cake box)" value={extraCostIn.name} onChange={e => setExtraCostIn(x => ({ ...x, name: e.target.value }))} style={{ ...s.input, flex: 2 }} />
-                <input type="number" step="0.01" placeholder="$" value={extraCostIn.cost} onChange={e => setExtraCostIn(x => ({ ...x, cost: e.target.value }))} style={{ ...s.input, width: 70 }} />
-                <button onClick={() => { if (extraCostIn.name) { setExtraCosts(p => [...p, { ...extraCostIn }]); setExtraCostIn({ name: "", cost: "" }); } }} style={{ ...s.btn, padding: "8px 12px" }}>+</button>
+
+              <div className={`${tw.section} mt-5 mb-2 flex items-center gap-1.5`}><Coins className="h-3.5 w-3.5" /><span>Step 2 — Extra Costs</span></div>
+              {extraCosts.map((ec, i) => <div key={i} className="flex justify-between text-sm py-0.5 text-foreground/70"><span>{ec.name}</span><span>${parseFloat(ec.cost).toFixed(2)}</span></div>)}
+              <div className="flex gap-1.5 mt-1">
+                <input placeholder="Item (e.g. cake box)" value={extraCostIn.name} onChange={e => setExtraCostIn(x => ({ ...x, name: e.target.value }))} className={`${tw.input} flex-[2]`} />
+                <input type="number" step="0.01" placeholder="$" value={extraCostIn.cost} onChange={e => setExtraCostIn(x => ({ ...x, cost: e.target.value }))} className={`${tw.input} w-20`} />
+                <button onClick={() => { if (extraCostIn.name) { setExtraCosts(p => [...p, { ...extraCostIn }]); setExtraCostIn({ name: "", cost: "" }); } }} className={`${tw.btn} !px-3`}>+</button>
               </div>
-              <div style={{ fontWeight: "600", color: C.accent, fontSize: 13, margin: "14px 0 12px" }}>STEP 3 — Labor & Margins</div>
+
+              <div className={`${tw.section} mt-5 mb-3`}>Step 3 — Labor &amp; Margins</div>
               {[
                 { label: "LABOR HRS",   val: laborHrs,  set: setLaborHrs,  min: 0, max: 8,   step: 0.5, tooltip: "Decorating a detailed cookie? Add the extra time — your price adjusts automatically." },
                 { label: "$ / HR",      val: laborRate, set: setLaborRate, min: 0, max: 50,  step: 1,   tooltip: "Not sure where to start? Try your state's minimum wage and adjust up from there." },
@@ -1767,35 +1783,40 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 { label: "OVERHEAD %",  val: overhead,  set: setOverhead,  min: 0, max: 30,  step: 1,   tooltip: "Covers utilities, packaging, and equipment wear. 10% is a common starting point." },
                 { label: "RECIPE YIELD", val: sellQty,  set: setSellQty,   min: 1, max: 100, step: 1,   tooltip: "How many pieces does this recipe make? BakeFlo divides your total cost by this number to get your per-item price." },
               ].map(({ label, val, set, min, max, step, tooltip }) => (
-                <div key={label} style={{ marginBottom: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", fontWeight: "600" }}>{label}</span>
+                <div key={label} className="mb-4">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[11px] text-foreground/50 uppercase font-bold tracking-wider">{label}</span>
                     <input
                       type="number" value={val} step={step} min={min} max={max}
                       onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) set(Math.min(max, Math.max(min, v))); }}
                       onFocus={() => setFocusedPricingField(label)}
                       onBlur={() => setFocusedPricingField(null)}
-                      style={{ width: 68, padding: "3px 8px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 14, fontWeight: "700", color: C.accent, textAlign: "center", background: "#fff", outline: "none", fontFamily: "'Inter', sans-serif", boxSizing: "border-box" }}
+                      className="w-[68px] px-2 py-1 rounded-lg border border-border text-sm font-bold text-accent text-center bg-card outline-none font-body box-border"
                     />
                   </div>
                   <input type="range" className="bf-slider" min={min} max={max} step={step} value={val} onChange={e => set(+e.target.value)} />
                   {focusedPricingField === label && (
-                    <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic", marginTop: 5, lineHeight: 1.4 }}>{tooltip}</div>
+                    <div className="text-[11px] text-foreground/50 italic mt-1.5 leading-snug">{tooltip}</div>
                   )}
                 </div>
               ))}
-              <div style={{ marginTop: 10 }}>
-                <label style={s.label}>Your Selling Price $</label>
+
+              <div className="mt-3">
+                <label className={tw.eyebrow}>Your Selling Price $</label>
                 <input
                   type="number" step="0.01" placeholder="0.00"
                   value={sellingPrice}
                   onChange={e => setSellingPrice(e.target.value)}
-                  style={{ ...s.input, fontSize: 16, fontWeight: "700", textAlign: "center" }}
+                  className={`${tw.input} text-base font-bold text-center`}
                 />
               </div>
-              <button onClick={suggestPrice} style={{ ...s.btnSec, width: "100%", marginTop: 12, padding: 11, fontSize: 13 }}>✨ Suggest a Price — ingredients + labor + {markup}% markup</button>
-              <button onClick={calcPrice} style={{ ...s.btn, width: "100%", marginTop: 8, padding: 12, fontSize: 14, background: "#C0653D" }}>Calculate Price →</button>
+              <button onClick={suggestPrice} className={`${tw.btnSec} w-full mt-3 !py-2.5 !rounded-lg flex items-center justify-center gap-1.5`}>
+                <Sparkles className="h-3.5 w-3.5" /><span>Suggest a Price — ingredients + labor + {markup}% markup</span>
+              </button>
+              <button onClick={calcPrice} className={`${tw.btn} w-full mt-2 !py-3 text-sm`}>Calculate Price →</button>
             </div>
+
+            {/* Output / results card */}
             {priceResult && (() => {
               const sp = parseFloat(sellingPrice) || 0;
               const overheadAmt = priceResult.withOH - priceResult.sub;
@@ -1803,91 +1824,101 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               const breakEven = priceResult.withOH;
               const pureProfit = sp - breakEven;
               const margin = sp > 0 ? (pureProfit / sp * 100) : 0;
-              const row = (label, value, opts = {}) => (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: opts.size || 14, fontWeight: opts.bold ? "700" : "400", color: opts.color || C.dark }}>
-                  <span style={{ color: opts.labelColor || C.muted }}>{label}</span><span>{value}</span>
-                </div>
-              );
-              const divider = () => <div style={{ borderTop: `1.5px solid ${C.border}`, margin: "10px 0" }} />;
+              const targetMarginPrice40 = breakEven > 0 ? +(breakEven / 0.60).toFixed(2) : null;
+              const targetMarginPrice50 = breakEven > 0 ? +(breakEven / 0.50).toFixed(2) : null;
+              const bannerTone = margin < 20 ? "danger" : margin < 40 ? "warning" : "success";
               return (
-                <div style={s.card}>
-                  <div style={{ fontWeight: "800", fontSize: 17, marginBottom: 14, color: C.dark }}>💰 Your Complete Picture</div>
-
-                  <div style={{ fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 4 }}>What it costs you:</div>
-                  {row("Ingredients", `$${priceResult.ingCost.toFixed(2)}`)}
-                  {row(`Overhead (${overhead}%)`, `$${overheadAmt.toFixed(2)}`)}
-                  {divider()}
-                  {row("Hard Costs", `$${hardCosts.toFixed(2)}`, { bold: true, labelColor: C.dark })}
-
-                  <div style={{ fontSize: 11, color: C.muted, letterSpacing: 0.8, textTransform: "uppercase", margin: "12px 0 4px" }}>Your time:</div>
-                  {row(`${laborHrs} hr${laborHrs !== 1 ? "s" : ""} @ $${laborRate}/hr`, `$${priceResult.labor.toFixed(2)}`)}
-
-                  {divider()}
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", fontSize: 15, fontWeight: "800", color: C.dark, borderTop: `2px solid ${C.dark}`, borderBottom: `2px solid ${C.dark}`, margin: "4px 0" }}>
-                    <span>TOTAL TO BREAK EVEN</span><span>${breakEven.toFixed(2)}</span>
+                <div className={tw.card}>
+                  <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-5">
+                    <DollarSign className="h-5 w-5 text-accent" />
+                    <h3 className="font-display font-black text-foreground text-lg">Your Complete Picture</h3>
                   </div>
-                  {divider()}
 
-                  {suggestedPrice != null && (
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: C.muted }}>
-                      <span>BakeFlo Suggests</span><span style={{ fontWeight: "600", color: "#C0653D" }}>${suggestedPrice.toFixed(2)}</span>
+                  {/* Cost breakdown mini-stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                    <div className="p-3 bg-background rounded-xl">
+                      <span className="text-[10px] text-foreground/40 uppercase font-bold tracking-wider block">Ingredients</span>
+                      <p className="text-base font-mono font-bold text-foreground mt-1">${priceResult.ingCost.toFixed(2)}</p>
                     </div>
-                  )}
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", fontSize: 15, fontWeight: "800", color: C.dark }}>
-                    <span>WHAT YOU CHARGE</span><span>${sp.toFixed(2)}</span>
-                  </div>
-                  {divider()}
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
-                    <span style={{ fontWeight: "800", fontSize: 16, color: pureProfit >= 0 ? "#10b981" : "#c0522a" }}>PURE PROFIT</span>
-                    <span style={{ fontWeight: "800", fontSize: 26, color: pureProfit >= 0 ? "#10b981" : "#c0522a" }}>${pureProfit.toFixed(2)}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: C.muted }}>
-                    <span>PROFIT MARGIN</span><span style={{ fontWeight: "700" }}>{margin.toFixed(1)}%</span>
-                  </div>
-
-                  <div style={{
-                    marginTop: 14, borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: "600",
-                    background: margin < 20 ? "#fee2e2" : margin < 40 ? "#fef3c7" : "#d1fae5",
-                    color: margin < 20 ? "#991b1b" : margin < 40 ? "#92400e" : "#065f46",
-                  }}>
-                    {margin < 20 ? "⚠️ You may be underpricing" : margin < 40 ? "👍 Decent margin — room to grow" : "🎉 Great margin — you're pricing well!"}
+                    <div className="p-3 bg-background rounded-xl">
+                      <span className="text-[10px] text-foreground/40 uppercase font-bold tracking-wider block">Overhead ({overhead}%)</span>
+                      <p className="text-base font-mono font-bold text-foreground mt-1">${overheadAmt.toFixed(2)}</p>
+                    </div>
+                    <div className="p-3 bg-background rounded-xl">
+                      <span className="text-[10px] text-foreground/40 uppercase font-bold tracking-wider block">Labor</span>
+                      <p className="text-base font-mono font-bold text-foreground mt-1">${priceResult.labor.toFixed(2)}</p>
+                      <span className="text-[9px] text-foreground/40 block mt-0.5">{laborHrs} hr{laborHrs !== 1 ? "s" : ""} @ ${laborRate}/hr</span>
+                    </div>
+                    <div className="p-3 bg-foreground text-background rounded-xl">
+                      <span className="text-[10px] text-background/50 uppercase font-bold tracking-wider block">Break Even</span>
+                      <p className="text-base font-mono font-bold text-background mt-1">${breakEven.toFixed(2)}</p>
+                    </div>
                   </div>
 
-                  {(() => {
-                    const targetMarginPrice40 = breakEven > 0 ? +(breakEven / 0.60).toFixed(2) : null;
-                    const targetMarginPrice50 = breakEven > 0 ? +(breakEven / 0.50).toFixed(2) : null;
-                    return (
-                      <div style={{ marginTop: 14 }}>
-                        {margin < 20 && sp > 0 && targetMarginPrice40 && (
-                          <div style={{ background: "#fef3c7", borderRadius: 10, padding: "12px 14px", marginBottom: 10, border: "1px solid #fde68a" }}>
-                            <div style={{ fontSize: 12, fontWeight: "700", color: "#92400e", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>Pricing Suggestion</div>
-                            <div style={{ fontSize: 13, color: "#78350f", lineHeight: 1.6 }}>
-                              At your current price of <strong>${sp.toFixed(2)}</strong>, you're only making {margin.toFixed(1)}% margin.
-                              To reach a healthy <strong>40% margin</strong>, consider charging <strong>${targetMarginPrice40.toFixed(2)}</strong>.
-                            </div>
-                          </div>
-                        )}
-                        {margin >= 20 && margin < 40 && targetMarginPrice40 && sp < targetMarginPrice40 && (
-                          <div style={{ background: "#eff6ff", borderRadius: 10, padding: "12px 14px", marginBottom: 10, border: "1px solid #bfdbfe" }}>
-                            <div style={{ fontSize: 12, fontWeight: "700", color: "#1e40af", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>Room to Grow</div>
-                            <div style={{ fontSize: 13, color: "#1e3a8a", lineHeight: 1.6 }}>
-                              You could raise your price to <strong>${targetMarginPrice40.toFixed(2)}</strong> to hit a 40% margin.
-                              {targetMarginPrice50 && ` At 50% margin that's $${targetMarginPrice50.toFixed(2)} — still competitive for home bakers.`}
-                            </div>
-                          </div>
-                        )}
-                        {margin >= 40 && (
-                          <div style={{ background: "#f0fdf4", borderRadius: 10, padding: "12px 14px", marginBottom: 10, border: "1px solid #bbf7d0" }}>
-                            <div style={{ fontSize: 13, color: "#065f46", fontWeight: "600", lineHeight: 1.6 }}>
-                              🎉 This item has strong margins — you're pricing confidently and profitably!
-                              {margin >= 50 && " Your top earners like this one are the backbone of your bakery."}
-                            </div>
-                          </div>
-                        )}
+                  {/* Master pricing panel */}
+                  <div className="p-5 md:p-6 rounded-2xl bg-foreground text-background space-y-5">
+                    <div className="flex items-center gap-2 border-b border-background/15 pb-3">
+                      <Sparkles className="h-4.5 w-4.5 text-accent" />
+                      <span className="font-display font-black text-background text-base">Hard Costs: ${hardCosts.toFixed(2)}</span>
+                    </div>
+
+                    {suggestedPrice != null && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="uppercase font-bold tracking-wider text-background/50 text-[10px]">BakeFlo Suggests</span>
+                        <span className="font-mono font-bold text-accent">${suggestedPrice.toFixed(2)}</span>
                       </div>
-                    );
-                  })()}
+                    )}
+
+                    <div className="flex justify-between items-center border-t border-background/15 pt-4">
+                      <span className="uppercase font-bold tracking-wider text-background/60 text-xs">What You Charge</span>
+                      <span className="text-2xl font-display font-black text-background">${sp.toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex flex-wrap justify-between items-end gap-4 border-t border-background/15 pt-4">
+                      <div>
+                        <span className={`text-[10px] uppercase font-bold tracking-wider ${pureProfit >= 0 ? "text-success" : "text-danger"}`}>Pure Profit</span>
+                        <div className={`text-3xl font-display font-black mt-1 ${pureProfit >= 0 ? "text-success" : "text-danger"}`}>${pureProfit.toFixed(2)}</div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-background/50 block">Profit Margin</span>
+                        <span className="text-lg font-mono font-bold text-background">{margin.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Margin-coaching banner */}
+                  <div className={`mt-4 rounded-xl px-4 py-3 text-sm font-semibold flex items-center gap-2 bg-${bannerTone}/15 text-${bannerTone}`}>
+                    {margin < 20 ? <AlertCircle className="h-4 w-4 shrink-0" /> : <TrendingUp className="h-4 w-4 shrink-0" />}
+                    <span>{margin < 20 ? "You may be underpricing" : margin < 40 ? "Decent margin — room to grow" : "Great margin — you're pricing well!"}</span>
+                  </div>
+
+                  {/* Contextual suggestion box */}
+                  <div className="mt-3.5">
+                    {margin < 20 && sp > 0 && targetMarginPrice40 && (
+                      <div className="bg-warning/10 border border-warning/25 rounded-xl px-3.5 py-3">
+                        <div className="text-[11px] font-bold text-warning uppercase tracking-wider mb-1.5">Pricing Suggestion</div>
+                        <div className="text-sm text-foreground/70 leading-relaxed">
+                          At your current price of <strong className="text-foreground">${sp.toFixed(2)}</strong>, you're only making {margin.toFixed(1)}% margin.
+                          To reach a healthy <strong className="text-foreground">40% margin</strong>, consider charging <strong className="text-foreground">${targetMarginPrice40.toFixed(2)}</strong>.
+                        </div>
+                      </div>
+                    )}
+                    {margin >= 20 && margin < 40 && targetMarginPrice40 && sp < targetMarginPrice40 && (
+                      <div className="bg-info/10 border border-info/25 rounded-xl px-3.5 py-3">
+                        <div className="text-[11px] font-bold text-info uppercase tracking-wider mb-1.5">Room to Grow</div>
+                        <div className="text-sm text-foreground/70 leading-relaxed">
+                          You could raise your price to <strong className="text-foreground">${targetMarginPrice40.toFixed(2)}</strong> to hit a 40% margin.
+                          {targetMarginPrice50 && ` At 50% margin that's $${targetMarginPrice50.toFixed(2)} — still competitive for home bakers.`}
+                        </div>
+                      </div>
+                    )}
+                    {margin >= 40 && (
+                      <div className="bg-success/10 border border-success/25 rounded-xl px-3.5 py-3 text-sm text-foreground/70 leading-relaxed">
+                        This item has strong margins — you're pricing confidently and profitably!
+                        {margin >= 50 && " Your top earners like this one are the backbone of your bakery."}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })()}
