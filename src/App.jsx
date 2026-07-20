@@ -718,7 +718,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     const withOH = sub + ingCost * (overhead / 100);
     return { ingCost, labor, sub, withOH };
   };
-  const calcPrice = () => { const r = calcPriceInputs(); setSuggestedPrice(+(r.withOH * 1.40).toFixed(2)); setPriceResult(r); };
+  const calcPrice = () => { const r = calcPriceInputs(); setSuggestedPrice(+(r.withOH / (1 - 0.40)).toFixed(2)); setPriceResult(r); };
   const suggestPrice = () => {
     const result = calcPriceInputs();
     const suggested = +(result.withOH * (1 + markup / 100)).toFixed(2);
@@ -1813,7 +1813,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               <button onClick={suggestPrice} className={`${tw.btnSec} w-full mt-3 !py-2.5 !rounded-lg flex items-center justify-center gap-1.5`}>
                 <Sparkles className="h-3.5 w-3.5" /><span>Suggest a Price — ingredients + labor + {markup}% markup</span>
               </button>
-              <button onClick={calcPrice} className={`${tw.btn} w-full mt-2 !py-3 text-sm`}>Calculate Price →</button>
+              <button onClick={calcPrice} className={`${tw.btn} w-full mt-2 !py-3 text-sm`}>Calculate Price → ingredients + labor + 40% margin</button>
             </div>
 
             {/* Output / results card */}
