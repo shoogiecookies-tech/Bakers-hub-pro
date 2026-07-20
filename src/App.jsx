@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle } from "lucide-react";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -2848,94 +2848,116 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
         {/* ══════════ SETTINGS ══════════ */}
         {tab === "Settings" && (
-          <div>
-            <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>⚙️ Settings</div>
-            <div className="bf-settings-grid">
-
-              {/* FULL WIDTH — Quick Start Guide */}
-              <a className="bf-settings-full" href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", ...s.card, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: "700", color: C.text }}>📖 Quick Start Guide</div>
-                  <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>New to BakeFlo? Get up and running in minutes.</div>
-                </div>
-                <div style={{ fontSize: 18, color: C.muted, flexShrink: 0 }}>›</div>
-              </a>
-
-              {/* FULL WIDTH — AI Features */}
-              <div className="bf-settings-full" style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 8 }}>🤖 AI Features</div>
-                <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
-                  <strong style={{ color: C.dark }}>Get your free Anthropic API key:</strong><br />
-                  1. Go to <strong>console.anthropic.com</strong><br />
-                  2. Sign up → API Keys → Create Key<br />
-                  3. Paste it below
-                </div>
-                <label style={s.label}>Your API Key</label>
-                <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} style={s.input} />
-                <button onClick={() => saveApiKey(apiKey)} style={{ ...s.btn, marginTop: 10 }}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
-                {apiKey && <div style={{ fontSize: 12, color: "#10b981", marginTop: 8 }}>✓ AI features enabled!</div>}
-              </div>
-
-              {/* FULL WIDTH — Account & Security */}
-              <div className="bf-settings-full" style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🔐 Account & Security</div>
-                <div style={{ fontSize: 13, color: C.mid, marginBottom: 12 }}>Signed in as <strong>{session.user.email}</strong></div>
-                <button onClick={handleSignOut} style={s.btnSec}>Sign Out</button>
-                <div style={{ borderTop: `1px solid ${C.border}`, margin: "18px 0 14px" }} />
-                <div style={{ fontWeight: "600", color: C.text, marginBottom: 10, fontSize: 13 }}>Change Password</div>
-                <label style={s.label}>New Password</label>
-                <PwField value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="At least 6 characters" show={showPwNew} onToggle={() => setShowPwNew(p => !p)} />
-                <label style={{ ...s.label, marginTop: 10 }}>Confirm New Password</label>
-                <PwField value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} placeholder="Repeat new password" show={showPwConf} onToggle={() => setShowPwConf(p => !p)} />
-                {pwMsg && <div style={{ fontSize: 13, color: pwMsg.startsWith("✓") ? "#16A34A" : "#DC2626", marginTop: 8 }}>{pwMsg}</div>}
-                <button onClick={changePassword} disabled={pwLoading} style={{ ...s.btn, marginTop: 12, opacity: pwLoading ? 0.6 : 1 }}>{pwLoading ? "Saving..." : "Update Password"}</button>
-              </div>
-
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-accent" />
+              <h2 className="font-display font-bold text-foreground text-xl">Settings</h2>
             </div>
+
+            {/* Quick Start Guide */}
+            <a href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" className={`${tw.card} flex items-center justify-between no-underline hover:border-accent/40 transition-colors`}>
+              <div className="flex items-center gap-3">
+                <BookOpen className="h-5 w-5 text-accent shrink-0" />
+                <div>
+                  <div className="text-sm font-bold text-foreground">Quick Start Guide</div>
+                  <div className="text-xs text-foreground/50 mt-0.5">New to BakeFlo? Get up and running in minutes.</div>
+                </div>
+              </div>
+              <span className="text-lg text-foreground/30 shrink-0">›</span>
+            </a>
+
+            {/* AI Features */}
+            <div className={tw.card}>
+              <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                <Sparkles className="h-5 w-5 text-accent" />
+                <h3 className="font-display font-bold text-foreground text-base">AI Features</h3>
+              </div>
+              <div className="bg-background rounded-lg p-3 text-sm text-foreground/70 leading-relaxed mb-3">
+                <strong className="text-foreground">Get your free Anthropic API key:</strong><br />
+                1. Go to <strong className="text-foreground">console.anthropic.com</strong><br />
+                2. Sign up → API Keys → Create Key<br />
+                3. Paste it below
+              </div>
+              <label className={tw.eyebrow}>Your API Key</label>
+              <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} className={tw.input} />
+              <button onClick={() => saveApiKey(apiKey)} className={`${tw.btn} mt-2.5`}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
+              {apiKey && <div className="text-xs text-success mt-2">✓ AI features enabled!</div>}
+            </div>
+
+            {/* Account & Security */}
+            <div className={tw.card}>
+              <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                <Shield className="h-5 w-5 text-accent" />
+                <h3 className="font-display font-bold text-foreground text-base">Account &amp; Security</h3>
+              </div>
+              <div className="text-sm text-foreground/70 mb-3">Signed in as <strong className="text-foreground">{session.user.email}</strong></div>
+              <button onClick={handleSignOut} className={`${tw.btnSec} bg-background text-accent border-accent`}>Sign Out</button>
+              <div className="border-t border-border my-4" />
+              <div className="text-sm font-bold text-foreground mb-2.5">Change Password</div>
+              <label className={tw.eyebrow}>New Password</label>
+              <PwField value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="At least 6 characters" show={showPwNew} onToggle={() => setShowPwNew(p => !p)} />
+              <label className={`${tw.eyebrow} mt-2.5`}>Confirm New Password</label>
+              <PwField value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} placeholder="Repeat new password" show={showPwConf} onToggle={() => setShowPwConf(p => !p)} />
+              {pwMsg && <div className={`text-sm mt-2 ${pwMsg.startsWith("✓") ? "text-success" : "text-danger"}`}>{pwMsg}</div>}
+              <button onClick={changePassword} disabled={pwLoading} className={`${tw.btn} mt-3`} style={{ opacity: pwLoading ? 0.6 : 1 }}>{pwLoading ? "Saving..." : "Update Password"}</button>
+            </div>
+
           </div>
         )}
 
         {tab === "Admin" && session.user.email === "shoogiecookies@gmail.com" && (
-            <div>
-              <div style={{ fontSize: 18, fontWeight: "bold", marginBottom: 14 }}>🔐 Admin Panel</div>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-accent" />
+                <h2 className="font-display font-bold text-foreground text-xl">Admin Panel</h2>
+              </div>
 
               {/* Gift an Account */}
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>🎁 Gift an Account</div>
-                <label style={s.label}>Email Address</label>
-                <input value={giftEmail} onChange={e => setGiftEmail(e.target.value)} placeholder="customer@email.com" style={s.input} />
-                <label style={{ ...s.label, marginTop: 10 }}>Temporary Password</label>
+              <div className={tw.card}>
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                  <Gift className="h-5 w-5 text-accent" />
+                  <h3 className="font-display font-bold text-foreground text-base">Gift an Account</h3>
+                </div>
+                <label className={tw.eyebrow}>Email Address</label>
+                <input value={giftEmail} onChange={e => setGiftEmail(e.target.value)} placeholder="customer@email.com" className={tw.input} />
+                <label className={`${tw.eyebrow} mt-2.5`}>Temporary Password</label>
                 <PwField value={giftPassword} onChange={e => setGiftPassword(e.target.value)} placeholder="They can change this after login" show={showGiftPw} onToggle={() => setShowGiftPw(p => !p)} />
-                <label style={{ ...s.label, marginTop: 10 }}>Notes (optional)</label>
-                <input value={giftNotes} onChange={e => setGiftNotes(e.target.value)} placeholder="e.g. Gift for holiday promo" style={s.input} />
-                {giftMsg && <div style={{ fontSize: 13, color: giftMsg.startsWith("Error") ? "#DC2626" : "#16A34A", marginTop: 8 }}>{giftMsg}</div>}
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 6, marginBottom: 10 }}>Account is created server-side with email pre-confirmed — the user can log in immediately with these credentials. Share the password with them directly; they can change it in Settings.</div>
-                <button onClick={giftAccount} disabled={giftLoading} style={{ ...s.btn, opacity: giftLoading ? 0.6 : 1 }}>{giftLoading ? "Creating..." : "Create Account"}</button>
+                <label className={`${tw.eyebrow} mt-2.5`}>Notes (optional)</label>
+                <input value={giftNotes} onChange={e => setGiftNotes(e.target.value)} placeholder="e.g. Gift for holiday promo" className={tw.input} />
+                {giftMsg && <div className={`text-sm mt-2 ${giftMsg.startsWith("Error") ? "text-danger" : "text-success"}`}>{giftMsg}</div>}
+                <div className="text-[11px] text-foreground/40 mt-2 mb-2.5 leading-relaxed">Account is created server-side with email pre-confirmed — the user can log in immediately with these credentials. Share the password with them directly; they can change it in Settings.</div>
+                <button onClick={giftAccount} disabled={giftLoading} className={tw.btn} style={{ opacity: giftLoading ? 0.6 : 1 }}>{giftLoading ? "Creating..." : "Create Account"}</button>
               </div>
 
               {/* Gifted Accounts List */}
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>👥 Gifted Accounts</div>
+              <div className={tw.card}>
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                  <Users className="h-5 w-5 text-accent" />
+                  <h3 className="font-display font-bold text-foreground text-base">Gifted Accounts</h3>
+                </div>
                 {giftedUsers.length === 0
-                  ? <div style={{ fontSize: 13, color: C.muted }}>No gifted accounts yet. Create one above.</div>
+                  ? <div className="text-sm text-foreground/40">No gifted accounts yet. Create one above.</div>
                   : giftedUsers.map(u => (
-                    <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
+                    <div key={u.id} className="flex items-center justify-between py-2.5 border-b border-border/60 last:border-b-0">
                       <div>
-                        <div style={{ fontWeight: "600", fontSize: 14 }}>{u.email}</div>
-                        {u.notes && <div style={{ fontSize: 12, color: C.muted }}>{u.notes}</div>}
-                        <div style={{ fontSize: 11, color: C.muted }}>{new Date(u.created_at).toLocaleDateString()}</div>
+                        <div className="font-bold text-sm text-foreground">{u.email}</div>
+                        {u.notes && <div className="text-xs text-foreground/50 mt-0.5">{u.notes}</div>}
+                        <div className="text-[11px] text-foreground/40 mt-0.5">{new Date(u.created_at).toLocaleDateString()}</div>
                       </div>
-                      <button onClick={() => revokeGiftedUser(u.id)} style={{ ...s.btnSec, padding: "4px 10px", fontSize: 12 }}>Remove</button>
+                      <button onClick={() => revokeGiftedUser(u.id)} className={`${tw.btnSec} !px-2.5 !py-1 text-xs bg-background text-danger border-danger`}>Remove</button>
                     </div>
                   ))
                 }
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Note: removing from this list does not delete the Supabase auth account. To fully revoke access, delete the user in your Supabase Auth dashboard.</div>
+                <div className="text-[11px] text-foreground/40 mt-3 leading-relaxed">Note: removing from this list does not delete the Supabase auth account. To fully revoke access, delete the user in your Supabase Auth dashboard.</div>
               </div>
 
               {/* Data Overview */}
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>📊 Data Overview</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className={tw.card}>
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                  <Database className="h-5 w-5 text-accent" />
+                  <h3 className="font-display font-bold text-foreground text-base">Data Overview</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
                   {[
                     { label: "Pantry Items", value: pantry.length, icon: "🧂" },
                     { label: "Recipes", value: recipes.length, icon: "📖" },
@@ -2944,30 +2966,36 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     { label: "Schedule Tasks", value: schedule.length, icon: "📅" },
                     { label: "Gifted Accounts", value: giftedUsers.length, icon: "🎁" },
                   ].map(item => (
-                    <div key={item.label} style={{ background: C.light, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
-                      <div style={{ fontSize: 22 }}>{item.icon}</div>
-                      <div style={{ fontSize: 22, fontWeight: "bold", color: C.dark }}>{item.value}</div>
-                      <div style={{ fontSize: 11, color: C.muted }}>{item.label}</div>
+                    <div key={item.label} className="bg-background rounded-lg py-3 px-3.5 text-center">
+                      <div className="text-xl">{item.icon}</div>
+                      <div className="text-xl font-display font-bold text-foreground mt-0.5">{item.value}</div>
+                      <div className="text-[11px] text-foreground/50 mt-0.5">{item.label}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Export */}
-              <div style={s.card}>
-                <div style={{ fontWeight: "bold", color: C.accent, marginBottom: 12 }}>⬇️ Export Data</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button onClick={() => exportCSV(orders, "orders.csv")} style={s.btn}>Export Orders CSV</button>
-                  <button onClick={() => exportCSV(pantry, "pantry.csv")} style={{ ...s.btn, background: C.dark }}>Export Pantry CSV</button>
-                  <button onClick={() => exportCSV(recipes.map(r => ({ ...r, ingredients: JSON.stringify(r.ingredients) })), "recipes.csv")} style={{ ...s.btn, background: "#6B7280" }}>Export Recipes CSV</button>
+              <div className={tw.card}>
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                  <Download className="h-5 w-5 text-accent" />
+                  <h3 className="font-display font-bold text-foreground text-base">Export Data</h3>
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  <button onClick={() => exportCSV(orders, "orders.csv")} className={tw.btn}>Export Orders CSV</button>
+                  <button onClick={() => exportCSV(pantry, "pantry.csv")} className={`${tw.btn} !bg-foreground !text-background`}>Export Pantry CSV</button>
+                  <button onClick={() => exportCSV(recipes.map(r => ({ ...r, ingredients: JSON.stringify(r.ingredients) })), "recipes.csv")} className={`${tw.btn} !bg-foreground/50 !text-background`}>Export Recipes CSV</button>
                 </div>
               </div>
 
               {/* Supabase Setup Reminder */}
-              <div style={{ ...s.card, background: "#FEF3C7", border: "1px solid #F59E0B" }}>
-                <div style={{ fontWeight: "bold", color: "#92400E", marginBottom: 6 }}>⚙️ First-Time Setup</div>
-                <div style={{ fontSize: 12, color: "#78350F" }}>To enable gifted accounts tracking, run this SQL in your Supabase dashboard → SQL Editor:</div>
-                <pre style={{ background: "#FDE68A", borderRadius: 6, padding: 10, fontSize: 11, marginTop: 8, overflowX: "auto", whiteSpace: "pre-wrap" }}>{`CREATE TABLE IF NOT EXISTS gifted_users (
+              <div className="p-6 rounded-card bg-warning/10 border border-warning/30 shadow-card">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-5 w-5 text-warning" />
+                  <h3 className="font-display font-bold text-warning text-base">First-Time Setup</h3>
+                </div>
+                <div className="text-xs text-foreground/70 mb-2">To enable gifted accounts tracking, run this SQL in your Supabase dashboard → SQL Editor:</div>
+                <pre className="bg-warning/15 rounded-md p-2.5 text-[11px] text-foreground/80 mt-2 overflow-x-auto whitespace-pre-wrap">{`CREATE TABLE IF NOT EXISTS gifted_users (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   email text NOT NULL,
   notes text,
