@@ -1834,34 +1834,36 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     <h3 className="font-display font-black text-foreground text-lg">Your Complete Picture</h3>
                   </div>
 
-                  {/* Cost breakdown mini-stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                    <div className="p-3 bg-background rounded-xl">
-                      <span className="text-[10px] text-foreground/40 uppercase font-bold tracking-wider block">Ingredients</span>
-                      <p className="text-base font-mono font-bold text-foreground mt-1">${priceResult.ingCost.toFixed(2)}</p>
+                  {/* Cost breakdown — stacked rows */}
+                  <div className="mb-5">
+                    <div className={`${tw.section} mb-1`}>What it costs you</div>
+                    <div className="flex justify-between items-center py-1.5 text-sm">
+                      <span className="text-foreground/60">Ingredients</span>
+                      <span className="font-mono font-bold text-foreground">${priceResult.ingCost.toFixed(2)}</span>
                     </div>
-                    <div className="p-3 bg-background rounded-xl">
-                      <span className="text-[10px] text-foreground/40 uppercase font-bold tracking-wider block">Overhead ({overhead}%)</span>
-                      <p className="text-base font-mono font-bold text-foreground mt-1">${overheadAmt.toFixed(2)}</p>
+                    <div className="flex justify-between items-center py-1.5 text-sm">
+                      <span className="text-foreground/60">Overhead ({overhead}%)</span>
+                      <span className="font-mono font-bold text-foreground">${overheadAmt.toFixed(2)}</span>
                     </div>
-                    <div className="p-3 bg-background rounded-xl">
-                      <span className="text-[10px] text-foreground/40 uppercase font-bold tracking-wider block">Labor</span>
-                      <p className="text-base font-mono font-bold text-foreground mt-1">${priceResult.labor.toFixed(2)}</p>
-                      <span className="text-[9px] text-foreground/40 block mt-0.5">{laborHrs} hr{laborHrs !== 1 ? "s" : ""} @ ${laborRate}/hr</span>
+                    <div className="flex justify-between items-center py-2 mt-1 border-t border-border text-sm font-bold">
+                      <span className="text-foreground">Hard Costs</span>
+                      <span className="font-mono text-foreground">${hardCosts.toFixed(2)}</span>
                     </div>
-                    <div className="p-3 bg-foreground text-background rounded-xl">
-                      <span className="text-[10px] text-background/50 uppercase font-bold tracking-wider block">Break Even</span>
-                      <p className="text-base font-mono font-bold text-background mt-1">${breakEven.toFixed(2)}</p>
+
+                    <div className={`${tw.section} mt-4 mb-1`}>Your time</div>
+                    <div className="flex justify-between items-center py-1.5 text-sm">
+                      <span className="text-foreground/60">{laborHrs} hr{laborHrs !== 1 ? "s" : ""} @ ${laborRate}/hr</span>
+                      <span className="font-mono font-bold text-foreground">${priceResult.labor.toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center py-2.5 mt-2 border-t-2 border-b-2 border-foreground text-base font-black">
+                      <span className="text-foreground">Total to Break Even</span>
+                      <span className="font-mono text-foreground">${breakEven.toFixed(2)}</span>
                     </div>
                   </div>
 
                   {/* Master pricing panel */}
                   <div className="p-5 md:p-6 rounded-2xl bg-foreground text-background space-y-5">
-                    <div className="flex items-center gap-2 border-b border-background/15 pb-3">
-                      <Sparkles className="h-4.5 w-4.5 text-accent" />
-                      <span className="font-display font-black text-background text-base">Hard Costs: ${hardCosts.toFixed(2)}</span>
-                    </div>
-
                     {suggestedPrice != null && (
                       <div className="flex justify-between items-center text-sm">
                         <span className="uppercase font-bold tracking-wider text-background/50 text-[10px]">BakeFlo Suggests</span>
