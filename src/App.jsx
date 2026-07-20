@@ -60,9 +60,9 @@ function EyeIcon()    { return <svg width="16" height="16" viewBox="0 0 24 24" f
 function EyeOffIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>; }
 function PwField({ value, onChange, placeholder, show, onToggle, onKeyDown }) {
   return (
-    <div style={{ position: "relative" }}>
-      <input type={show ? "text" : "password"} value={value} onChange={onChange} placeholder={placeholder || "••••••••"} style={{ ...s.input, paddingRight: 40 }} onKeyDown={onKeyDown} />
-      <button type="button" onClick={onToggle} tabIndex={-1} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 2, display: "flex", alignItems: "center" }}>
+    <div className="relative">
+      <input type={show ? "text" : "password"} value={value} onChange={onChange} placeholder={placeholder || "••••••••"} className={`${tw.input} pr-10`} onKeyDown={onKeyDown} />
+      <button type="button" onClick={onToggle} tabIndex={-1} className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-foreground/40 hover:text-foreground/70 p-0.5 flex items-center transition-colors">
         {show ? <EyeOffIcon /> : <EyeIcon />}
       </button>
     </div>
@@ -227,72 +227,72 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${C.dark} 0%, ${C.accent} 60%, #d4722a 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-5 font-body bg-background">
       {mode !== "login" && (
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 15 }}>Returning member?</span>
+        <div className="text-center mb-6">
+          <span className="text-foreground/60 text-[15px]">Returning member?</span>
           {" "}
-          <button onClick={() => { setMode("login"); clearAlerts(); }} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: "700", fontFamily: "'Inter', sans-serif", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}>
+          <button onClick={() => { setMode("login"); clearAlerts(); }} className="bg-transparent border-none text-accent cursor-pointer text-[15px] font-bold underline underline-offset-4 p-0">
             Log in here →
           </button>
         </div>
       )}
-      <div style={{ background: "#fff", borderRadius: 24, padding: 32, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>🧁</div>
-          <div style={{ fontSize: 22, fontWeight: "bold", color: C.dark, fontFamily: "'Playfair Display', serif" }}>BakeFlo</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Your home bakery business manager</div>
-          {mode === "login" && <div style={{ fontSize: 14, color: C.dark, marginTop: 10, fontWeight: "500" }}>Welcome back! Log in to your account.</div>}
+      <div className={`${tw.card} w-full max-w-[380px] !p-8 !rounded-3xl !shadow-2xl`}>
+        <div className="text-center mb-7">
+          <div className="text-5xl mb-2">🧁</div>
+          <div className="text-2xl font-bold text-foreground font-display">BakeFlo</div>
+          <div className="text-sm text-foreground/50 mt-1">Your home bakery business manager</div>
+          {mode === "login" && <div className="text-sm text-foreground mt-2.5 font-medium">Welcome back! Log in to your account.</div>}
         </div>
 
         {checkoutSuccess && (
-          <div style={{ background: "#dbeafe", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#1e40af", marginBottom: 14 }}>
+          <div className="bg-info/10 border border-info/25 rounded-lg px-3.5 py-2.5 text-sm text-info mb-3.5">
             <strong>Important:</strong> When creating your account, use this email address. Sign up at bakeflo.co
           </div>
         )}
-        {msg      && <div style={{ background: "#d1fae5", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#065f46", marginBottom: 14 }}>{msg}</div>}
-        {error    && <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 14 }}>{error}</div>}
+        {msg      && <div className="bg-success/10 border border-success/25 rounded-lg px-3.5 py-2.5 text-sm text-success mb-3.5">{msg}</div>}
+        {error    && <div className="bg-danger/10 border border-danger/25 rounded-lg px-3.5 py-2.5 text-sm text-danger mb-3.5">{error}</div>}
         {gateError && (
-          <div style={{ background: "#fee2e2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 14 }}>
+          <div className="bg-danger/10 border border-danger/25 rounded-lg px-3.5 py-2.5 text-sm text-danger mb-3.5">
             This email hasn't been used to purchase BakeFlo. Please{" "}
-            <a href="https://buy.stripe.com/aFaaEWeHvaRT1aq7w04ko00" target="_blank" rel="noopener noreferrer" style={{ color: "#991b1b", fontWeight: "700" }}>purchase at bakeflo.io</a>
+            <a href="https://buy.stripe.com/aFaaEWeHvaRT1aq7w04ko00" target="_blank" rel="noopener noreferrer" className="text-danger font-bold underline">purchase at bakeflo.io</a>
             , then sign up using the same email.
           </div>
         )}
 
-        <div style={{ marginBottom: 12 }}>
-          <label style={s.label}>Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={s.input} />
+        <div className="mb-3">
+          <label className={tw.eyebrow}>Email</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className={tw.input} />
           {mode === "signup" && (
-            <p style={{ fontSize: 12, color: C.muted, margin: "4px 0 0", fontFamily: "'Inter', sans-serif" }}>Use the email address you purchased with</p>
+            <p className="text-xs text-foreground/50 mt-1 font-body">Use the email address you purchased with</p>
           )}
         </div>
 
         {mode !== "reset" && (
-          <div style={{ marginBottom: 20 }}>
-            <label style={s.label}>Password</label>
+          <div className="mb-5">
+            <label className={tw.eyebrow}>Password</label>
             <PwField value={password} onChange={e => setPassword(e.target.value)} show={showPw} onToggle={() => setShowPw(p => !p)} onKeyDown={e => e.key === "Enter" && handle()} />
           </div>
         )}
 
-        <button onClick={handle} disabled={loading} style={{ ...s.btn, width: "100%", padding: 14, fontSize: 15 }}>
+        <button onClick={handle} disabled={loading} className={`${tw.btn} w-full !py-3.5 text-sm`}>
           {loading ? "Please wait..." : mode === "login" ? "Log In" : mode === "signup" ? "Create Account" : "Send Reset Email"}
         </button>
 
-        <div style={{ marginTop: 20, textAlign: "center", fontSize: 13 }}>
+        <div className="mt-5 text-center text-sm">
           {mode === "login" && <>
-            <span style={{ color: C.muted }}>New here? </span>
-            <button onClick={() => { setMode("signup"); clearAlerts(); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>Create account</button>
-            <div style={{ marginTop: 8 }}>
-              <button onClick={() => { setMode("reset"); clearAlerts(); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif" }}>Forgot password?</button>
+            <span className="text-foreground/50">New here? </span>
+            <button onClick={() => { setMode("signup"); clearAlerts(); }} className="bg-transparent border-none text-accent cursor-pointer font-bold font-body">Create account</button>
+            <div className="mt-2">
+              <button onClick={() => { setMode("reset"); clearAlerts(); }} className="bg-transparent border-none text-foreground/50 cursor-pointer text-xs font-body">Forgot password?</button>
             </div>
           </>}
           {mode === "signup" && <>
-            <span style={{ color: C.muted }}>Already have an account? </span>
-            <button onClick={() => { setMode("login"); clearAlerts(); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontWeight: "700", fontFamily: "'Inter', sans-serif" }}>Log in</button>
+            <span className="text-foreground/50">Already have an account? </span>
+            <button onClick={() => { setMode("login"); clearAlerts(); }} className="bg-transparent border-none text-accent cursor-pointer font-bold font-body">Log in</button>
           </>}
           {mode === "reset" && (
-            <button onClick={() => { setMode("login"); clearAlerts(); }} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>Back to login</button>
+            <button onClick={() => { setMode("login"); clearAlerts(); }} className="bg-transparent border-none text-accent cursor-pointer font-body">Back to login</button>
           )}
         </div>
       </div>
