@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3 } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -70,6 +71,13 @@ function PwField({ value, onChange, placeholder, show, onToggle, onKeyDown }) {
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
+// SVG presentation attributes (fill="...", stroke="...") don't reliably resolve
+// CSS var() the way actual `style` properties do — resolve to a literal value instead.
+function cssVar(name, fallback) {
+  if (typeof document === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
 function formatPhone(v) {
   const d = v.replace(/\D/g, "").slice(0, 10);
   if (d.length < 4) return d;
@@ -337,6 +345,18 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   };
 
   const [guideVisible, setGuideVisible] = useState(() => !localStorage.getItem("qsg_dismissed"));
+  const [reportsOpen,  setReportsOpen]  = useState(false);
+  // Chart colors are resolved from CSS vars via getComputedStyle (see cssVar()) since
+  // SVG fill/stroke attributes don't reliably pick up var() themselves. That resolved
+  // value needs to be re-read whenever the theme changes, but flipping data-theme is a
+  // plain DOM mutation outside React — it won't trigger a re-render on its own, so
+  // without this, chart colors would go stale if the theme is switched while Reports is open.
+  const [, forceThemeRerender] = useState(0);
+  useEffect(() => {
+    const observer = new MutationObserver(() => forceThemeRerender(t => t + 1));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   // Data
   const [pantry,   setPantry]   = useState([]);
@@ -1144,6 +1164,132 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                      );
                    })
                }
+             </div>
+
+             {/* Reports (Phase 2 tokens — first use of recharts) */}
+             <div className={`${tw.card} !mt-3.5`}>
+               <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                   <BarChart3 className="h-4.5 w-4.5 text-accent" />
+                   <h3 className="font-body font-semibold text-foreground text-sm">Reports</h3>
+                 </div>
+                 <button onClick={() => setReportsOpen(o => !o)} className={`${tw.btnSec} !px-3 !py-1.5 text-xs`}>
+                   {reportsOpen ? "Hide Reports" : "View Reports"}
+                 </button>
+               </div>
+
+               {reportsOpen && (() => {
+                 const _ordersWithDates = orders.filter(o => o.created_at);
+                 let _trendData = [];
+                 let _granularity = "day";
+                 if (_ordersWithDates.length > 0) {
+                   const _times = _ordersWithDates.map(o => new Date(o.created_at).getTime());
+                   const _spanDays = (Math.max(..._times) - Math.min(..._times)) / 86400000;
+                   _granularity = _spanDays > 30 ? "week" : "day";
+                   // Bucket key must use the SAME (local) timezone basis as the display label —
+                   // using toISOString() (UTC) for the key while the label is local-time can put
+                   // an order in a different-looking bucket than its label implies near day
+                   // boundaries. localDateKey() keeps both derived from local calendar day.
+                   const _localDateKey = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+                   const _bucketMap = {};
+                   _ordersWithDates.forEach(o => {
+                     const d = new Date(o.created_at);
+                     let key, label;
+                     if (_granularity === "week") {
+                       const dow = d.getDay();
+                       const monday = new Date(d);
+                       monday.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+                       monday.setHours(0, 0, 0, 0);
+                       key = _localDateKey(monday);
+                       label = "Wk of " + monday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                     } else {
+                       key = _localDateKey(d);
+                       label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                     }
+                     if (!_bucketMap[key]) _bucketMap[key] = { key, label, revenue: 0, orders: 0 };
+                     _bucketMap[key].revenue += (o.total || 0);
+                     _bucketMap[key].orders += 1;
+                   });
+                   _trendData = Object.values(_bucketMap).sort((a, b) => a.key.localeCompare(b.key));
+                 }
+                 const _distinctDates = _trendData.length;
+
+                 const _bestSellers = itemRevEntries.slice(0, 5).map(([name, revenue]) => ({
+                   name, revenue,
+                   orders: orders.filter(o => o.item === name).length,
+                 }));
+
+                 const _trendTooltip = ({ active, payload }) => {
+                   if (!active || !payload || !payload.length) return null;
+                   const p = payload[0].payload;
+                   return (
+                     <div className={`${tw.card} !p-3`}>
+                       <div className="font-bold text-foreground text-xs mb-1">{p.label}</div>
+                       <div className="text-xs text-foreground/70">Revenue: <span className="font-bold text-accent">${p.revenue.toFixed(2)}</span></div>
+                       <div className="text-xs text-foreground/70">Orders: <span className="font-bold text-foreground">{p.orders}</span></div>
+                     </div>
+                   );
+                 };
+                 const _bestSellerTooltip = ({ active, payload }) => {
+                   if (!active || !payload || !payload.length) return null;
+                   const p = payload[0].payload;
+                   return (
+                     <div className={`${tw.card} !p-3`}>
+                       <div className="font-bold text-foreground text-xs mb-1">{p.name}</div>
+                       <div className="text-xs text-foreground/70">Revenue: <span className="font-bold text-accent">${p.revenue.toFixed(2)}</span></div>
+                       <div className="text-xs text-foreground/70">Orders: <span className="font-bold text-foreground">{p.orders}</span></div>
+                     </div>
+                   );
+                 };
+
+                 // Resolved once per render (re-runs on theme change via the MutationObserver
+                 // above) — recharts renders these as raw SVG attributes, which don't reliably
+                 // resolve var() the way real CSS `style` properties do, so we resolve here instead.
+                 const _accentColor = cssVar("--color-accent", "#b85c35");
+                 const _borderColor = cssVar("--color-border", "#c8b89a");
+                 const _fgColor     = cssVar("--color-foreground", "#1d2d44");
+
+                 return (
+                   <div className="mt-5 flex flex-col gap-6">
+                     <div>
+                       <h4 className={tw.section}>Revenue Trend {_trendData.length > 0 && (_granularity === "week" ? "(weekly)" : "(daily)")}</h4>
+                       {_distinctDates >= 3 ? (
+                         <div className="mt-2.5" style={{ height: 220, width: "100%" }}>
+                           <ResponsiveContainer width="100%" height="100%">
+                             <BarChart data={_trendData}>
+                               <CartesianGrid stroke={_borderColor} strokeDasharray="3 3" vertical={false} />
+                               <XAxis dataKey="label" tick={{ fill: _fgColor, fontSize: 11, fillOpacity: 0.6 }} axisLine={{ stroke: _borderColor }} tickLine={false} />
+                               <YAxis tick={{ fill: _fgColor, fontSize: 11, fillOpacity: 0.6 }} axisLine={false} tickLine={false} width={40} />
+                               <Tooltip content={_trendTooltip} cursor={{ fill: _accentColor, fillOpacity: 0.08 }} />
+                               <Bar dataKey="revenue" fill={_accentColor} radius={[4, 4, 0, 0]} />
+                             </BarChart>
+                           </ResponsiveContainer>
+                         </div>
+                       ) : (
+                         <div className="mt-2.5 py-8 text-center text-sm text-foreground/50 font-body">Add a few more orders to see your sales trend.</div>
+                       )}
+                     </div>
+
+                     <div>
+                       <h4 className={tw.section}>Best Selling Recipes</h4>
+                       {_bestSellers.length >= 3 ? (
+                         <div className="mt-2.5" style={{ height: Math.max(140, _bestSellers.length * 44), width: "100%" }}>
+                           <ResponsiveContainer width="100%" height="100%">
+                             <BarChart data={_bestSellers} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
+                               <XAxis type="number" hide />
+                               <YAxis type="category" dataKey="name" width={130} tick={{ fill: _fgColor, fontSize: 12 }} axisLine={false} tickLine={false} />
+                               <Tooltip content={_bestSellerTooltip} cursor={{ fill: _accentColor, fillOpacity: 0.08 }} />
+                               <Bar dataKey="revenue" fill={_accentColor} radius={[0, 4, 4, 0]} barSize={18} />
+                             </BarChart>
+                           </ResponsiveContainer>
+                         </div>
+                       ) : (
+                         <div className="mt-2.5 py-8 text-center text-sm text-foreground/50 font-body">Add more orders to see your best sellers.</div>
+                       )}
+                     </div>
+                   </div>
+                 );
+               })()}
              </div>
            </div>
            );
