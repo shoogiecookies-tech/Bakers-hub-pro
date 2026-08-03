@@ -450,8 +450,8 @@ function PublicOrderForm({ slug }) {
     <div className="min-h-screen flex flex-col items-center justify-center p-5 font-body bg-background text-center">
       <div className={`${tw.card} w-full max-w-[420px] !p-8 !rounded-3xl !shadow-2xl`}>
         <div className="text-5xl mb-3">🎉</div>
-        <div className="text-xl font-bold text-foreground font-display mb-2">Request sent!</div>
-        <div className="text-sm text-foreground/60">{config.bakeryName} will confirm and send a deposit link.</div>
+        <div className="text-xl font-bold text-foreground font-display mb-2">Request received!</div>
+        <div className="text-sm text-foreground/60">{config.bakeryName} will reply by email to confirm or decline.</div>
       </div>
     </div>
   );
@@ -710,6 +710,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [emailBody,    setEmailBody]    = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailCopied,  setEmailCopied]  = useState(false);
+  const [declineModalOrder,  setDeclineModalOrder]  = useState(null);
+  const [declineReasonInput, setDeclineReasonInput] = useState("");
+  const [decisionSending,    setDecisionSending]    = useState(false);
   const [invoicePrintOrder, setInvoicePrintOrder] = useState(null);
   const [pdfGenerating,     setPdfGenerating]     = useState(false);
   const [labelPrintOrder,   setLabelPrintOrder]   = useState(null);
@@ -1160,7 +1163,21 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // Accept/Decline — for Pending, link-submitted orders only. Accept generates
   // production tasks (link orders don't get them at submission time) and moves
   // the order into the normal pipeline; Decline is a terminal state, record kept.
+  const notifyDecision = async (orderId, reason) => {
+    try {
+      const { data: { session: notifySession } } = await supabase.auth.getSession();
+      await fetch("/api/notify-order-decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${notifySession.access_token}` },
+        body: JSON.stringify({ orderId, reason: reason || null }),
+      });
+    } catch (e) {
+      console.error("notify-order-decision request failed:", e.message);
+    }
+  };
+
   const acceptOrder = async (order) => {
+    if (decisionSending) return;
     const cap = parseInt(maxOrdersPerDay) || 0;
     if (isPro && cap > 0 && order.due) {
       const { count, error: countErr } = await supabase
@@ -1175,8 +1192,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         return;
       }
     }
+    setDecisionSending(true);
     const { error } = await supabase.from("orders").update({ status: "In Progress" }).eq("id", order.id);
-    if (error) { alert("Order could not be accepted: " + error.message); return; }
+    if (error) { alert("Order could not be accepted: " + error.message); setDecisionSending(false); return; }
     const updatedOrder = { ...order, status: "In Progress" };
     setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
     const tasks = generateTasksFromOrder(updatedOrder);
@@ -1184,12 +1202,18 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t, order_id: order.id }]).select().single();
       if (taskData) setSchedule(prev => [...prev, { ...taskData, auto: true, aiSuggested: false }]);
     }
+    await notifyDecision(order.id, null);
+    setDecisionSending(false);
   };
 
-  const declineOrder = async (id) => {
-    const { error } = await supabase.from("orders").update({ status: "Declined" }).eq("id", id);
-    if (error) { alert("Order could not be declined: " + error.message); return; }
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: "Declined" } : o));
+  const declineOrder = async (id, reason) => {
+    if (decisionSending) return;
+    setDecisionSending(true);
+    const { error } = await supabase.from("orders").update({ status: "Declined", decline_reason: reason || null }).eq("id", id);
+    if (error) { alert("Order could not be declined: " + error.message); setDecisionSending(false); return; }
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: "Declined", decline_reason: reason || null } : o));
+    await notifyDecision(id, reason);
+    setDecisionSending(false);
   };
 
   const saveEditOrder = async () => {
@@ -2531,6 +2555,38 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
             )}
 
+            {declineModalOrder && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center">
+                <div className="bg-card rounded-t-2xl p-5 w-full max-w-[480px] shadow-2xl">
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <div className="font-display font-bold text-base text-foreground">Decline Request</div>
+                      <div className="text-xs text-foreground/50 mt-0.5">For {declineModalOrder.customer} · {declineModalOrder.due}</div>
+                    </div>
+                    <button onClick={() => setDeclineModalOrder(null)} className="bg-background rounded-full w-8 h-8 shrink-0 text-foreground/60 hover:text-foreground">✕</button>
+                  </div>
+                  <label className={tw.eyebrow}>Reason (optional)</label>
+                  <textarea
+                    value={declineReasonInput}
+                    onChange={e => setDeclineReasonInput(e.target.value)}
+                    placeholder="e.g. Fully booked that week — let them know if you'd like"
+                    className={`${tw.input} resize-none text-sm min-h-[90px]`}
+                  />
+                  <div className="text-xs text-foreground/40 mt-1.5">If provided, this is included in the email letting {declineModalOrder.customer} know. Leave blank to decline without a reason.</div>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={async () => { const o = declineModalOrder; const r = declineReasonInput; setDeclineModalOrder(null); await declineOrder(o.id, r.trim()); }}
+                      disabled={decisionSending}
+                      className="px-5 py-2 bg-danger text-white font-bold rounded-lg text-xs font-body cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50 flex-1"
+                    >
+                      {decisionSending ? "Declining..." : "Confirm Decline"}
+                    </button>
+                    <button onClick={() => setDeclineModalOrder(null)} className={`${tw.btnSec} bg-background text-foreground border-border`}>Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-accent" />
@@ -2664,14 +2720,15 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     )}
                     {o.allergy_note && <div className="bg-warning/10 border border-warning/25 rounded-lg px-3 py-2 text-xs text-warning">⚠️ Allergy/dietary note: {o.allergy_note}</div>}
                     {o.notes && <div className="bg-background rounded-lg px-3 py-2 text-xs text-foreground/70 italic">📝 {o.notes}</div>}
+                    {_declined && o.decline_reason && <div className="bg-background rounded-lg px-3 py-2 text-xs text-foreground/60"><span className="font-bold">Decline reason:</span> {o.decline_reason}</div>}
 
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       {_pendingLink ? (
                         <div className="flex gap-2">
-                          <button onClick={() => acceptOrder(o)} className={`${tw.btn} px-4 py-1.5 flex items-center gap-1.5`}>
+                          <button onClick={() => acceptOrder(o)} disabled={decisionSending} className={`${tw.btn} px-4 py-1.5 flex items-center gap-1.5 disabled:opacity-50`}>
                             <Check className="h-3.5 w-3.5" /><span>Accept</span>
                           </button>
-                          <button onClick={() => declineOrder(o.id)} className="px-4 py-1.5 rounded-lg border border-danger/40 text-danger text-xs font-bold hover:bg-danger/10 transition-colors">
+                          <button onClick={() => { setDeclineModalOrder(o); setDeclineReasonInput(""); }} disabled={decisionSending} className="px-4 py-1.5 rounded-lg border border-danger/40 text-danger text-xs font-bold hover:bg-danger/10 transition-colors disabled:opacity-50">
                             Decline
                           </button>
                         </div>
