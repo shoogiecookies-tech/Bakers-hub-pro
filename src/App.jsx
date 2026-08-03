@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
 import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3, Crown } from "lucide-react";
@@ -625,6 +625,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [social,   setSocial]   = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [dbLoading, setDbLoading] = useState(true);
+  const [newPendingCount, setNewPendingCount] = useState(0);
+  const seenPendingLinkIds = useRef(new Set());
 
   // Settings / Bakery Profile
   const [bakeryName,         setBakeryName]         = useState("My Home Bakery");
@@ -864,6 +866,32 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     };
     load();
   }, [uid]);
+
+  // ── Orders polling — pick up new pending order-requests without a full reload ──
+  const refreshOrders = useCallback(async () => {
+    const { data, error } = await supabase.from("orders").select("*").eq("user_id", uid).order("due");
+    if (error) return;
+    setOrders(data || []);
+    const pendingLinkIds = (data || []).filter(o => o.status === "Pending" && o.source === "link").map(o => o.id);
+    setNewPendingCount(pendingLinkIds.filter(id => !seenPendingLinkIds.current.has(id)).length);
+  }, [uid]);
+
+  useEffect(() => {
+    const poll = () => { if (document.visibilityState === "visible") refreshOrders(); };
+    const interval = setInterval(poll, 45000);
+    document.addEventListener("visibilitychange", poll);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", poll);
+    };
+  }, [refreshOrders]);
+
+  useEffect(() => {
+    if (tab === "Orders") {
+      seenPendingLinkIds.current = new Set(orders.filter(o => o.status === "Pending" && o.source === "link").map(o => o.id));
+      setNewPendingCount(0);
+    }
+  }, [tab, orders]);
 
   // ── Save bakery profile ───────────────────────────────────────────────────────
   const saveProfile = async () => {
@@ -1437,7 +1465,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               background: "transparent", color: "#fff",
               borderBottom: tab === t ? "3px solid #c0653d" : "3px solid transparent",
               opacity: tab === t ? 1 : 0.65, transition: "all 0.18s", fontFamily: "'Inter', sans-serif",
-            }}>{t}</button>
+              position: "relative",
+            }}>
+              {t}
+              {t === "Orders" && newPendingCount > 0 && (
+                <span style={{ position: "absolute", top: 2, right: 2, background: "#c0522a", color: "#fff", borderRadius: 20, fontSize: 9, fontWeight: 700, padding: "1px 5px", lineHeight: 1.4 }}>{newPendingCount}</span>
+              )}
+            </button>
           ))}
         </div>
       </div>
