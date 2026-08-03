@@ -87,7 +87,7 @@ module.exports = async function handler(req, res) {
 
   const { data: profile, error: profileErr } = await admin
     .from("profiles")
-    .select("id, bakery_name, order_lead_days")
+    .select("id, bakery_name, order_lead_days, is_pro, max_orders_per_day, blackout_dates")
     .eq("slug", cleanSlug)
     .single();
 
@@ -99,6 +99,27 @@ module.exports = async function handler(req, res) {
   const minDateStr = minDate.toISOString().split("T")[0];
   if (String(due) < minDateStr) {
     return res.status(400).json({ error: `Please choose a date at least ${leadDays} day${leadDays === 1 ? "" : "s"} from today.` });
+  }
+
+  if (profile.is_pro) {
+    if ((profile.blackout_dates || []).includes(String(due))) {
+      return res.status(400).json({ error: "That date is unavailable. Please choose another." });
+    }
+    if (profile.max_orders_per_day) {
+      const { count, error: countErr } = await admin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", profile.id)
+        .eq("due", due)
+        .in("status", ["In Progress", "Complete", "Invoiced", "Delivered"]);
+      if (countErr) {
+        console.error("submit-order capacity check error:", countErr.message);
+        return res.status(500).json({ error: "Could not submit request. Please try again." });
+      }
+      if ((count || 0) >= profile.max_orders_per_day) {
+        return res.status(400).json({ error: "That date is fully booked. Please choose another." });
+      }
+    }
   }
 
   const { data: order, error: insertErr } = await admin.from("orders").insert([{

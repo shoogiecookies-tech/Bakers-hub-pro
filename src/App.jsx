@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3 } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3, Crown } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
@@ -317,6 +317,75 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── PUBLIC ORDER INTAKE FORM (no auth) ────────────────────────────────────────
+function _localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function OrderDatePicker({ value, onChange, minDateStr, blackoutDates, fullyBookedDates }) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const initial = minDateStr ? new Date(minDateStr + "T00:00:00") : today;
+  const [viewYear,  setViewYear]  = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth());
+
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const startWeekday = firstOfMonth.getDay();
+  const monthLabel = firstOfMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const canGoPrev = viewYear > today.getFullYear() || (viewYear === today.getFullYear() && viewMonth > today.getMonth());
+
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) cells.push(day);
+
+  const goPrev = () => { const d = new Date(viewYear, viewMonth - 1, 1); setViewYear(d.getFullYear()); setViewMonth(d.getMonth()); };
+  const goNext = () => { const d = new Date(viewYear, viewMonth + 1, 1); setViewYear(d.getFullYear()); setViewMonth(d.getMonth()); };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <button type="button" onClick={goPrev} disabled={!canGoPrev} className="px-2.5 py-1 rounded-lg border border-border text-foreground/60 disabled:opacity-30 disabled:cursor-not-allowed">‹</button>
+        <div className="text-sm font-bold text-foreground">{monthLabel}</div>
+        <button type="button" onClick={goNext} className="px-2.5 py-1 rounded-lg border border-border text-foreground/60">›</button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-foreground/40 uppercase mb-1">
+        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <div key={i}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, i) => {
+          if (day === null) return <div key={i} />;
+          const dateStr = _localDateStr(new Date(viewYear, viewMonth, day));
+          const isPast = minDateStr ? dateStr < minDateStr : false;
+          const isBlackout = blackoutDates.includes(dateStr);
+          const isFull = fullyBookedDates.includes(dateStr);
+          const disabled = isPast || isBlackout || isFull;
+          const isSelected = value === dateStr;
+          const title = isBlackout ? "Unavailable" : isFull ? "Fully booked" : isPast ? "Too soon" : undefined;
+          return (
+            <button
+              type="button"
+              key={i}
+              title={title}
+              disabled={disabled}
+              onClick={() => onChange(dateStr)}
+              className={`text-xs py-1.5 rounded-lg transition-colors ${
+                isSelected ? "bg-accent text-white font-bold"
+                : disabled ? "text-foreground/20 cursor-not-allowed line-through"
+                : "text-foreground hover:bg-background border border-transparent hover:border-border"
+              }`}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-3 mt-2 text-[10px] text-foreground/40">
+        <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-accent inline-block" />Selected</span>
+        <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-foreground/20 inline-block" />Unavailable</span>
+      </div>
+    </div>
+  );
+}
+
 function PublicOrderForm({ slug }) {
   const [config,     setConfig]     = useState(null);
   const [loading,    setLoading]    = useState(true);
@@ -443,7 +512,16 @@ function PublicOrderForm({ slug }) {
 
           <div>
             <label className={tw.eyebrow}>Date Needed *</label>
-            <input type="date" min={minDate()} value={form.due} onChange={e => setForm(f => ({ ...f, due: e.target.value }))} className={tw.input} />
+            <div className="bg-background rounded-lg border border-border p-3">
+              <OrderDatePicker
+                value={form.due}
+                onChange={date => setForm(f => ({ ...f, due: date }))}
+                minDateStr={minDate()}
+                blackoutDates={config.blackoutDates || []}
+                fullyBookedDates={config.fullyBookedDates || []}
+              />
+            </div>
+            {form.due && <div className="text-xs text-foreground/60 mt-1.5">Selected: {new Date(form.due + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div>}
             {config.leadDays > 0 && <div className="text-xs text-foreground/40 mt-1">Orders need at least {config.leadDays} day{config.leadDays === 1 ? "" : "s"} notice.</div>}
           </div>
 
@@ -582,6 +660,10 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [slugStatus,       setSlugStatus]       = useState(""); // "", "checking", "available", "taken", "error"
   const [menuOptionInput,  setMenuOptionInput]  = useState({ items: "", sizes: "", flavors: "" });
   const [linkCopied,       setLinkCopied]       = useState(false);
+  const [isPro,            setIsPro]            = useState(false);
+  const [maxOrdersPerDay,  setMaxOrdersPerDay]  = useState("");
+  const [blackoutDates,    setBlackoutDates]    = useState([]);
+  const [blackoutDateInput, setBlackoutDateInput] = useState("");
 
   // Pantry UI
   const [showNewPantry, setShowNewPantry] = useState(false);
@@ -665,6 +747,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [giftedUsers,  setGiftedUsers]  = useState([]);
   const [giftLoading,  setGiftLoading]  = useState(false);
   const [giftMsg,      setGiftMsg]      = useState("");
+  const [proEmail,     setProEmail]     = useState("");
+  const [proLoading,   setProLoading]   = useState(false);
+  const [proMsg,       setProMsg]       = useState("");
   const [pwNew,        setPwNew]        = useState("");
   const [pwConfirm,    setPwConfirm]    = useState("");
   const [pwMsg,        setPwMsg]        = useState("");
@@ -771,6 +856,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         setOrderFormItems(profileData.order_form_items || []);
         setOrderFormSizes(profileData.order_form_sizes || []);
         setOrderFormFlavors(profileData.order_form_flavors || []);
+        setIsPro(!!profileData.is_pro);
+        setMaxOrdersPerDay(profileData.max_orders_per_day ?? "");
+        setBlackoutDates(profileData.blackout_dates || []);
       }
       setDbLoading(false);
     };
@@ -779,7 +867,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Save bakery profile ───────────────────────────────────────────────────────
   const saveProfile = async () => {
-    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency, state: bakerState, cottage_law_state: cottageLawState, physical_address: physicalAddress, dshs_registration_number: dshsRegistrationNumber, website_url: websiteUrl, order_lead_days: orderLeadDays, order_form_items: orderFormItems, order_form_sizes: orderFormSizes, order_form_flavors: orderFormFlavors });
+    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency, state: bakerState, cottage_law_state: cottageLawState, physical_address: physicalAddress, dshs_registration_number: dshsRegistrationNumber, website_url: websiteUrl, order_lead_days: orderLeadDays, order_form_items: orderFormItems, order_form_sizes: orderFormSizes, order_form_flavors: orderFormFlavors, max_orders_per_day: maxOrdersPerDay === "" ? null : parseInt(maxOrdersPerDay), blackout_dates: blackoutDates });
     setLaborRate(defaultLaborRate); setMarkup(defaultMarkup); setOverhead(defaultOverhead);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
@@ -817,6 +905,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   };
   const removeMenuOption = (list, setList, value) => setList(list.filter(v => v !== value));
 
+  const addBlackoutDate = () => {
+    if (!blackoutDateInput || blackoutDates.includes(blackoutDateInput)) return;
+    setBlackoutDates([...blackoutDates, blackoutDateInput].sort());
+    setBlackoutDateInput("");
+  };
+  const removeBlackoutDate = (date) => setBlackoutDates(blackoutDates.filter(d => d !== date));
+
   const saveApiKey = (key) => {
     localStorage.setItem("baker_api_key", key);
     setApiKey(key);
@@ -850,6 +945,26 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       setGiftMsg("Error: " + e.message);
     }
     setGiftLoading(false);
+  };
+
+  const setProAccess = async (isPro) => {
+    if (!proEmail.trim()) return;
+    setProLoading(true);
+    setProMsg("");
+    try {
+      const { data: { session: adminSession } } = await supabase.auth.getSession();
+      const res = await fetch("/api/admin-set-pro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminSession.access_token}` },
+        body: JSON.stringify({ email: proEmail.trim(), isPro }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setProMsg("Error: " + (json.error || "Unknown error")); setProLoading(false); return; }
+      setProMsg(`✓ ${proEmail.trim()} is now ${isPro ? "Pro" : "Free"}.`);
+    } catch (e) {
+      setProMsg("Error: " + e.message);
+    }
+    setProLoading(false);
   };
 
   const changePassword = async () => {
@@ -1018,6 +1133,20 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // production tasks (link orders don't get them at submission time) and moves
   // the order into the normal pipeline; Decline is a terminal state, record kept.
   const acceptOrder = async (order) => {
+    const cap = parseInt(maxOrdersPerDay) || 0;
+    if (isPro && cap > 0 && order.due) {
+      const { count, error: countErr } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", uid)
+        .eq("due", order.due)
+        .in("status", ["In Progress", "Complete", "Invoiced", "Delivered"]);
+      if (countErr) { alert("Could not check capacity: " + countErr.message); return; }
+      if ((count || 0) >= cap) {
+        alert(`This day is full — you've already accepted ${count} order${count === 1 ? "" : "s"} for ${order.due}. Decline this request or reschedule it before accepting.`);
+        return;
+      }
+    }
     const { error } = await supabase.from("orders").update({ status: "In Progress" }).eq("id", order.id);
     if (error) { alert("Order could not be accepted: " + error.message); return; }
     const updatedOrder = { ...order, status: "In Progress" };
@@ -3391,7 +3520,40 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 </div>
               ))}
 
-              <button onClick={saveProfile} className={`${tw.btn} mt-2`}>{settingsSaved ? "✓ Saved!" : "Save Order Link Settings"}</button>
+              <div className="border-t border-border my-4" />
+
+              <div className="flex items-center gap-2 mb-1">
+                <Crown className="h-4 w-4 text-accent" />
+                <div className="text-sm font-bold text-foreground">Capacity &amp; Blackout Dates</div>
+              </div>
+              {isPro ? (
+                <>
+                  <div className="text-xs text-foreground/50 mb-3">Limit how many accepted orders you'll take per day, and block off dates you're not baking.</div>
+
+                  <label className={tw.eyebrow}>Max Orders Per Day</label>
+                  <input type="number" min="1" value={maxOrdersPerDay} onChange={e => setMaxOrdersPerDay(e.target.value)} placeholder="No limit" className={`${tw.input} max-w-[120px]`} />
+                  <div className="text-xs text-foreground/40 mt-1.5 mb-3">Counts accepted orders only — pending requests and declined orders don't count. Leave blank for no cap.</div>
+
+                  <label className={tw.eyebrow}>Blackout Dates</label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {blackoutDates.map(d => (
+                      <span key={d} className="inline-flex items-center gap-1 text-xs bg-background border border-border rounded-full px-2.5 py-1 text-foreground/70">
+                        {new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        <button onClick={() => removeBlackoutDate(d)} className="text-foreground/30 hover:text-danger leading-none">×</button>
+                      </span>
+                    ))}
+                    {blackoutDates.length === 0 && <span className="text-xs text-foreground/30">None set.</span>}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <input type="date" value={blackoutDateInput} onChange={e => setBlackoutDateInput(e.target.value)} className={`${tw.input} flex-1`} />
+                    <button onClick={addBlackoutDate} className={`${tw.btnSec} bg-background text-accent border-accent shrink-0`}>Add</button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-foreground/50 bg-background rounded-lg px-3 py-2.5 leading-relaxed">🔒 Available on Pro — set a daily order cap and block off dates you're not baking. Contact us to upgrade.</div>
+              )}
+
+              <button onClick={saveProfile} className={`${tw.btn} mt-3`}>{settingsSaved ? "✓ Saved!" : "Save Order Link Settings"}</button>
             </div>
 
             {/* Account & Security */}
@@ -3459,6 +3621,22 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   ))
                 }
                 <div className="text-[11px] text-foreground/40 mt-3 leading-relaxed">Note: removing from this list does not delete the Supabase auth account. To fully revoke access, delete the user in your Supabase Auth dashboard.</div>
+              </div>
+
+              {/* Pro Access */}
+              <div className={tw.card}>
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                  <Crown className="h-5 w-5 text-accent" />
+                  <h3 className="font-display font-bold text-foreground text-base">Pro Access</h3>
+                </div>
+                <div className="text-xs text-foreground/50 mb-3 leading-relaxed">Manually grant or revoke Pro (order capacity limits + blackout dates) for an account. No self-serve upgrade flow yet — this is the only way to set it.</div>
+                <label className={tw.eyebrow}>Account Email</label>
+                <input value={proEmail} onChange={e => setProEmail(e.target.value)} placeholder="baker@email.com" className={tw.input} />
+                {proMsg && <div className={`text-sm mt-2 ${proMsg.startsWith("Error") ? "text-danger" : "text-success"}`}>{proMsg}</div>}
+                <div className="flex gap-2 mt-2.5">
+                  <button onClick={() => setProAccess(true)} disabled={proLoading} className={tw.btn} style={{ opacity: proLoading ? 0.6 : 1 }}>{proLoading ? "Working..." : "Grant Pro"}</button>
+                  <button onClick={() => setProAccess(false)} disabled={proLoading} className={`${tw.btnSec} bg-background text-danger border-danger`} style={{ opacity: proLoading ? 0.6 : 1 }}>Revoke Pro</button>
+                </div>
               </div>
 
               {/* Data Overview */}

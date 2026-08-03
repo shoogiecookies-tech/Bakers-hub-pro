@@ -13,11 +13,31 @@ module.exports = async function handler(req, res) {
 
   const { data: profile, error } = await admin
     .from("profiles")
-    .select("bakery_name, order_lead_days, order_form_items, order_form_sizes, order_form_flavors")
+    .select("id, bakery_name, order_lead_days, order_form_items, order_form_sizes, order_form_flavors, is_pro, max_orders_per_day, blackout_dates")
     .eq("slug", slug)
     .single();
 
   if (error || !profile) return res.status(404).json({ error: "Order form not found" });
+
+  const isPro = !!profile.is_pro;
+  let fullyBookedDates = [];
+
+  if (isPro && profile.max_orders_per_day) {
+    const { data: acceptedOrders, error: countErr } = await admin
+      .from("orders")
+      .select("due")
+      .eq("user_id", profile.id)
+      .in("status", ["In Progress", "Complete", "Invoiced", "Delivered"])
+      .not("due", "is", null);
+
+    if (countErr) console.error("order-form capacity query error:", countErr.message);
+
+    const counts = {};
+    (acceptedOrders || []).forEach(o => { counts[o.due] = (counts[o.due] || 0) + 1; });
+    fullyBookedDates = Object.entries(counts)
+      .filter(([, count]) => count >= profile.max_orders_per_day)
+      .map(([date]) => date);
+  }
 
   return res.status(200).json({
     bakeryName: profile.bakery_name || "This bakery",
@@ -25,5 +45,7 @@ module.exports = async function handler(req, res) {
     items: profile.order_form_items || [],
     sizes: profile.order_form_sizes || [],
     flavors: profile.order_form_flavors || [],
+    blackoutDates: isPro ? (profile.blackout_dates || []) : [],
+    fullyBookedDates: isPro ? fullyBookedDates : [],
   });
 };
