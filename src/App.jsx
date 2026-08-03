@@ -45,8 +45,7 @@ function matchesOrderStatusFilter(status, filter) {
   if (filter === "Pending") return status === "Pending";
   if (filter === "Active") return ACTIVE_STATUSES.includes(status);
   if (filter === "Declined") return status === "Declined";
-  // default: Pending + Active, hides Declined
-  return status === "Pending" || ACTIVE_STATUSES.includes(status);
+  return false;
 }
 const CATEGORIES = ["Cookies", "Cakes", "Bread", "Pastries", "Cupcakes", "Other"];
 const PLATFORMS = ["Instagram", "Facebook", "TikTok", "Pinterest"];
@@ -753,7 +752,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // Orders UI
   const [orderSearch,  setOrderSearch]  = useState("");
   const [showNewOrder, setShowNewOrder] = useState(false);
-  const [orderStatusFilter, setOrderStatusFilter] = useState("default"); // "default" (Pending+Active) | Pending | Active | Declined | All
+  const [orderStatusFilter, setOrderStatusFilter] = useState("Pending"); // Pending | Active | Declined | All — strictly single-select, no combined state
   const [newOrder,     setNewOrder]     = useState({ customer: "", items: [{ item: "", size: "", flavor: "", quantity: "1" }], due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
   const [editingOrder, setEditingOrder] = useState(null); // order being edited
   const [editOrder,    setEditOrder]    = useState(null); // edit form state
@@ -2773,7 +2772,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
             <div className="flex flex-wrap items-center gap-1 bg-background p-1 rounded-xl border border-border w-fit">
               {ORDER_STATUS_FILTERS.map(f => {
-                const isSelected = orderStatusFilter === f || (orderStatusFilter === "default" && (f === "Pending" || f === "Active"));
+                const isSelected = orderStatusFilter === f;
                 return (
                   <button
                     key={f}
