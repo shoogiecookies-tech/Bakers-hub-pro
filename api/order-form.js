@@ -23,6 +23,9 @@ module.exports = async function handler(req, res) {
   let fullyBookedDates = [];
 
   if (isPro && profile.max_orders_per_day) {
+    // Capacity is per-ORDER regardless of item count (known limitation: a heavy
+    // multi-item order still only consumes one slot — revisit if this undercounts
+    // real production load).
     const { data: acceptedOrders, error: countErr } = await admin
       .from("orders")
       .select("due")

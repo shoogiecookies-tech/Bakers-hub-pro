@@ -31,34 +31,33 @@ function wrapEmail({ emoji, heading, subheading, bodyHtml }) {
 </html>`;
 }
 
-function buildDetailRows(order) {
-  return [
-    ["Item", order.item || "—"],
-    ["Size", order.size || "—"],
-    ["Flavor", order.flavor || "—"],
-    ["Quantity", order.quantity || "—"],
-    ["Date", order.due || "—"],
-  ].map(([label, val]) => `
+function buildItemRows(items) {
+  return (items || []).map(li => {
+    const detail = [li.quantity && li.quantity !== 1 && `Qty ${li.quantity}`, li.size, li.flavor].filter(Boolean).join(" · ");
+    return `
     <tr>
-      <td style="padding:8px 12px;font-size:13px;color:#7a6a58;font-family:'Arial',sans-serif;border-bottom:1px solid #e8dfd0;">${label}</td>
-      <td style="padding:8px 12px;font-size:13px;color:#152937;font-family:'Arial',sans-serif;border-bottom:1px solid #e8dfd0;">${esc(val)}</td>
-    </tr>`).join("");
+      <td style="padding:8px 12px;font-size:13px;color:#152937;font-family:'Arial',sans-serif;border-bottom:1px solid #e8dfd0;">
+        <strong>${esc(li.item)}</strong>${detail ? `<div style="color:#7a6a58;font-size:12px;margin-top:2px;">${esc(detail)}</div>` : ""}
+      </td>
+    </tr>`;
+  }).join("");
 }
 
-function buildAcceptHtml(bakeryName, order) {
+function buildAcceptHtml(bakeryName, order, items) {
   const body = `
     <p style="margin:0 0 16px;font-size:15px;color:#152937;line-height:1.7;font-family:'Arial',sans-serif;">Hi ${esc(order.customer)},</p>
     <p style="margin:0 0 20px;font-size:15px;color:#152937;line-height:1.7;font-family:'Arial',sans-serif;">Good news — <strong>${esc(bakeryName)}</strong> has confirmed your order request for <strong>${esc(order.due)}</strong>. Here's what was confirmed:</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">${buildDetailRows(order)}</table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">${buildItemRows(items)}</table>
     <p style="margin:0;font-size:14px;color:#7a6a58;line-height:1.7;font-family:'Arial',sans-serif;">${esc(bakeryName)} will be in touch with any next steps.</p>
   `;
   return wrapEmail({ emoji: "🎉", heading: "Your order is confirmed!", subheading: `via ${bakeryName}`, bodyHtml: body });
 }
 
-function buildDeclineHtml(bakeryName, order, reason) {
+function buildDeclineHtml(bakeryName, order, items, reason) {
   const body = `
     <p style="margin:0 0 16px;font-size:15px;color:#152937;line-height:1.7;font-family:'Arial',sans-serif;">Hi ${esc(order.customer)},</p>
-    <p style="margin:0 0 20px;font-size:15px;color:#152937;line-height:1.7;font-family:'Arial',sans-serif;">Unfortunately <strong>${esc(bakeryName)}</strong> isn't able to take your order request for <strong>${esc(order.due)}</strong>.</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#152937;line-height:1.7;font-family:'Arial',sans-serif;">Unfortunately <strong>${esc(bakeryName)}</strong> isn't able to take your order request for <strong>${esc(order.due)}</strong>:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">${buildItemRows(items)}</table>
     ${reason ? `<div style="background:#faf5ee;border-radius:10px;padding:14px 16px;margin-bottom:20px;"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#7a6a58;font-family:'Arial',sans-serif;margin-bottom:4px;">Note from ${esc(bakeryName)}</div><div style="font-size:14px;color:#152937;font-family:'Arial',sans-serif;line-height:1.6;">${esc(reason)}</div></div>` : ""}
     <p style="margin:0;font-size:14px;color:#7a6a58;line-height:1.7;font-family:'Arial',sans-serif;">Feel free to reach out or submit a new request for a different date.</p>
   `;
@@ -99,12 +98,13 @@ module.exports = async function handler(req, res) {
 
   const { data: order, error: orderErr } = await admin
     .from("orders")
-    .select("*")
+    .select("*, order_items(*)")
     .eq("id", orderId)
     .eq("user_id", caller.id)
     .single();
 
   if (orderErr || !order) return res.status(404).json({ error: "Order not found" });
+  const items = order.order_items || [];
 
   if (order.decision_notified_at) {
     return res.status(200).json({ sent: false, reason: "already notified" });
@@ -127,8 +127,8 @@ module.exports = async function handler(req, res) {
     ? `Your order with ${bakeryName} is confirmed!`
     : `Update on your order request with ${bakeryName}`;
   const html = isAccepted
-    ? buildAcceptHtml(bakeryName, order)
-    : buildDeclineHtml(bakeryName, order, reason);
+    ? buildAcceptHtml(bakeryName, order, items)
+    : buildDeclineHtml(bakeryName, order, items, reason);
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

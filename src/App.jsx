@@ -102,6 +102,20 @@ function slugify(v) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
 }
+function mapOrderWithItems(o) {
+  return {
+    ...o,
+    items: (o.order_items || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity })),
+  };
+}
+function orderItemsSummary(order) {
+  return (order.items || []).map(li => li.item).filter(Boolean).join(", ");
+}
+function orderMatchesSearchQuery(order, q) {
+  if (!q) return true;
+  const query = q.toLowerCase();
+  return order.customer?.toLowerCase().includes(query) || (order.items || []).some(li => li.item?.toLowerCase().includes(query));
+}
 function calcIngCost(ing, pantry) {
   const item = pantry.find(p => Number(p.id) === Number(ing.pantryId))
     || pantry.find(p => p.name && ing.name && p.name.trim().toLowerCase() === ing.name.trim().toLowerCase());
@@ -122,7 +136,8 @@ function orderDayLabel(due) {
 }
 
 function generateTasksFromOrder(order) {
-  if (!order.item || !order.due) return [];
+  const items = order.items || [];
+  if (items.length === 0 || !order.due) return [];
   const due = new Date(order.due + "T12:00:00");
   const day = orderDayLabel(order.due);
   const add = (daysBefore, task) => {
@@ -130,13 +145,17 @@ function generateTasksFromOrder(order) {
     d.setDate(d.getDate() - daysBefore);
     return { date: d.toISOString().split("T")[0], task, done: false, auto: true, order_id: order.id };
   };
-  return [
-    add(5, `Prep ingredients for ${day} order — ${order.customer}`),
-    add(3, `Prep dough for ${day} bake — ${order.customer}`),
-    add(3, `Bake "${order.item}" — ${order.customer}`),
-    add(2, `Final decorate and prep — ${order.customer}`),
-    add(0, `Package & deliver "${order.item}" to ${order.customer}`),
-  ];
+  // 5 tasks per line item. Single-item orders keep the original task text
+  // unchanged; multi-item orders get a "(item)" suffix on the generic tasks
+  // so each item's block is distinguishable in the Schedule.
+  const suffix = items.length > 1 ? (name) => ` (${name})` : () => "";
+  return items.flatMap(li => [
+    add(5, `Prep ingredients for ${day} order — ${order.customer}${suffix(li.item)}`),
+    add(3, `Prep dough for ${day} bake — ${order.customer}${suffix(li.item)}`),
+    add(3, `Bake "${li.item}" — ${order.customer}`),
+    add(2, `Final decorate and prep — ${order.customer}${suffix(li.item)}`),
+    add(0, `Package & deliver "${li.item}" to ${order.customer}`),
+  ]);
 }
 
 // ─── AI HELPERS ───────────────────────────────────────────────────────────────
@@ -159,13 +178,14 @@ async function aiCaption(platform, type) {
   return callAI([{ role: "user", content: `You are a social media expert for a home bakery. Write an engaging ${platform} caption for a ${type} post. Warm, authentic, under 150 words, 1-2 emojis, a call to action, and 3-5 hashtags. Return ONLY the caption text.` }]);
 }
 async function aiScheduleSuggestions(orders) {
-  const list = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").map(o => `- ${o.item} for ${o.customer}, due ${o.due}`).join("\n");
+  const list = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").map(o => `- ${orderItemsSummary(o)} for ${o.customer}, due ${o.due}`).join("\n");
   if (!list) return [];
   const text = await callAI([{ role: "user", content: `Home bakery open orders:\n${list}\n\nSuggest 3 extra prep or business tasks (NOT standard bake/deliver tasks). Return ONLY a JSON array: [{"task":"...","daysFromNow":1},...]. No markdown.` }], 800);
   try { return JSON.parse(text); } catch { return []; }
 }
 async function aiOrderConfirmation(order, bakeryName) {
-  return callAI([{ role: "user", content: `You are a warm, professional home baker writing a customer order confirmation email.\nBakery: ${bakeryName}\nCustomer: ${order.customer}\nItem: ${order.item}\nDue: ${order.due}\nTotal: $${order.total}\nNotes: ${order.notes || "none"}\nWrite a friendly confirmation email. Return ONLY the email body, no subject line.` }]);
+  const itemsList = (order.items || []).map(li => `- ${li.item}${li.quantity && li.quantity !== 1 ? ` (x${li.quantity})` : ""}${li.size ? `, ${li.size}` : ""}${li.flavor ? `, ${li.flavor}` : ""}`).join("\n");
+  return callAI([{ role: "user", content: `You are a warm, professional home baker writing a customer order confirmation email.\nBakery: ${bakeryName}\nCustomer: ${order.customer}\nItems:\n${itemsList}\nDue: ${order.due}\nTotal: $${order.total}\nNotes: ${order.notes || "none"}\nWrite a friendly confirmation email. Return ONLY the email body, no subject line.` }]);
 }
 
 // ─── PHOTO UPLOAD ─────────────────────────────────────────────────────────────
@@ -405,9 +425,13 @@ function PublicOrderForm({ slug }) {
   const [error,      setError]      = useState("");
 
   const [form, setForm] = useState({
-    item: "", size: "", quantity: 1, flavor: "", due: "",
+    items: [{ item: "", size: "", quantity: 1, flavor: "" }], due: "",
     customer: "", phone: "", email: "", allergyNote: "", notes: "",
   });
+
+  const addFormItemRow = () => setForm(f => ({ ...f, items: [...f.items, { item: "", size: "", quantity: 1, flavor: "" }] }));
+  const removeFormItemRow = (idx) => setForm(f => ({ ...f, items: f.items.length <= 1 ? f.items : f.items.filter((_, i) => i !== idx) }));
+  const updateFormItemRow = (idx, field, value) => setForm(f => ({ ...f, items: f.items.map((it, i) => i === idx ? { ...it, [field]: value } : it) }));
 
   useEffect(() => {
     fetch(`/api/order-form?slug=${encodeURIComponent(slug)}`)
@@ -423,17 +447,17 @@ function PublicOrderForm({ slug }) {
     return d.toISOString().split("T")[0];
   };
 
-  const canSubmit = form.customer.trim() && (form.phone.trim() || form.email.trim()) && form.due;
+  const canSubmit = form.items.some(it => it.item.trim()) && form.customer.trim() && (form.phone.trim() || form.email.trim()) && form.due;
 
   const handleSubmit = async () => {
     setError("");
-    if (!canSubmit) { setError("Please fill in your name, a date, and a phone or email."); return; }
+    if (!canSubmit) { setError("Please add at least one item, and fill in your name, a date, and a phone or email."); return; }
     setSubmitting(true);
     try {
       const res = await fetch("/api/submit-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, ...form }),
+        body: JSON.stringify({ slug, ...form, items: form.items.filter(it => it.item.trim()) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Could not submit request. Please try again.");
@@ -479,45 +503,46 @@ function PublicOrderForm({ slug }) {
 
         <div className="flex flex-col gap-3.5">
           <div>
-            <label className={tw.eyebrow}>Item</label>
-            {config.items.length > 0 ? (
-              <select value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))} className={tw.input}>
-                <option value="">— Select an item —</option>
-                {config.items.map(i => <option key={i} value={i}>{i}</option>)}
-              </select>
-            ) : (
-              <input value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))} placeholder="What would you like to order?" className={tw.input} />
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={tw.eyebrow}>Size</label>
-              {config.sizes.length > 0 ? (
-                <select value={form.size} onChange={e => setForm(f => ({ ...f, size: e.target.value }))} className={tw.input}>
-                  <option value="">— Select —</option>
-                  {config.sizes.map(sz => <option key={sz} value={sz}>{sz}</option>)}
-                </select>
-              ) : (
-                <input value={form.size} onChange={e => setForm(f => ({ ...f, size: e.target.value }))} placeholder="e.g. Half dozen" className={tw.input} />
-              )}
+            <label className={tw.eyebrow}>Items *</label>
+            <div className="flex flex-col gap-2.5">
+              {form.items.map((it, idx) => (
+                <div key={idx} className="bg-background rounded-lg border border-border p-3 flex flex-col gap-2.5">
+                  <div className="flex gap-2 items-center">
+                    {config.items.length > 0 ? (
+                      <select value={it.item} onChange={e => updateFormItemRow(idx, "item", e.target.value)} className={`${tw.input} !flex-1`}>
+                        <option value="">— Select an item —</option>
+                        {config.items.map(i => <option key={i} value={i}>{i}</option>)}
+                      </select>
+                    ) : (
+                      <input value={it.item} onChange={e => updateFormItemRow(idx, "item", e.target.value)} placeholder="What would you like to order?" className={`${tw.input} !flex-1`} />
+                    )}
+                    {form.items.length > 1 && (
+                      <button type="button" onClick={() => removeFormItemRow(idx)} className="text-foreground/30 hover:text-danger px-1 text-lg leading-none shrink-0">×</button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {config.sizes.length > 0 ? (
+                      <select value={it.size} onChange={e => updateFormItemRow(idx, "size", e.target.value)} className={tw.input}>
+                        <option value="">— Size —</option>
+                        {config.sizes.map(sz => <option key={sz} value={sz}>{sz}</option>)}
+                      </select>
+                    ) : (
+                      <input value={it.size} onChange={e => updateFormItemRow(idx, "size", e.target.value)} placeholder="Size (optional)" className={tw.input} />
+                    )}
+                    <input type="number" min="1" value={it.quantity} onChange={e => updateFormItemRow(idx, "quantity", e.target.value)} placeholder="Qty" className={tw.input} />
+                  </div>
+                  {config.flavors.length > 0 ? (
+                    <select value={it.flavor} onChange={e => updateFormItemRow(idx, "flavor", e.target.value)} className={tw.input}>
+                      <option value="">— Flavor —</option>
+                      {config.flavors.map(fl => <option key={fl} value={fl}>{fl}</option>)}
+                    </select>
+                  ) : (
+                    <input value={it.flavor} onChange={e => updateFormItemRow(idx, "flavor", e.target.value)} placeholder="Flavor (optional)" className={tw.input} />
+                  )}
+                </div>
+              ))}
             </div>
-            <div>
-              <label className={tw.eyebrow}>Quantity</label>
-              <input type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} className={tw.input} />
-            </div>
-          </div>
-
-          <div>
-            <label className={tw.eyebrow}>Flavor</label>
-            {config.flavors.length > 0 ? (
-              <select value={form.flavor} onChange={e => setForm(f => ({ ...f, flavor: e.target.value }))} className={tw.input}>
-                <option value="">— Select —</option>
-                {config.flavors.map(fl => <option key={fl} value={fl}>{fl}</option>)}
-              </select>
-            ) : (
-              <input value={form.flavor} onChange={e => setForm(f => ({ ...f, flavor: e.target.value }))} placeholder="e.g. Chocolate" className={tw.input} />
-            )}
+            <button type="button" onClick={addFormItemRow} className={`${tw.btnSec} bg-background text-accent border-accent mt-2`}>+ Add another item</button>
           </div>
 
           <div>
@@ -714,7 +739,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [orderSearch,  setOrderSearch]  = useState("");
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orderStatusFilter, setOrderStatusFilter] = useState("default"); // "default" (Pending+Active) | Pending | Active | Declined | All
-  const [newOrder,     setNewOrder]     = useState({ customer: "", item: "", size: "", flavor: "", quantity: "", due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
+  const [newOrder,     setNewOrder]     = useState({ customer: "", items: [{ item: "", size: "", flavor: "", quantity: "1" }], due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
   const [editingOrder, setEditingOrder] = useState(null); // order being edited
   const [editOrder,    setEditOrder]    = useState(null); // edit form state
   const [emailModal,   setEmailModal]   = useState(null);
@@ -789,7 +814,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       ] = await Promise.all([
         supabase.from("pantry").select("*").eq("user_id", uid).order("name"),
         supabase.from("recipes").select("*").eq("user_id", uid).order("name"),
-        supabase.from("orders").select("*").eq("user_id", uid).order("due"),
+        supabase.from("orders").select("*, order_items(*)").eq("user_id", uid).order("due"),
         supabase.from("schedule").select("*").eq("user_id", uid).order("date"),
         supabase.from("social_posts").select("*").eq("user_id", uid).order("date"),
         supabase.from("profiles").select("*").eq("id", uid).single(),
@@ -840,7 +865,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         setPantry(loadedPantry);
         setRecipes(loadedRecipes);
       }
-      setOrders(ordersData || []);
+      setOrders((ordersData || []).map(mapOrderWithItems));
       setSchedule((scheduleData || []).map(t => ({ ...t, orderId: t.order_id, aiSuggested: t.ai_suggested })));
       setSocial((socialData || []).map(p => ({ ...p, type: p.type })));
       if (profileData) {
@@ -883,10 +908,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Orders polling — pick up new pending order-requests without a full reload ──
   const refreshOrders = useCallback(async () => {
-    const { data, error } = await supabase.from("orders").select("*").eq("user_id", uid).order("due");
+    const { data, error } = await supabase.from("orders").select("*, order_items(*)").eq("user_id", uid).order("due");
     if (error) return;
-    setOrders(data || []);
-    const pendingLinkIds = (data || []).filter(o => o.status === "Pending" && o.source === "link").map(o => o.id);
+    const mapped = (data || []).map(mapOrderWithItems);
+    setOrders(mapped);
+    const pendingLinkIds = mapped.filter(o => o.status === "Pending" && o.source === "link").map(o => o.id);
     setNewPendingCount(pendingLinkIds.filter(id => !seenPendingLinkIds.current.has(id)).length);
   }, [uid]);
 
@@ -946,6 +972,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     setList([...list, v]);
   };
   const removeMenuOption = (list, setList, value) => setList(list.filter(v => v !== value));
+
+  // Repeatable line-item rows, shared by the New Order and Edit Order forms.
+  const addItemRow = (setOrder) => setOrder(o => ({ ...o, items: [...o.items, { item: "", size: "", flavor: "", quantity: "1" }] }));
+  const removeItemRow = (setOrder, idx) => setOrder(o => ({ ...o, items: o.items.length <= 1 ? o.items : o.items.filter((_, i) => i !== idx) }));
+  const updateItemRow = (setOrder, idx, field, value) => setOrder(o => ({ ...o, items: o.items.map((it, i) => i === idx ? { ...it, [field]: value } : it) }));
 
   const addBlackoutDate = () => {
     if (!blackoutDateInput || blackoutDates.includes(blackoutDateInput)) return;
@@ -1138,9 +1169,10 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // ── Orders ────────────────────────────────────────────────────────────────
   const addOrder = async () => {
     if (!newOrder.customer) return;
-    const { data, error: insertErr } = await supabase.from("orders").insert([{
-      user_id: uid, customer: newOrder.customer, item: newOrder.item,
-      size: newOrder.size || null, flavor: newOrder.flavor || null, quantity: parseInt(newOrder.quantity) || null,
+    const validItems = newOrder.items.filter(it => it.item.trim());
+    if (validItems.length === 0) { alert("Add at least one item."); return; }
+    const { data: orderData, error: insertErr } = await supabase.from("orders").insert([{
+      user_id: uid, customer: newOrder.customer,
       due: newOrder.due || null, status: newOrder.status,
       total: parseFloat(newOrder.total) || 0, notes: newOrder.notes, allergy_note: newOrder.allergyNote || null, phone: newOrder.phone, email: newOrder.email || null
     }]).select().single();
@@ -1148,16 +1180,19 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       alert("Order could not be saved: " + insertErr.message);
       return;
     }
-    if (data) {
-      setOrders(prev => [...prev, data]);
-      // Auto-generate tasks
-      const tasks = generateTasksFromOrder(data);
-      for (const t of tasks) {
-        const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t, order_id: data.id }]).select().single();
-        if (taskData) setSchedule(prev => [...prev, { ...taskData, auto: true, aiSuggested: false }]);
-      }
+    const { data: itemsData, error: itemsErr } = await supabase.from("order_items").insert(
+      validItems.map(it => ({ order_id: orderData.id, user_id: uid, item: it.item.trim(), size: it.size || null, flavor: it.flavor || null, quantity: parseInt(it.quantity) || 1 }))
+    ).select();
+    if (itemsErr) alert("Order saved, but items could not be saved: " + itemsErr.message);
+    const fullOrder = { ...orderData, items: (itemsData || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity })) };
+    setOrders(prev => [...prev, fullOrder]);
+    // Auto-generate tasks (5 per line item)
+    const tasks = generateTasksFromOrder(fullOrder);
+    for (const t of tasks) {
+      const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t, order_id: fullOrder.id }]).select().single();
+      if (taskData) setSchedule(prev => [...prev, { ...taskData, auto: true, aiSuggested: false }]);
     }
-    setNewOrder({ customer: "", item: "", size: "", flavor: "", quantity: "", due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
+    setNewOrder({ customer: "", items: [{ item: "", size: "", flavor: "", quantity: "1" }], due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
     setShowNewOrder(false);
   };
 
@@ -1189,6 +1224,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   const acceptOrder = async (order) => {
     if (decisionSending) return;
+    // Capacity is per-ORDER regardless of item count (known limitation: a heavy
+    // multi-item order still only consumes one slot, undercounting real production
+    // load — revisit with item-count-aware capacity if this becomes a real problem).
     const cap = parseInt(maxOrdersPerDay) || 0;
     if (isPro && cap > 0 && order.due) {
       const { count, error: countErr } = await supabase
@@ -1229,15 +1267,24 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   const saveEditOrder = async () => {
     if (!editOrder) return;
+    const validItems = editOrder.items.filter(it => it.item.trim());
+    if (validItems.length === 0) { alert("Add at least one item."); return; }
     const updates = {
-      customer: editOrder.customer, item: editOrder.item,
-      size: editOrder.size || null, flavor: editOrder.flavor || null, quantity: parseInt(editOrder.quantity) || null,
+      customer: editOrder.customer,
       due: editOrder.due || null, status: editOrder.status,
       total: parseFloat(editOrder.total) || 0, notes: editOrder.notes, allergy_note: editOrder.allergyNote || null, phone: editOrder.phone, email: editOrder.email || null
     };
     const { error: updateErr } = await supabase.from("orders").update(updates).eq("id", editingOrder);
     if (updateErr) { alert("Order could not be updated: " + updateErr.message); return; }
-    setOrders(prev => prev.map(o => o.id === editingOrder ? { ...o, ...updates } : o));
+
+    // Replace line items wholesale (same pattern as auto-task regeneration below).
+    await supabase.from("order_items").delete().eq("order_id", editingOrder);
+    const { data: itemsData, error: itemsErr } = await supabase.from("order_items").insert(
+      validItems.map(it => ({ order_id: editingOrder, user_id: uid, item: it.item.trim(), size: it.size || null, flavor: it.flavor || null, quantity: parseInt(it.quantity) || 1 }))
+    ).select();
+    if (itemsErr) alert("Order updated, but items could not be saved: " + itemsErr.message);
+    const newItems = (itemsData || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity }));
+    setOrders(prev => prev.map(o => o.id === editingOrder ? { ...o, ...updates, items: newItems } : o));
 
     // Link-submitted orders don't get production tasks until accepted (see acceptOrder);
     // skip regeneration here so an edit made while still Pending doesn't jump the gun.
@@ -1246,7 +1293,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       // Delete auto-generated tasks for this order and regenerate from new details
       await supabase.from("schedule").delete().eq("order_id", editingOrder).eq("auto", true);
       setSchedule(prev => prev.filter(t => !(t.order_id === editingOrder && t.auto)));
-      const updatedOrder = { ...updates, id: editingOrder };
+      const updatedOrder = { ...updates, id: editingOrder, items: newItems };
       const newTasks = generateTasksFromOrder(updatedOrder);
       for (const t of newTasks) {
         const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t }]).select().single();
@@ -1277,10 +1324,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Compliance Label Proofer ─────────────────────────────────────────────
   const printLabel = (order) => {
-    // order.item is free text and may list more than one recipe (e.g. "Cinnamon Rolls, Sugar Cookies")
-    const itemNames = (order.item || "").split(/,|&|\+|;|\/|\n| and /i).map(s => s.trim()).filter(Boolean);
+    const itemNames = (order.items || []).map(li => li.item).filter(Boolean);
     const matches = itemNames
-      .map(name => recipes.find(r => r.name.trim().toLowerCase() === name.toLowerCase()))
+      .map(name => recipes.find(r => r.name.trim().toLowerCase() === name.trim().toLowerCase()))
       .filter(Boolean);
     const firstMatch = matches[0] || null;
     setLabelRecipeId(firstMatch ? String(firstMatch.id) : "");
@@ -1419,16 +1465,26 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // ── Dashboard metrics ─────────────────────────────────────────────────────
   const deliveredRev   = orders.filter(o => o.status === "Delivered").reduce((s, o) => s + (o.total || 0), 0);
   const pendingRev     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").reduce((s, o) => s + (o.total || 0), 0);
-  const totalRevenue   = deliveredRev + pendingRev;
   const openOrders     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length;
   const todayStr       = new Date().toISOString().split("T")[0];
   const todayTasks     = schedule.filter(t => !t.done && t.date === todayStr);
   const scheduledPosts = social.filter(p => p.status === "Scheduled").length;
-  const itemRevMap     = {};
-  orders.forEach(o => { if (o.item && o.status !== "Declined") itemRevMap[o.item] = (itemRevMap[o.item] || 0) + (o.total || 0); });
-  const itemRevEntries = Object.entries(itemRevMap).sort((a, b) => b[1] - a[1]);
-  const topItem        = itemRevEntries[0] || null;
-  const topItemPct     = totalRevenue > 0 && topItem ? Math.round(topItem[1] / totalRevenue * 100) : null;
+  // Order-count per item (not revenue) — there's no per-item price, so revenue can't be
+  // split or attributed per line item. Revisit if/when per-item pricing exists.
+  const itemOrderCountMap = {};
+  orders.forEach(o => {
+    if (o.status === "Declined") return;
+    const seenInOrder = new Set();
+    (o.items || []).forEach(li => {
+      if (li.item && !seenInOrder.has(li.item)) {
+        seenInOrder.add(li.item);
+        itemOrderCountMap[li.item] = (itemOrderCountMap[li.item] || 0) + 1;
+      }
+    });
+  });
+  const itemOrderCountEntries = Object.entries(itemOrderCountMap).sort((a, b) => b[1] - a[1]);
+  // Top Revenue Order — order-level total only, no per-item attribution.
+  const topRevenueOrder = orders.filter(o => o.status !== "Declined").sort((a, b) => (b.total || 0) - (a.total || 0))[0] || null;
 
   if (dbLoading) return (
     <div style={{ minHeight: "100vh", background: "var(--color-background)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "var(--color-foreground)", fontSize: 16 }}>
@@ -1577,19 +1633,17 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                  ))
                }
              </div>
-             {topItem && (
+             {topRevenueOrder && topRevenueOrder.total > 0 && (
                <div className="bf-card" style={{ ...s.card, padding: 18, background: C.bg, border: `2px solid ${C.dark}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                    <div style={{ fontSize: 18 }}>📊</div>
                    <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
                  </div>
                  <div style={{ background: C.card, borderRadius: 12, padding: "12px 14px", border: `1px solid ${C.border}` }}>
-                   <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Item</div>
-                   <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topItem[0]}</div>
+                   <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Order</div>
+                   <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>${topRevenueOrder.total} — {topRevenueOrder.customer}</div>
                    <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
-                     {topItemPct !== null
-                       ? `${topItem[0]} generated ${topItemPct}% of your total revenue — your top earner! 🎉`
-                       : `Your top revenue generator — keep it on the menu!`}
+                     Your biggest order{topRevenueOrder.due ? ` (due ${topRevenueOrder.due})` : ""} — nice work! 🎉
                    </div>
                  </div>
                </div>
@@ -1611,7 +1665,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: sc + "22", color: sc, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "800", flexShrink: 0, letterSpacing: 0.5 }}>{initials}</div>
                          <div style={{ flex: 1, minWidth: 0 }}>
                            <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.customer}</div>
-                           <div style={{ fontSize: 12, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.item}</div>
+                           <div style={{ fontSize: 12, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{orderItemsSummary(o)}</div>
                          </div>
                          <div style={{ textAlign: "right", flexShrink: 0 }}>
                            {o.due && <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{o.due}</div>}
@@ -1671,10 +1725,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                  }
                  const _distinctDates = _trendData.length;
 
-                 const _bestSellers = itemRevEntries.slice(0, 5).map(([name, revenue]) => ({
-                   name, revenue,
-                   orders: orders.filter(o => o.item === name && o.status !== "Declined").length,
-                 }));
+                 const _bestSellers = itemOrderCountEntries.slice(0, 5).map(([name, orderCount]) => ({ name, orders: orderCount }));
 
                  const _trendTooltip = ({ active, payload }) => {
                    if (!active || !payload || !payload.length) return null;
@@ -1693,7 +1744,6 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                    return (
                      <div className={`${tw.card} !p-3`}>
                        <div className="font-bold text-foreground text-xs mb-1">{p.name}</div>
-                       <div className="text-xs text-foreground/70">Revenue: <span className="font-bold text-accent">${p.revenue.toFixed(2)}</span></div>
                        <div className="text-xs text-foreground/70">Orders: <span className="font-bold text-foreground">{p.orders}</span></div>
                      </div>
                    );
@@ -1736,7 +1786,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                                <XAxis type="number" hide />
                                <YAxis type="category" dataKey="name" width={130} tick={{ fill: _fgColor, fontSize: 12 }} axisLine={false} tickLine={false} />
                                <Tooltip content={_bestSellerTooltip} cursor={{ fill: _accentColor, fillOpacity: 0.08 }} />
-                               <Bar dataKey="revenue" fill={_accentColor} radius={[0, 4, 4, 0]} barSize={18} />
+                               <Bar dataKey="orders" fill={_accentColor} radius={[0, 4, 4, 0]} barSize={18} />
                              </BarChart>
                            </ResponsiveContainer>
                          </div>
@@ -2539,7 +2589,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   <div className="flex justify-between items-center mb-3">
                     <div>
                       <div className="font-display font-bold text-base text-foreground">✉️ Order Confirmation</div>
-                      <div className="text-xs text-foreground/50 mt-0.5">For {emailModal.customer} · {emailModal.item}</div>
+                      <div className="text-xs text-foreground/50 mt-0.5">For {emailModal.customer} · {orderItemsSummary(emailModal)}</div>
                     </div>
                     <button onClick={() => setEmailModal(null)} className="bg-background rounded-full w-8 h-8 shrink-0 text-foreground/60 hover:text-foreground">✕</button>
                   </div>
@@ -2551,7 +2601,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     : <>
                       <div className="mb-2">
                         <label className={tw.eyebrow}>Subject line</label>
-                        <div className={`${tw.input} text-foreground/70 bg-background`}>Order Confirmed! {emailModal.item} — {emailModal.due}</div>
+                        <div className={`${tw.input} text-foreground/70 bg-background`}>Order Confirmed! {orderItemsSummary(emailModal)} — {emailModal.due}</div>
                       </div>
                       <label className={tw.eyebrow}>Email body</label>
                       <textarea placeholder="Add your message to get started…" value={emailBody} onChange={e => setEmailBody(e.target.value)} className={`${tw.input} !flex-1 resize-none text-sm leading-relaxed min-h-[220px]`} />
@@ -2640,11 +2690,23 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   <input placeholder="Phone" value={newOrder.phone} onChange={e => setNewOrder(o => ({ ...o, phone: formatPhone(e.target.value) }))} className={`${tw.input} !w-28`} />
                 </div>
                 <input placeholder="Customer email (for invoicing)" value={newOrder.email} onChange={e => setNewOrder(o => ({ ...o, email: e.target.value }))} className={tw.input} />
-                <input placeholder="Item(s) ordered" value={newOrder.item} onChange={e => setNewOrder(o => ({ ...o, item: e.target.value }))} className={tw.input} />
-                <div className="flex gap-2">
-                  <input placeholder="Size (optional)" value={newOrder.size} onChange={e => setNewOrder(o => ({ ...o, size: e.target.value }))} className={`${tw.input} !flex-1`} />
-                  <input placeholder="Flavor (optional)" value={newOrder.flavor} onChange={e => setNewOrder(o => ({ ...o, flavor: e.target.value }))} className={`${tw.input} !flex-1`} />
-                  <input type="number" min="1" placeholder="Qty" value={newOrder.quantity} onChange={e => setNewOrder(o => ({ ...o, quantity: e.target.value }))} className={`${tw.input} !w-20`} />
+                <div className="flex flex-col gap-2">
+                  {newOrder.items.map((it, idx) => (
+                    <div key={idx} className="bg-background rounded-lg p-2.5 flex flex-col gap-2">
+                      <div className="flex gap-2 items-center">
+                        <input placeholder={`Item ${idx + 1}`} value={it.item} onChange={e => updateItemRow(setNewOrder, idx, "item", e.target.value)} className={`${tw.input} !flex-1`} />
+                        {newOrder.items.length > 1 && (
+                          <button type="button" onClick={() => removeItemRow(setNewOrder, idx)} className="text-foreground/30 hover:text-danger px-1 text-lg leading-none shrink-0">×</button>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <input placeholder="Size (optional)" value={it.size} onChange={e => updateItemRow(setNewOrder, idx, "size", e.target.value)} className={`${tw.input} !flex-1`} />
+                        <input placeholder="Flavor (optional)" value={it.flavor} onChange={e => updateItemRow(setNewOrder, idx, "flavor", e.target.value)} className={`${tw.input} !flex-1`} />
+                        <input type="number" min="1" placeholder="Qty" value={it.quantity} onChange={e => updateItemRow(setNewOrder, idx, "quantity", e.target.value)} className={`${tw.input} !w-20`} />
+                      </div>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addItemRow(setNewOrder)} className={`${tw.btnSec} bg-background text-accent border-accent self-start`}>+ Add another item</button>
                 </div>
                 <div className="flex gap-2">
                   <input type="date" value={newOrder.due} onChange={e => setNewOrder(o => ({ ...o, due: e.target.value }))} className={`${tw.input} !flex-1`} />
@@ -2661,11 +2723,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
             )}
 
-            {orders.filter(o => {
-                if (!matchesOrderStatusFilter(o.status, orderStatusFilter)) return false;
-                const q = orderSearch.toLowerCase();
-                return !q || o.customer?.toLowerCase().includes(q) || o.item?.toLowerCase().includes(q);
-              }).map(o => {
+            {orders.filter(o => matchesOrderStatusFilter(o.status, orderStatusFilter) && orderMatchesSearchQuery(o, orderSearch.trim())).map(o => {
                 const _t = new Date(); _t.setHours(0,0,0,0);
                 const _d = o.due ? new Date(o.due + "T00:00:00") : null;
                 const _diff = _d ? Math.round((_d - _t) / 86400000) : null;
@@ -2688,11 +2746,23 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       <input placeholder="Phone" value={editOrder.phone} onChange={e => setEditOrder(x => ({ ...x, phone: formatPhone(e.target.value) }))} className={`${tw.input} !w-28`} />
                     </div>
                     <input placeholder="Customer email (for invoicing)" value={editOrder.email || ""} onChange={e => setEditOrder(x => ({ ...x, email: e.target.value }))} className={tw.input} />
-                    <input placeholder="Item(s)" value={editOrder.item} onChange={e => setEditOrder(x => ({ ...x, item: e.target.value }))} className={tw.input} />
-                    <div className="flex gap-2">
-                      <input placeholder="Size (optional)" value={editOrder.size} onChange={e => setEditOrder(x => ({ ...x, size: e.target.value }))} className={`${tw.input} !flex-1`} />
-                      <input placeholder="Flavor (optional)" value={editOrder.flavor} onChange={e => setEditOrder(x => ({ ...x, flavor: e.target.value }))} className={`${tw.input} !flex-1`} />
-                      <input type="number" min="1" placeholder="Qty" value={editOrder.quantity} onChange={e => setEditOrder(x => ({ ...x, quantity: e.target.value }))} className={`${tw.input} !w-20`} />
+                    <div className="flex flex-col gap-2">
+                      {editOrder.items.map((it, idx) => (
+                        <div key={idx} className="bg-background rounded-lg p-2.5 flex flex-col gap-2">
+                          <div className="flex gap-2 items-center">
+                            <input placeholder={`Item ${idx + 1}`} value={it.item} onChange={e => updateItemRow(setEditOrder, idx, "item", e.target.value)} className={`${tw.input} !flex-1`} />
+                            {editOrder.items.length > 1 && (
+                              <button type="button" onClick={() => removeItemRow(setEditOrder, idx)} className="text-foreground/30 hover:text-danger px-1 text-lg leading-none shrink-0">×</button>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <input placeholder="Size (optional)" value={it.size} onChange={e => updateItemRow(setEditOrder, idx, "size", e.target.value)} className={`${tw.input} !flex-1`} />
+                            <input placeholder="Flavor (optional)" value={it.flavor} onChange={e => updateItemRow(setEditOrder, idx, "flavor", e.target.value)} className={`${tw.input} !flex-1`} />
+                            <input type="number" min="1" placeholder="Qty" value={it.quantity} onChange={e => updateItemRow(setEditOrder, idx, "quantity", e.target.value)} className={`${tw.input} !w-20`} />
+                          </div>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => addItemRow(setEditOrder)} className={`${tw.btnSec} bg-background text-accent border-accent self-start`}>+ Add another item</button>
                     </div>
                     <div className="flex gap-2">
                       <input type="date" value={editOrder.due} onChange={e => setEditOrder(x => ({ ...x, due: e.target.value }))} className={`${tw.input} !flex-1`} />
@@ -2713,7 +2783,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     <div className="flex justify-between gap-3 border-b border-border/60 pb-3">
                       <div>
                         <h3 className="font-display font-bold text-foreground text-base">{o.customer}</h3>
-                        <div className="text-xs text-foreground/60 mt-0.5">{o.item}</div>
+                        <div className="text-xs text-foreground/60 mt-0.5">{orderItemsSummary(o)}</div>
                         <div className="text-xs mt-1" style={{ color: _dc || "var(--color-foreground)", opacity: _dc ? 1 : 0.5, fontWeight: (_ov||_tod||_tom) ? 600 : 400 }}>
                           {_dl}{o.phone && <span className="text-foreground/50 font-normal"> · {o.phone}</span>}
                         </div>
@@ -2741,9 +2811,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     )}
 
                     {_pendingLink && <div className="bg-info/10 border border-info/25 rounded-lg px-3 py-2 text-xs text-info">📥 New request from your order link — accept to schedule it, or decline.</div>}
-                    {(o.size || o.flavor || o.quantity) && (
-                      <div className="text-xs text-foreground/60 -mt-1">
-                        {[o.quantity && `Qty ${o.quantity}`, o.size, o.flavor].filter(Boolean).join(" · ")}
+                    {(o.items || []).some(li => li.size || li.flavor || (li.quantity && li.quantity !== 1)) && (
+                      <div className="text-xs text-foreground/60 -mt-1 flex flex-col gap-0.5">
+                        {(o.items || []).map((li, idx) => {
+                          const detail = [li.quantity && li.quantity !== 1 && `Qty ${li.quantity}`, li.size, li.flavor].filter(Boolean).join(" · ");
+                          return detail ? <div key={li.id || idx}>{o.items.length > 1 ? `${li.item}: ` : ""}{detail}</div> : null;
+                        })}
                       </div>
                     )}
                     {o.allergy_note && <div className="bg-warning/10 border border-warning/25 rounded-lg px-3 py-2 text-xs text-warning">⚠️ Allergy/dietary note: {o.allergy_note}</div>}
@@ -2768,7 +2841,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         </div>
                       )}
                       <div className="ml-auto flex items-center gap-1.5">
-                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, size: o.size || "", flavor: o.flavor || "", quantity: o.quantity || "", due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", allergyNote: o.allergy_note || "", phone: o.phone || "", email: o.email || "", source: o.source }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
+                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, items: (o.items && o.items.length > 0) ? o.items.map(li => ({ item: li.item || "", size: li.size || "", flavor: li.flavor || "", quantity: li.quantity || "1" })) : [{ item: "", size: "", flavor: "", quantity: "1" }], due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", allergyNote: o.allergy_note || "", phone: o.phone || "", email: o.email || "", source: o.source }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
                           <Edit3 className="h-3.5 w-3.5" /><span>Edit</span>
                         </button>
                         <button onClick={() => printInvoice(o)} className={`${tw.btn} px-3 py-1.5 flex items-center gap-1.5`}>
@@ -2793,7 +2866,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 );
               })}
             {orders.length === 0 && <div className={`${tw.card} text-center text-foreground/50 text-sm`}>No orders yet — add your first one! 🎂</div>}
-            {orders.length > 0 && orders.filter(o => matchesOrderStatusFilter(o.status, orderStatusFilter) && (!orderSearch.trim() || o.customer?.toLowerCase().includes(orderSearch.toLowerCase()) || o.item?.toLowerCase().includes(orderSearch.toLowerCase()))).length === 0 && (
+            {orders.length > 0 && orders.filter(o => matchesOrderStatusFilter(o.status, orderStatusFilter) && orderMatchesSearchQuery(o, orderSearch.trim())).length === 0 && (
               <div className={`${tw.card} text-center text-foreground/50 text-sm`}>No orders match this filter.</div>
             )}
           </div>
@@ -3084,26 +3157,24 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   const _ideas = [];
 
                   const _upcoming = orders
-                    .filter(o => o.due && o.item && o.customer && ["Pending","In Progress"].includes(o.status) && (() => { const d = new Date(o.due + "T00:00:00"); return d >= _today && d <= _in7; })())
+                    .filter(o => o.due && (o.items || []).length > 0 && o.customer && ["Pending","In Progress"].includes(o.status) && (() => { const d = new Date(o.due + "T00:00:00"); return d >= _today && d <= _in7; })())
                     .sort((a,b) => new Date(a.due) - new Date(b.due));
                   if (_upcoming.length > 0) {
                     const _o = _upcoming[0];
-                    _ideas.push(`🗓️ ${_ucfirst(_o.item)} going out to ${_o.customer} this week — share a sneak peek!`);
+                    _ideas.push(`🗓️ ${_ucfirst(orderItemsSummary(_o))} going out to ${_o.customer} this week — share a sneak peek!`);
                   }
 
                   const _delivered = orders
-                    .filter(o => o.status === "Delivered" && o.item && o.customer && o.due)
+                    .filter(o => o.status === "Delivered" && (o.items || []).length > 0 && o.customer && o.due)
                     .sort((a,b) => new Date(b.due) - new Date(a.due));
                   if (_delivered.length > 0) {
                     const _o = _delivered[0];
-                    _ideas.push(`📦 Just delivered ${_o.item} to ${_o.customer}! Show off your work.`);
+                    _ideas.push(`📦 Just delivered ${orderItemsSummary(_o)} to ${_o.customer}! Show off your work.`);
                   }
 
-                  if (orders.length >= 2) {
-                    const _counts = {};
-                    orders.forEach(o => { if (o.item) _counts[o.item] = (_counts[o.item] || 0) + 1; });
-                    const _best = Object.entries(_counts).sort((a,b) => b[1]-a[1])[0];
-                    if (_best) _ideas.push(`⭐ ${_ucfirst(_best[0])} are your most popular item — remind your followers they're available!`);
+                  if (orders.length >= 2 && itemOrderCountEntries.length > 0) {
+                    const _best = itemOrderCountEntries[0];
+                    _ideas.push(`⭐ ${_ucfirst(_best[0])} are your most popular item — remind your followers they're available!`);
                   }
 
                   if (orders.some(o => o.status === "Pending")) {
@@ -3792,7 +3863,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   <h3 className="font-display font-bold text-foreground text-base">Export Data</h3>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
-                  <button onClick={() => exportCSV(orders, "orders.csv")} className={tw.btn}>Export Orders CSV</button>
+                  <button onClick={() => exportCSV(orders.map(({ items, order_items, item, size, flavor, quantity, ...rest }) => ({ ...rest, items_summary: orderItemsSummary({ items }) })), "orders.csv")} className={tw.btn}>Export Orders CSV</button>
                   <button onClick={() => exportCSV(pantry, "pantry.csv")} className={`${tw.btn} !bg-foreground !text-background`}>Export Pantry CSV</button>
                   <button onClick={() => exportCSV(recipes.map(r => ({ ...r, ingredients: JSON.stringify(r.ingredients) })), "recipes.csv")} className={`${tw.btn} !bg-foreground/50 !text-background`}>Export Recipes CSV</button>
                 </div>
@@ -3896,14 +3967,20 @@ CREATE POLICY "owner_only" ON gifted_users
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, verticalAlign: "top" }}>
-                        <strong>{ord.item}</strong>
-                        {ord.notes && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 5 }}>{ord.notes}</div>}
-                      </td>
-                      <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 13, color: "#6b7280", verticalAlign: "top" }}>{due}</td>
-                      <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, fontWeight: "bold", textAlign: "right", verticalAlign: "top" }}>${total}</td>
-                    </tr>
+                    {(ord.items && ord.items.length > 0 ? ord.items : [{ item: "", size: "", flavor: "", quantity: null }]).map((li, idx) => {
+                      const detail = [li.quantity && li.quantity !== 1 && `Qty ${li.quantity}`, li.size, li.flavor].filter(Boolean).join(" · ");
+                      return (
+                        <tr key={li.id || idx}>
+                          <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, verticalAlign: "top" }}>
+                            <strong>{li.item}</strong>
+                            {detail && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>{detail}</div>}
+                            {idx === 0 && ord.notes && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 5 }}>{ord.notes}</div>}
+                          </td>
+                          <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 13, color: "#6b7280", verticalAlign: "top" }}>{idx === 0 ? due : ""}</td>
+                          <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, fontWeight: "bold", textAlign: "right", verticalAlign: "top" }}>{idx === 0 ? `$${total}` : ""}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr style={{ background: CREAM }}>

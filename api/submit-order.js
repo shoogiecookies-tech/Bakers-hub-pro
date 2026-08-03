@@ -1,12 +1,19 @@
 const { createClient } = require("@supabase/supabase-js");
 
-function buildNotificationHtml({ bakeryName, customer, item, size, flavor, quantity, due, phone, email, allergyNote, notes }) {
-  const esc = (v) => String(v).replace(/</g, "&lt;");
+function buildNotificationHtml({ bakeryName, customer, items, due, phone, email, allergyNote, notes }) {
+  const esc = (v) => String(v == null ? "" : v).replace(/</g, "&lt;");
+
+  const itemRows = items.map(it => {
+    const detail = [it.quantity && it.quantity !== 1 && `Qty ${it.quantity}`, it.size, it.flavor].filter(Boolean).join(" · ");
+    return `
+    <tr>
+      <td style="padding:8px 12px;font-size:13px;color:#152937;font-family:'Arial',sans-serif;border-bottom:1px solid #e8dfd0;">
+        <strong>${esc(it.item)}</strong>${detail ? `<div style="color:#7a6a58;font-size:12px;margin-top:2px;">${esc(detail)}</div>` : ""}
+      </td>
+    </tr>`;
+  }).join("");
+
   const rows = [
-    ["Item", item || "—"],
-    ["Size", size || "—"],
-    ["Flavor", flavor || "—"],
-    ["Quantity", quantity || "—"],
     ["Date needed", due || "—"],
     ["Customer", customer],
     ["Phone", phone || "—"],
@@ -35,6 +42,9 @@ function buildNotificationHtml({ bakeryName, customer, item, size, flavor, quant
         </tr>
         <tr>
           <td style="background:#fffcf7;padding:28px 32px;border:1px solid #e8dfd0;border-top:none;border-radius:0 0 16px 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:16px;">
+              ${itemRows}
+            </table>
             <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">
               ${rows}
             </table>
@@ -68,12 +78,22 @@ module.exports = async function handler(req, res) {
   }
 
   const {
-    slug, item, size, flavor, quantity, due,
+    slug, items, due,
     customer, phone, email, allergyNote, notes,
   } = payload || {};
 
   const cleanSlug = (slug || "").toString().trim().toLowerCase();
+  const cleanItems = (Array.isArray(items) ? items : [])
+    .map(it => ({
+      item: (it && it.item ? String(it.item).trim() : ""),
+      size: it && it.size ? String(it.size).trim() : null,
+      flavor: it && it.flavor ? String(it.flavor).trim() : null,
+      quantity: parseInt(it && it.quantity) || 1,
+    }))
+    .filter(it => it.item);
+
   if (!cleanSlug) return res.status(400).json({ error: "Missing order form" });
+  if (cleanItems.length === 0) return res.status(400).json({ error: "Please add at least one item" });
   if (!customer || !String(customer).trim()) return res.status(400).json({ error: "Name is required" });
   if (!due) return res.status(400).json({ error: "Date needed is required" });
   if (!(phone && String(phone).trim()) && !(email && String(email).trim())) {
@@ -106,6 +126,9 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "That date is unavailable. Please choose another." });
     }
     if (profile.max_orders_per_day) {
+      // Capacity is per-ORDER regardless of item count (known limitation: a heavy
+      // multi-item order still only consumes one slot — revisit if this undercounts
+      // real production load).
       const { count, error: countErr } = await admin
         .from("orders")
         .select("id", { count: "exact", head: true })
@@ -125,10 +148,6 @@ module.exports = async function handler(req, res) {
   const { data: order, error: insertErr } = await admin.from("orders").insert([{
     user_id: profile.id,
     customer: String(customer).trim(),
-    item: item || "",
-    size: size || null,
-    flavor: flavor || null,
-    quantity: parseInt(quantity) || null,
     due,
     status: "Pending",
     source: "link",
@@ -141,6 +160,15 @@ module.exports = async function handler(req, res) {
 
   if (insertErr) {
     console.error("submit-order insert error:", insertErr.message);
+    return res.status(500).json({ error: "Could not submit request. Please try again." });
+  }
+
+  const { data: insertedItems, error: itemsErr } = await admin.from("order_items").insert(
+    cleanItems.map(it => ({ order_id: order.id, user_id: profile.id, item: it.item, size: it.size, flavor: it.flavor, quantity: it.quantity }))
+  ).select();
+
+  if (itemsErr) {
+    console.error("submit-order items insert error:", itemsErr.message);
     return res.status(500).json({ error: "Could not submit request. Please try again." });
   }
 
@@ -158,8 +186,8 @@ module.exports = async function handler(req, res) {
           subject: `New order request from ${order.customer}`,
           html: buildNotificationHtml({
             bakeryName: profile.bakery_name || "Your bakery",
-            customer: order.customer, item: order.item, size: order.size, flavor: order.flavor,
-            quantity: order.quantity, due: order.due, phone: order.phone, email: order.email,
+            customer: order.customer, items: insertedItems || cleanItems,
+            due: order.due, phone: order.phone, email: order.email,
             allergyNote: order.allergy_note, notes: order.notes,
           }),
         }),
