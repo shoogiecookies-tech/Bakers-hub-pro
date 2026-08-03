@@ -1,5 +1,6 @@
 {
   "buildCommand": "npm run build",
+  "devCommand": "npm start",
   "outputDirectory": "build",
   "framework": "create-react-app"
 }

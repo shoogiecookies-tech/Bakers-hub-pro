@@ -36,7 +36,7 @@ const tw = {
 };
 
 const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Bakery Profile", "Settings", "Admin"];
-const STATUS_COLORS = { Pending: "#b87d3a", "In Progress": "#c0653d", Complete: "#5a7a5c", Invoiced: "#7a6a58", Delivered: "#5c4f3d" };
+const STATUS_COLORS = { Pending: "#b87d3a", "In Progress": "#c0653d", Complete: "#5a7a5c", Invoiced: "#7a6a58", Delivered: "#5c4f3d", Declined: "#8a8a8a" };
 const STATUS_LIST = ["Pending", "In Progress", "Complete", "Invoiced", "Delivered"];
 const CATEGORIES = ["Cookies", "Cakes", "Bread", "Pastries", "Cupcakes", "Other"];
 const PLATFORMS = ["Instagram", "Facebook", "TikTok", "Pinterest"];
@@ -83,6 +83,14 @@ function formatPhone(v) {
   if (d.length < 4) return d;
   if (d.length < 7) return `(${d.slice(0,3)}) ${d.slice(3)}`;
   return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+}
+function slugify(v) {
+  return (v || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }
 function calcIngCost(ing, pantry) {
   const item = pantry.find(p => Number(p.id) === Number(ing.pantryId))
@@ -141,7 +149,7 @@ async function aiCaption(platform, type) {
   return callAI([{ role: "user", content: `You are a social media expert for a home bakery. Write an engaging ${platform} caption for a ${type} post. Warm, authentic, under 150 words, 1-2 emojis, a call to action, and 3-5 hashtags. Return ONLY the caption text.` }]);
 }
 async function aiScheduleSuggestions(orders) {
-  const list = orders.filter(o => o.status !== "Delivered").map(o => `- ${o.item} for ${o.customer}, due ${o.due}`).join("\n");
+  const list = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").map(o => `- ${o.item} for ${o.customer}, due ${o.due}`).join("\n");
   if (!list) return [];
   const text = await callAI([{ role: "user", content: `Home bakery open orders:\n${list}\n\nSuggest 3 extra prep or business tasks (NOT standard bake/deliver tasks). Return ONLY a JSON array: [{"task":"...","daysFromNow":1},...]. No markdown.` }], 800);
   try { return JSON.parse(text); } catch { return []; }
@@ -308,11 +316,183 @@ function LoginScreen({ onLogin }) {
   );
 }
 
+// ─── PUBLIC ORDER INTAKE FORM (no auth) ────────────────────────────────────────
+function PublicOrderForm({ slug }) {
+  const [config,     setConfig]     = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [notFound,   setNotFound]   = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted,  setSubmitted]  = useState(false);
+  const [error,      setError]      = useState("");
+
+  const [form, setForm] = useState({
+    item: "", size: "", quantity: 1, flavor: "", due: "",
+    customer: "", phone: "", email: "", allergyNote: "", notes: "",
+  });
+
+  useEffect(() => {
+    fetch(`/api/order-form?slug=${encodeURIComponent(slug)}`)
+      .then(r => { if (!r.ok) throw new Error("not found"); return r.json(); })
+      .then(data => setConfig(data))
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  const minDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + (config?.leadDays ?? 0));
+    return d.toISOString().split("T")[0];
+  };
+
+  const canSubmit = form.customer.trim() && (form.phone.trim() || form.email.trim()) && form.due;
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!canSubmit) { setError("Please fill in your name, a date, and a phone or email."); return; }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/submit-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, ...form }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not submit request. Please try again.");
+      setSubmitted(true);
+    } catch (e) {
+      setError(e.message);
+    }
+    setSubmitting(false);
+  };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center font-body bg-background text-foreground">🧁 Loading...</div>
+  );
+
+  if (notFound) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-5 font-body bg-background text-center">
+      <div className="text-5xl mb-3">🧁</div>
+      <div className="text-lg font-bold text-foreground font-display">This order form isn't available.</div>
+      <div className="text-sm text-foreground/50 mt-1">Double-check the link with your baker.</div>
+    </div>
+  );
+
+  if (submitted) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-5 font-body bg-background text-center">
+      <div className={`${tw.card} w-full max-w-[420px] !p-8 !rounded-3xl !shadow-2xl`}>
+        <div className="text-5xl mb-3">🎉</div>
+        <div className="text-xl font-bold text-foreground font-display mb-2">Request sent!</div>
+        <div className="text-sm text-foreground/60">{config.bakeryName} will confirm and send a deposit link.</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col items-center p-5 font-body bg-background">
+      <div className={`${tw.card} w-full max-w-[480px] !p-8 !rounded-3xl !shadow-2xl mt-6 mb-10`}>
+        <div className="text-center mb-6">
+          <div className="text-4xl mb-2">🧁</div>
+          <div className="text-xl font-bold text-foreground font-display">{config.bakeryName}</div>
+          <div className="text-sm text-foreground/50 mt-1">Order Request Form</div>
+        </div>
+
+        {error && <div className="bg-danger/10 border border-danger/25 rounded-lg px-3.5 py-2.5 text-sm text-danger mb-3.5">{error}</div>}
+
+        <div className="flex flex-col gap-3.5">
+          <div>
+            <label className={tw.eyebrow}>Item</label>
+            {config.items.length > 0 ? (
+              <select value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))} className={tw.input}>
+                <option value="">— Select an item —</option>
+                {config.items.map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            ) : (
+              <input value={form.item} onChange={e => setForm(f => ({ ...f, item: e.target.value }))} placeholder="What would you like to order?" className={tw.input} />
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={tw.eyebrow}>Size</label>
+              {config.sizes.length > 0 ? (
+                <select value={form.size} onChange={e => setForm(f => ({ ...f, size: e.target.value }))} className={tw.input}>
+                  <option value="">— Select —</option>
+                  {config.sizes.map(sz => <option key={sz} value={sz}>{sz}</option>)}
+                </select>
+              ) : (
+                <input value={form.size} onChange={e => setForm(f => ({ ...f, size: e.target.value }))} placeholder="e.g. Half dozen" className={tw.input} />
+              )}
+            </div>
+            <div>
+              <label className={tw.eyebrow}>Quantity</label>
+              <input type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} className={tw.input} />
+            </div>
+          </div>
+
+          <div>
+            <label className={tw.eyebrow}>Flavor</label>
+            {config.flavors.length > 0 ? (
+              <select value={form.flavor} onChange={e => setForm(f => ({ ...f, flavor: e.target.value }))} className={tw.input}>
+                <option value="">— Select —</option>
+                {config.flavors.map(fl => <option key={fl} value={fl}>{fl}</option>)}
+              </select>
+            ) : (
+              <input value={form.flavor} onChange={e => setForm(f => ({ ...f, flavor: e.target.value }))} placeholder="e.g. Chocolate" className={tw.input} />
+            )}
+          </div>
+
+          <div>
+            <label className={tw.eyebrow}>Date Needed *</label>
+            <input type="date" min={minDate()} value={form.due} onChange={e => setForm(f => ({ ...f, due: e.target.value }))} className={tw.input} />
+            {config.leadDays > 0 && <div className="text-xs text-foreground/40 mt-1">Orders need at least {config.leadDays} day{config.leadDays === 1 ? "" : "s"} notice.</div>}
+          </div>
+
+          <div>
+            <label className={tw.eyebrow}>Your Name *</label>
+            <input value={form.customer} onChange={e => setForm(f => ({ ...f, customer: e.target.value }))} className={tw.input} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={tw.eyebrow}>Phone</label>
+              <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: formatPhone(e.target.value) }))} className={tw.input} />
+            </div>
+            <div>
+              <label className={tw.eyebrow}>Email</label>
+              <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className={tw.input} />
+            </div>
+          </div>
+          <div className="text-xs text-foreground/40 -mt-2">Please provide a phone or email so {config.bakeryName} can reach you.</div>
+
+          <div>
+            <label className={tw.eyebrow}>Allergy / Dietary Note</label>
+            <textarea value={form.allergyNote} onChange={e => setForm(f => ({ ...f, allergyNote: e.target.value }))} className={tw.input} rows={2} placeholder="Optional" />
+          </div>
+
+          <div>
+            <label className={tw.eyebrow}>Notes / Special Requests</label>
+            <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className={tw.input} rows={2} placeholder="Optional" />
+          </div>
+
+          <button onClick={handleSubmit} disabled={submitting || !canSubmit} className={`${tw.btn} w-full !py-3 !text-sm mt-1 disabled:opacity-50`}>
+            {submitting ? "Sending..." : "Send Request"}
+          </button>
+          <div className="text-xs text-foreground/40 text-center">This is a request only — no payment is collected now.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function BakersHubPro() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recoveryMode, setRecoveryMode] = useState(() => window.location.hash.includes("type=recovery"));
+  const [orderSlug] = useState(() => {
+    const m = window.location.pathname.match(/^\/order\/([^/]+)\/?$/);
+    return m ? decodeURIComponent(m[1]) : null;
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); setLoading(false); });
@@ -322,6 +502,8 @@ export default function BakersHubPro() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  if (orderSlug) return <PublicOrderForm slug={orderSlug} />;
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#9CA3AF", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "#fff", fontSize: 18 }}>
@@ -390,6 +572,17 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
+  // Order intake link
+  const [orderSlug,        setOrderSlug]        = useState("");
+  const [orderLeadDays,    setOrderLeadDays]    = useState(3);
+  const [orderFormItems,   setOrderFormItems]   = useState([]);
+  const [orderFormSizes,   setOrderFormSizes]   = useState([]);
+  const [orderFormFlavors, setOrderFormFlavors] = useState([]);
+  const [slugInput,        setSlugInput]        = useState("");
+  const [slugStatus,       setSlugStatus]       = useState(""); // "", "checking", "available", "taken", "error"
+  const [menuOptionInput,  setMenuOptionInput]  = useState({ items: "", sizes: "", flavors: "" });
+  const [linkCopied,       setLinkCopied]       = useState(false);
+
   // Pantry UI
   const [showNewPantry, setShowNewPantry] = useState(false);
   const [editingPantry, setEditingPantry] = useState(null);
@@ -426,7 +619,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // Orders UI
   const [orderSearch,  setOrderSearch]  = useState("");
   const [showNewOrder, setShowNewOrder] = useState(false);
-  const [newOrder,     setNewOrder]     = useState({ customer: "", item: "", due: "", status: "Pending", total: "", notes: "", phone: "", email: "" });
+  const [newOrder,     setNewOrder]     = useState({ customer: "", item: "", size: "", flavor: "", quantity: "", due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
   const [editingOrder, setEditingOrder] = useState(null); // order being edited
   const [editOrder,    setEditOrder]    = useState(null); // edit form state
   const [emailModal,   setEmailModal]   = useState(null);
@@ -572,6 +765,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         setDshsRegistrationNumber(profileData.dshs_registration_number || "");
         setWebsiteUrl(profileData.website_url || "");
         setUseDshsReg(!!profileData.dshs_registration_number);
+        setOrderSlug(profileData.slug || "");
+        setSlugInput(profileData.slug || "");
+        setOrderLeadDays(profileData.order_lead_days ?? 3);
+        setOrderFormItems(profileData.order_form_items || []);
+        setOrderFormSizes(profileData.order_form_sizes || []);
+        setOrderFormFlavors(profileData.order_form_flavors || []);
       }
       setDbLoading(false);
     };
@@ -580,11 +779,43 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Save bakery profile ───────────────────────────────────────────────────────
   const saveProfile = async () => {
-    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency, state: bakerState, cottage_law_state: cottageLawState, physical_address: physicalAddress, dshs_registration_number: dshsRegistrationNumber, website_url: websiteUrl });
+    await supabase.from("profiles").upsert({ id: uid, bakery_name: bakeryName, bakery_logo: bakeryLogo, invoice_header_color: invoiceHeaderColor, invoice_accent_color: invoiceAccentColor, venmo, paypal, zelle, accepts_cash: acceptsCash, other_payment: otherPay, default_labor_rate: defaultLaborRate, default_markup: defaultMarkup, default_overhead: defaultOverhead, currency, state: bakerState, cottage_law_state: cottageLawState, physical_address: physicalAddress, dshs_registration_number: dshsRegistrationNumber, website_url: websiteUrl, order_lead_days: orderLeadDays, order_form_items: orderFormItems, order_form_sizes: orderFormSizes, order_form_flavors: orderFormFlavors });
     setLaborRate(defaultLaborRate); setMarkup(defaultMarkup); setOverhead(defaultOverhead);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
   };
+
+  // ── Order intake link ─────────────────────────────────────────────────────────
+  const saveSlug = async () => {
+    const candidate = slugify(slugInput);
+    if (!candidate) { setSlugStatus("error"); return; }
+    if (candidate === orderSlug) { setSlugStatus("available"); return; }
+    setSlugStatus("checking");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/claim-slug", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ slug: candidate }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.available) { setSlugStatus("taken"); return; }
+      const { error } = await supabase.from("profiles").upsert({ id: uid, slug: candidate });
+      if (error) { setSlugStatus("error"); return; }
+      setOrderSlug(candidate);
+      setSlugInput(candidate);
+      setSlugStatus("available");
+    } catch {
+      setSlugStatus("error");
+    }
+  };
+
+  const addMenuOption = (list, setList, value) => {
+    const v = value.trim();
+    if (!v || list.includes(v)) return;
+    setList([...list, v]);
+  };
+  const removeMenuOption = (list, setList, value) => setList(list.filter(v => v !== value));
 
   const saveApiKey = (key) => {
     localStorage.setItem("baker_api_key", key);
@@ -752,8 +983,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     if (!newOrder.customer) return;
     const { data, error: insertErr } = await supabase.from("orders").insert([{
       user_id: uid, customer: newOrder.customer, item: newOrder.item,
+      size: newOrder.size || null, flavor: newOrder.flavor || null, quantity: parseInt(newOrder.quantity) || null,
       due: newOrder.due || null, status: newOrder.status,
-      total: parseFloat(newOrder.total) || 0, notes: newOrder.notes, phone: newOrder.phone, email: newOrder.email || null
+      total: parseFloat(newOrder.total) || 0, notes: newOrder.notes, allergy_note: newOrder.allergyNote || null, phone: newOrder.phone, email: newOrder.email || null
     }]).select().single();
     if (insertErr) {
       alert("Order could not be saved: " + insertErr.message);
@@ -768,7 +1000,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         if (taskData) setSchedule(prev => [...prev, { ...taskData, auto: true, aiSuggested: false }]);
       }
     }
-    setNewOrder({ customer: "", item: "", due: "", status: "Pending", total: "", notes: "", phone: "", email: "" });
+    setNewOrder({ customer: "", item: "", size: "", flavor: "", quantity: "", due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
     setShowNewOrder(false);
   };
 
@@ -782,25 +1014,52 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     setOrders(prev => prev.filter(o => o.id !== id));
   };
 
+  // Accept/Decline — for Pending, link-submitted orders only. Accept generates
+  // production tasks (link orders don't get them at submission time) and moves
+  // the order into the normal pipeline; Decline is a terminal state, record kept.
+  const acceptOrder = async (order) => {
+    const { error } = await supabase.from("orders").update({ status: "In Progress" }).eq("id", order.id);
+    if (error) { alert("Order could not be accepted: " + error.message); return; }
+    const updatedOrder = { ...order, status: "In Progress" };
+    setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
+    const tasks = generateTasksFromOrder(updatedOrder);
+    for (const t of tasks) {
+      const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t, order_id: order.id }]).select().single();
+      if (taskData) setSchedule(prev => [...prev, { ...taskData, auto: true, aiSuggested: false }]);
+    }
+  };
+
+  const declineOrder = async (id) => {
+    const { error } = await supabase.from("orders").update({ status: "Declined" }).eq("id", id);
+    if (error) { alert("Order could not be declined: " + error.message); return; }
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: "Declined" } : o));
+  };
+
   const saveEditOrder = async () => {
     if (!editOrder) return;
     const updates = {
       customer: editOrder.customer, item: editOrder.item,
+      size: editOrder.size || null, flavor: editOrder.flavor || null, quantity: parseInt(editOrder.quantity) || null,
       due: editOrder.due || null, status: editOrder.status,
-      total: parseFloat(editOrder.total) || 0, notes: editOrder.notes, phone: editOrder.phone, email: editOrder.email || null
+      total: parseFloat(editOrder.total) || 0, notes: editOrder.notes, allergy_note: editOrder.allergyNote || null, phone: editOrder.phone, email: editOrder.email || null
     };
     const { error: updateErr } = await supabase.from("orders").update(updates).eq("id", editingOrder);
     if (updateErr) { alert("Order could not be updated: " + updateErr.message); return; }
     setOrders(prev => prev.map(o => o.id === editingOrder ? { ...o, ...updates } : o));
 
-    // Delete auto-generated tasks for this order and regenerate from new details
-    await supabase.from("schedule").delete().eq("order_id", editingOrder).eq("auto", true);
-    setSchedule(prev => prev.filter(t => !(t.order_id === editingOrder && t.auto)));
-    const updatedOrder = { ...updates, id: editingOrder };
-    const newTasks = generateTasksFromOrder(updatedOrder);
-    for (const t of newTasks) {
-      const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t }]).select().single();
-      if (taskData) setSchedule(prev => [...prev, { ...taskData, orderId: taskData.order_id, aiSuggested: false }]);
+    // Link-submitted orders don't get production tasks until accepted (see acceptOrder);
+    // skip regeneration here so an edit made while still Pending doesn't jump the gun.
+    const isUnacceptedLinkOrder = editOrder.source === "link" && updates.status === "Pending";
+    if (!isUnacceptedLinkOrder && updates.status !== "Declined") {
+      // Delete auto-generated tasks for this order and regenerate from new details
+      await supabase.from("schedule").delete().eq("order_id", editingOrder).eq("auto", true);
+      setSchedule(prev => prev.filter(t => !(t.order_id === editingOrder && t.auto)));
+      const updatedOrder = { ...updates, id: editingOrder };
+      const newTasks = generateTasksFromOrder(updatedOrder);
+      for (const t of newTasks) {
+        const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t }]).select().single();
+        if (taskData) setSchedule(prev => [...prev, { ...taskData, orderId: taskData.order_id, aiSuggested: false }]);
+      }
     }
 
     setEditingOrder(null); setEditOrder(null);
@@ -967,14 +1226,14 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Dashboard metrics ─────────────────────────────────────────────────────
   const deliveredRev   = orders.filter(o => o.status === "Delivered").reduce((s, o) => s + (o.total || 0), 0);
-  const pendingRev     = orders.filter(o => o.status !== "Delivered").reduce((s, o) => s + (o.total || 0), 0);
+  const pendingRev     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").reduce((s, o) => s + (o.total || 0), 0);
   const totalRevenue   = deliveredRev + pendingRev;
-  const openOrders     = orders.filter(o => o.status !== "Delivered").length;
+  const openOrders     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length;
   const todayStr       = new Date().toISOString().split("T")[0];
   const todayTasks     = schedule.filter(t => !t.done && t.date === todayStr);
   const scheduledPosts = social.filter(p => p.status === "Scheduled").length;
   const itemRevMap     = {};
-  orders.forEach(o => { if (o.item) itemRevMap[o.item] = (itemRevMap[o.item] || 0) + (o.total || 0); });
+  orders.forEach(o => { if (o.item && o.status !== "Declined") itemRevMap[o.item] = (itemRevMap[o.item] || 0) + (o.total || 0); });
   const itemRevEntries = Object.entries(itemRevMap).sort((a, b) => b[1] - a[1]);
   const topItem        = itemRevEntries[0] || null;
   const topItemPct     = totalRevenue > 0 && topItem ? Math.round(topItem[1] / totalRevenue * 100) : null;
@@ -1140,13 +1399,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
              <div style={{ ...s.card, padding: 18 }}>
                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                  <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>🚨 Upcoming Orders</div>
-                 {orders.filter(o => o.status !== "Delivered").length > 0 && (
-                   <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: "700" }}>{orders.filter(o => o.status !== "Delivered").length}</span>
+                 {orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length > 0 && (
+                   <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: "700" }}>{orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length}</span>
                  )}
                </div>
-               {orders.filter(o => o.status !== "Delivered").length === 0
+               {orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length === 0
                  ? <div style={{ color: C.muted, fontSize: 13 }}>No open orders 🎉</div>
-                 : orders.filter(o => o.status !== "Delivered").slice(0, 5).map(o => {
+                 : orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").slice(0, 5).map(o => {
                      const initials = (o.customer || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
                      const sc = STATUS_COLORS[o.status] || C.accent;
                      return (
@@ -1179,7 +1438,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                </div>
 
                {reportsOpen && (() => {
-                 const _ordersWithDates = orders.filter(o => o.created_at);
+                 const _ordersWithDates = orders.filter(o => o.created_at && o.status !== "Declined");
                  let _trendData = [];
                  let _granularity = "day";
                  if (_ordersWithDates.length > 0) {
@@ -1216,7 +1475,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
                  const _bestSellers = itemRevEntries.slice(0, 5).map(([name, revenue]) => ({
                    name, revenue,
-                   orders: orders.filter(o => o.item === name).length,
+                   orders: orders.filter(o => o.item === name && o.status !== "Declined").length,
                  }));
 
                  const _trendTooltip = ({ active, payload }) => {
@@ -2137,10 +2396,16 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 <input placeholder="Customer email (for invoicing)" value={newOrder.email} onChange={e => setNewOrder(o => ({ ...o, email: e.target.value }))} className={tw.input} />
                 <input placeholder="Item(s) ordered" value={newOrder.item} onChange={e => setNewOrder(o => ({ ...o, item: e.target.value }))} className={tw.input} />
                 <div className="flex gap-2">
+                  <input placeholder="Size (optional)" value={newOrder.size} onChange={e => setNewOrder(o => ({ ...o, size: e.target.value }))} className={`${tw.input} !flex-1`} />
+                  <input placeholder="Flavor (optional)" value={newOrder.flavor} onChange={e => setNewOrder(o => ({ ...o, flavor: e.target.value }))} className={`${tw.input} !flex-1`} />
+                  <input type="number" min="1" placeholder="Qty" value={newOrder.quantity} onChange={e => setNewOrder(o => ({ ...o, quantity: e.target.value }))} className={`${tw.input} !w-20`} />
+                </div>
+                <div className="flex gap-2">
                   <input type="date" value={newOrder.due} onChange={e => setNewOrder(o => ({ ...o, due: e.target.value }))} className={`${tw.input} !flex-1`} />
                   <input type="number" placeholder="Total $" value={newOrder.total} onChange={e => setNewOrder(o => ({ ...o, total: e.target.value }))} className={`${tw.input} !w-24`} />
                   <select value={newOrder.status} onChange={e => setNewOrder(o => ({ ...o, status: e.target.value }))} className={`${tw.input} !w-36`}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>
                 </div>
+                <textarea placeholder="Allergy / dietary note (optional)" value={newOrder.allergyNote} onChange={e => setNewOrder(o => ({ ...o, allergyNote: e.target.value }))} className={`${tw.input} h-12 resize-y`} />
                 <textarea placeholder="Customer notes..." value={newOrder.notes} onChange={e => setNewOrder(o => ({ ...o, notes: e.target.value }))} className={`${tw.input} h-16 resize-y`} />
                 <div className="flex gap-2">
                   <button onClick={addOrder} className={tw.btn}>Save & Auto-Schedule</button>
@@ -2157,13 +2422,15 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 const _t = new Date(); _t.setHours(0,0,0,0);
                 const _d = o.due ? new Date(o.due + "T00:00:00") : null;
                 const _diff = _d ? Math.round((_d - _t) / 86400000) : null;
-                const _ov  = _d && _diff < 0 && o.status !== "Delivered";
+                const _ov  = _d && _diff < 0 && o.status !== "Delivered" && o.status !== "Declined";
                 const _tod = _d && _diff === 0;
                 const _tom = _d && _diff === 1;
                 const _rp  = ["Complete","Invoiced"].includes(o.status);
                 const _dl  = _ov ? "🔴 Overdue" : _tod ? "🟡 Due Today" : _tom ? "🟠 Due Tomorrow" : _rp ? "🟢 Ready for Pickup" : (o.due || "—");
                 const _dc  = _ov ? "#c0522a" : _tod ? "#d97706" : _tom ? "#ea7c0a" : _rp ? "#5a7a5c" : undefined;
                 const _si  = STATUS_LIST.indexOf(o.status);
+                const _pendingLink = o.status === "Pending" && o.source === "link";
+                const _declined = o.status === "Declined";
                 return (
               <div key={o.id} className={`${tw.card} flex flex-col gap-4`} style={{ borderLeft: `4px solid ${_ov ? "#c0522a" : "var(--color-accent)"}` }}>
                 {editingOrder === o.id ? (
@@ -2176,10 +2443,18 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     <input placeholder="Customer email (for invoicing)" value={editOrder.email || ""} onChange={e => setEditOrder(x => ({ ...x, email: e.target.value }))} className={tw.input} />
                     <input placeholder="Item(s)" value={editOrder.item} onChange={e => setEditOrder(x => ({ ...x, item: e.target.value }))} className={tw.input} />
                     <div className="flex gap-2">
+                      <input placeholder="Size (optional)" value={editOrder.size} onChange={e => setEditOrder(x => ({ ...x, size: e.target.value }))} className={`${tw.input} !flex-1`} />
+                      <input placeholder="Flavor (optional)" value={editOrder.flavor} onChange={e => setEditOrder(x => ({ ...x, flavor: e.target.value }))} className={`${tw.input} !flex-1`} />
+                      <input type="number" min="1" placeholder="Qty" value={editOrder.quantity} onChange={e => setEditOrder(x => ({ ...x, quantity: e.target.value }))} className={`${tw.input} !w-20`} />
+                    </div>
+                    <div className="flex gap-2">
                       <input type="date" value={editOrder.due} onChange={e => setEditOrder(x => ({ ...x, due: e.target.value }))} className={`${tw.input} !flex-1`} />
                       <input type="number" placeholder="Total $" value={editOrder.total} onChange={e => setEditOrder(x => ({ ...x, total: e.target.value }))} className={`${tw.input} !w-24`} />
-                      <select value={editOrder.status} onChange={e => setEditOrder(x => ({ ...x, status: e.target.value }))} className={`${tw.input} !w-36`}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>
+                      {editOrder.status === "Declined" || (editOrder.source === "link" && editOrder.status === "Pending")
+                        ? <span className="text-xs font-bold px-2.5 py-2 rounded-lg self-center" style={{ background: STATUS_COLORS[editOrder.status] + "22", color: STATUS_COLORS[editOrder.status] }}>{editOrder.status === "Pending" ? "Awaiting Accept/Decline" : editOrder.status}</span>
+                        : <select value={editOrder.status} onChange={e => setEditOrder(x => ({ ...x, status: e.target.value }))} className={`${tw.input} !w-36`}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>}
                     </div>
+                    <textarea placeholder="Allergy / dietary note (optional)" value={editOrder.allergyNote} onChange={e => setEditOrder(x => ({ ...x, allergyNote: e.target.value }))} className={`${tw.input} h-12 resize-y`} />
                     <textarea placeholder="Notes..." value={editOrder.notes} onChange={e => setEditOrder(x => ({ ...x, notes: e.target.value }))} className={`${tw.input} h-16 resize-y`} />
                     <div className="flex gap-2">
                       <button onClick={saveEditOrder} className={tw.btn}>Save Changes</button>
@@ -2202,30 +2477,50 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       </div>
                     </div>
 
-                    {/* Progress timeline */}
-                    <div className="relative py-2">
-                      <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-0.5 bg-border" />
-                      <div className="absolute left-2 h-0.5 bg-accent transition-all duration-300" style={{ top: "50%", transform: "translateY(-50%)", width: `calc(${(_si / (STATUS_LIST.length - 1)) * 100}% - 16px)` }} />
-                      <div className="relative flex justify-between">
-                        {STATUS_LIST.map((st, i) => (
-                          <div key={st} className="flex flex-col items-center gap-1">
-                            <div title={st} className={`h-3.5 w-3.5 rounded-full border-[3px] z-10 transition-all ${i === _si ? "bg-accent border-accent scale-125 ring-4 ring-accent/20" : i < _si ? "bg-accent border-accent" : "bg-card border-border"}`} />
-                            <span className="text-[9px] font-bold text-foreground/40 uppercase tracking-wide hidden sm:block">{st}</span>
-                          </div>
-                        ))}
+                    {/* Progress timeline (not meaningful for a terminal Declined order) */}
+                    {!_declined && (
+                      <div className="relative py-2">
+                        <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-0.5 bg-border" />
+                        <div className="absolute left-2 h-0.5 bg-accent transition-all duration-300" style={{ top: "50%", transform: "translateY(-50%)", width: `calc(${(_si / (STATUS_LIST.length - 1)) * 100}% - 16px)` }} />
+                        <div className="relative flex justify-between">
+                          {STATUS_LIST.map((st, i) => (
+                            <div key={st} className="flex flex-col items-center gap-1">
+                              <div title={st} className={`h-3.5 w-3.5 rounded-full border-[3px] z-10 transition-all ${i === _si ? "bg-accent border-accent scale-125 ring-4 ring-accent/20" : i < _si ? "bg-accent border-accent" : "bg-card border-border"}`} />
+                              <span className="text-[9px] font-bold text-foreground/40 uppercase tracking-wide hidden sm:block">{st}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
+                    {_pendingLink && <div className="bg-info/10 border border-info/25 rounded-lg px-3 py-2 text-xs text-info">📥 New request from your order link — accept to schedule it, or decline.</div>}
+                    {(o.size || o.flavor || o.quantity) && (
+                      <div className="text-xs text-foreground/60 -mt-1">
+                        {[o.quantity && `Qty ${o.quantity}`, o.size, o.flavor].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                    {o.allergy_note && <div className="bg-warning/10 border border-warning/25 rounded-lg px-3 py-2 text-xs text-warning">⚠️ Allergy/dietary note: {o.allergy_note}</div>}
                     {o.notes && <div className="bg-background rounded-lg px-3 py-2 text-xs text-foreground/70 italic">📝 {o.notes}</div>}
 
                     <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <div className="flex flex-wrap items-center gap-1 bg-background p-1 rounded-xl border border-border">
-                        {STATUS_LIST.map(st => (
-                          <button key={st} onClick={() => updateOrderStatus(o.id, st)} className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors" style={o.status === st ? { background: "var(--color-accent)", color: "#fff" } : { color: "var(--color-foreground)", opacity: 0.5 }}>{st}</button>
-                        ))}
-                      </div>
+                      {_pendingLink ? (
+                        <div className="flex gap-2">
+                          <button onClick={() => acceptOrder(o)} className={`${tw.btn} px-4 py-1.5 flex items-center gap-1.5`}>
+                            <Check className="h-3.5 w-3.5" /><span>Accept</span>
+                          </button>
+                          <button onClick={() => declineOrder(o.id)} className="px-4 py-1.5 rounded-lg border border-danger/40 text-danger text-xs font-bold hover:bg-danger/10 transition-colors">
+                            Decline
+                          </button>
+                        </div>
+                      ) : !_declined && (
+                        <div className="flex flex-wrap items-center gap-1 bg-background p-1 rounded-xl border border-border">
+                          {STATUS_LIST.map(st => (
+                            <button key={st} onClick={() => updateOrderStatus(o.id, st)} className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors" style={o.status === st ? { background: "var(--color-accent)", color: "#fff" } : { color: "var(--color-foreground)", opacity: 0.5 }}>{st}</button>
+                          ))}
+                        </div>
+                      )}
                       <div className="ml-auto flex items-center gap-1.5">
-                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", phone: o.phone || "", email: o.email || "" }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
+                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, item: o.item, size: o.size || "", flavor: o.flavor || "", quantity: o.quantity || "", due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", allergyNote: o.allergy_note || "", phone: o.phone || "", email: o.email || "", source: o.source }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
                           <Edit3 className="h-3.5 w-3.5" /><span>Edit</span>
                         </button>
                         <button onClick={() => printInvoice(o)} className={`${tw.btn} px-3 py-1.5 flex items-center gap-1.5`}>
@@ -2237,9 +2532,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         <button onClick={() => genEmail(o)} className="px-3 py-1.5 rounded-lg border border-border text-foreground/50 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
                           <Mail className="h-3.5 w-3.5" /><span>Email</span>
                         </button>
-                        <button onClick={() => deleteOrder(o.id)} className="p-1.5 rounded-lg text-foreground/30 hover:text-danger transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {!_pendingLink && !_declined && (
+                          <button onClick={() => deleteOrder(o.id)} className="p-1.5 rounded-lg text-foreground/30 hover:text-danger transition-colors">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </>
@@ -3028,6 +3325,73 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               <input type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} className={tw.input} />
               <button onClick={() => saveApiKey(apiKey)} className={`${tw.btn} mt-2.5`}>{apiKeySaved ? "✓ Saved!" : "Save API Key"}</button>
               {apiKey && <div className="text-xs text-success mt-2">✓ AI features enabled!</div>}
+            </div>
+
+            {/* Order Request Link */}
+            <div className={tw.card}>
+              <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                <ShoppingBag className="h-5 w-5 text-accent" />
+                <h3 className="font-display font-bold text-foreground text-base">Order Request Link</h3>
+              </div>
+              <p className="text-sm text-foreground/60 mb-3">Share this link with customers so they can request orders directly — unlimited submissions, always free.</p>
+
+              <label className={tw.eyebrow}>Your Link</label>
+              <div className="flex gap-2">
+                <input value={slugInput} onChange={e => { setSlugInput(e.target.value); setSlugStatus(""); }} placeholder="your-bakery-name" className={tw.input} />
+                <button onClick={saveSlug} disabled={slugStatus === "checking"} className={`${tw.btnSec} bg-background text-accent border-accent shrink-0`}>{slugStatus === "checking" ? "Checking..." : "Save"}</button>
+              </div>
+              {slugStatus === "taken" && <div className="text-xs text-danger mt-1.5">That link is already taken — try something else.</div>}
+              {slugStatus === "error" && <div className="text-xs text-danger mt-1.5">Couldn't save that link. Please try again.</div>}
+              {slugStatus === "available" && <div className="text-xs text-success mt-1.5">✓ Saved!</div>}
+
+              {orderSlug && (
+                <div className="bg-background rounded-lg px-3 py-2.5 mt-3 flex items-center justify-between gap-2">
+                  <span className="text-sm font-mono text-foreground/80 truncate">bakeflo.co/order/{orderSlug}</span>
+                  <button onClick={() => { navigator.clipboard.writeText(`https://bakeflo.co/order/${orderSlug}`).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }); }} className={`${tw.btnSec} bg-card text-foreground border-border shrink-0`}>{linkCopied ? "✓ Copied" : "Copy"}</button>
+                </div>
+              )}
+
+              <div className="border-t border-border my-4" />
+
+              <label className={tw.eyebrow}>Minimum Lead Time (days)</label>
+              <input type="number" min="0" value={orderLeadDays} onChange={e => setOrderLeadDays(parseInt(e.target.value) || 0)} className={`${tw.input} max-w-[120px]`} />
+              <div className="text-xs text-foreground/40 mt-1.5">Customers can't request a date sooner than this many days out.</div>
+
+              <div className="border-t border-border my-4" />
+
+              <div className="text-sm font-bold text-foreground mb-1">Menu Options (optional)</div>
+              <div className="text-xs text-foreground/50 mb-3">Define dropdown choices for item, size, and flavor — leave any of these blank and customers get a free-text field instead.</div>
+
+              {[
+                { label: "Items", list: orderFormItems, setList: setOrderFormItems, key: "items" },
+                { label: "Sizes", list: orderFormSizes, setList: setOrderFormSizes, key: "sizes" },
+                { label: "Flavors", list: orderFormFlavors, setList: setOrderFormFlavors, key: "flavors" },
+              ].map(({ label, list, setList, key }) => (
+                <div key={key} className="mb-3">
+                  <label className={tw.eyebrow}>{label}</label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {list.map(v => (
+                      <span key={v} className="inline-flex items-center gap-1 text-xs bg-background border border-border rounded-full px-2.5 py-1 text-foreground/70">
+                        {v}
+                        <button onClick={() => removeMenuOption(list, setList, v)} className="text-foreground/30 hover:text-danger leading-none">×</button>
+                      </span>
+                    ))}
+                    {list.length === 0 && <span className="text-xs text-foreground/30">None set — falls back to free text.</span>}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <input
+                      value={menuOptionInput[key]}
+                      onChange={e => setMenuOptionInput(m => ({ ...m, [key]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addMenuOption(list, setList, menuOptionInput[key]); setMenuOptionInput(m => ({ ...m, [key]: "" })); } }}
+                      placeholder={`New ${label.toLowerCase().slice(0, -1)}`}
+                      className={`${tw.input} flex-1`}
+                    />
+                    <button onClick={() => { addMenuOption(list, setList, menuOptionInput[key]); setMenuOptionInput(m => ({ ...m, [key]: "" })); }} className={`${tw.btnSec} bg-background text-accent border-accent shrink-0`}>Add</button>
+                  </div>
+                </div>
+              ))}
+
+              <button onClick={saveProfile} className={`${tw.btn} mt-2`}>{settingsSaved ? "✓ Saved!" : "Save Order Link Settings"}</button>
             </div>
 
             {/* Account & Security */}
