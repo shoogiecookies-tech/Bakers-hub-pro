@@ -116,6 +116,20 @@ function orderMatchesSearchQuery(order, q) {
   const query = q.toLowerCase();
   return order.customer?.toLowerCase().includes(query) || (order.items || []).some(li => li.item?.toLowerCase().includes(query));
 }
+function formatPlacedDate(createdAt) {
+  if (!createdAt) return null;
+  const d = new Date(createdAt);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+function daysWaiting(createdAt) {
+  if (!createdAt) return null;
+  const d = new Date(createdAt);
+  if (isNaN(d.getTime())) return null;
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((today - start) / 86400000);
+}
 function calcIngCost(ing, pantry) {
   const item = pantry.find(p => Number(p.id) === Number(ing.pantryId))
     || pantry.find(p => p.name && ing.name && p.name.trim().toLowerCase() === ing.name.trim().toLowerCase());
@@ -2723,7 +2737,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
             )}
 
-            {orders.filter(o => matchesOrderStatusFilter(o.status, orderStatusFilter) && orderMatchesSearchQuery(o, orderSearch.trim())).map(o => {
+            {orders.filter(o => matchesOrderStatusFilter(o.status, orderStatusFilter) && orderMatchesSearchQuery(o, orderSearch.trim())).sort((a, b) => {
+                // Among Pending orders, oldest request first — everything else keeps due-date order.
+                if (a.status === "Pending" && b.status === "Pending") return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                return (a.due || "").localeCompare(b.due || "");
+              }).map(o => {
                 const _t = new Date(); _t.setHours(0,0,0,0);
                 const _d = o.due ? new Date(o.due + "T00:00:00") : null;
                 const _diff = _d ? Math.round((_d - _t) / 86400000) : null;
@@ -2736,6 +2754,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 const _si  = STATUS_LIST.indexOf(o.status);
                 const _pendingLink = o.status === "Pending" && o.source === "link";
                 const _declined = o.status === "Declined";
+                const _placedStr = formatPlacedDate(o.created_at);
+                const _waitDays = o.status === "Pending" ? daysWaiting(o.created_at) : null;
                 return (
               <div key={o.id} className={`${tw.card} flex flex-col gap-4`} style={{ borderLeft: `4px solid ${_ov ? "#c0522a" : "var(--color-accent)"}` }}>
                 {editingOrder === o.id ? (
@@ -2784,6 +2804,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       <div>
                         <h3 className="font-display font-bold text-foreground text-base">{o.customer}</h3>
                         <div className="text-xs text-foreground/60 mt-0.5">{orderItemsSummary(o)}</div>
+                        {_placedStr && (
+                          <div className="text-xs text-foreground/50 mt-0.5">
+                            Placed {_placedStr}{_waitDays !== null && _waitDays >= 0 && ` · waiting ${_waitDays} day${_waitDays === 1 ? "" : "s"}`}
+                          </div>
+                        )}
                         <div className="text-xs mt-1" style={{ color: _dc || "var(--color-foreground)", opacity: _dc ? 1 : 0.5, fontWeight: (_ov||_tod||_tom) ? 600 : 400 }}>
                           {_dl}{o.phone && <span className="text-foreground/50 font-normal"> · {o.phone}</span>}
                         </div>
