@@ -38,6 +38,16 @@ const tw = {
 const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Bakery Profile", "Settings", "Admin"];
 const STATUS_COLORS = { Pending: "#b87d3a", "In Progress": "#c0653d", Complete: "#5a7a5c", Invoiced: "#7a6a58", Delivered: "#5c4f3d", Declined: "#8a8a8a" };
 const STATUS_LIST = ["Pending", "In Progress", "Complete", "Invoiced", "Delivered"];
+const ACTIVE_STATUSES = ["In Progress", "Complete", "Invoiced", "Delivered"];
+const ORDER_STATUS_FILTERS = ["Pending", "Active", "Declined", "All"];
+function matchesOrderStatusFilter(status, filter) {
+  if (filter === "All") return true;
+  if (filter === "Pending") return status === "Pending";
+  if (filter === "Active") return ACTIVE_STATUSES.includes(status);
+  if (filter === "Declined") return status === "Declined";
+  // default: Pending + Active, hides Declined
+  return status === "Pending" || ACTIVE_STATUSES.includes(status);
+}
 const CATEGORIES = ["Cookies", "Cakes", "Bread", "Pastries", "Cupcakes", "Other"];
 const PLATFORMS = ["Instagram", "Facebook", "TikTok", "Pinterest"];
 const POST_TYPES = ["Product Photo", "Behind the Scenes", "Recipe Tip", "Testimonial", "Promo/Sale", "Seasonal"];
@@ -703,6 +713,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // Orders UI
   const [orderSearch,  setOrderSearch]  = useState("");
   const [showNewOrder, setShowNewOrder] = useState(false);
+  const [orderStatusFilter, setOrderStatusFilter] = useState("default"); // "default" (Pending+Active) | Pending | Active | Declined | All
   const [newOrder,     setNewOrder]     = useState({ customer: "", item: "", size: "", flavor: "", quantity: "", due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
   const [editingOrder, setEditingOrder] = useState(null); // order being edited
   const [editOrder,    setEditOrder]    = useState(null); // edit form state
@@ -2605,6 +2616,22 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               />
             </div>
 
+            <div className="flex flex-wrap items-center gap-1 bg-background p-1 rounded-xl border border-border w-fit">
+              {ORDER_STATUS_FILTERS.map(f => {
+                const isSelected = orderStatusFilter === f || (orderStatusFilter === "default" && (f === "Pending" || f === "Active"));
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setOrderStatusFilter(f)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                    style={isSelected ? { background: "var(--color-accent)", color: "#fff" } : { color: "var(--color-foreground)", opacity: 0.5 }}
+                  >
+                    {f}
+                  </button>
+                );
+              })}
+            </div>
+
             {showNewOrder && (
               <div className={`${tw.card} flex flex-col gap-3`}>
                 <h3 className={tw.section}>New Order</h3>
@@ -2635,6 +2662,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
             )}
 
             {orders.filter(o => {
+                if (!matchesOrderStatusFilter(o.status, orderStatusFilter)) return false;
                 const q = orderSearch.toLowerCase();
                 return !q || o.customer?.toLowerCase().includes(q) || o.item?.toLowerCase().includes(q);
               }).map(o => {
@@ -2765,6 +2793,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 );
               })}
             {orders.length === 0 && <div className={`${tw.card} text-center text-foreground/50 text-sm`}>No orders yet — add your first one! 🎂</div>}
+            {orders.length > 0 && orders.filter(o => matchesOrderStatusFilter(o.status, orderStatusFilter) && (!orderSearch.trim() || o.customer?.toLowerCase().includes(orderSearch.toLowerCase()) || o.item?.toLowerCase().includes(orderSearch.toLowerCase()))).length === 0 && (
+              <div className={`${tw.card} text-center text-foreground/50 text-sm`}>No orders match this filter.</div>
+            )}
           </div>
         )}
 
