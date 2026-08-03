@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
   return res.status(200).json({
     bakeryName: profile.bakery_name || "This bakery",
     leadDays: profile.order_lead_days ?? 3,
-    items: profile.order_form_items || [],
+    items: (profile.order_form_items || []).map(i => (typeof i === "string" ? i : i.name)).filter(Boolean),
     sizes: profile.order_form_sizes || [],
     flavors: profile.order_form_flavors || [],
     blackoutDates: isPro ? (profile.blackout_dates || []) : [],

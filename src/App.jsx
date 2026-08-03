@@ -105,7 +105,7 @@ function slugify(v) {
 function mapOrderWithItems(o) {
   return {
     ...o,
-    items: (o.order_items || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity })),
+    items: (o.order_items || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity, price: li.price })),
   };
 }
 function orderItemsSummary(order) {
@@ -710,6 +710,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [slugInput,        setSlugInput]        = useState("");
   const [slugStatus,       setSlugStatus]       = useState(""); // "", "checking", "available", "taken", "error"
   const [menuOptionInput,  setMenuOptionInput]  = useState({ items: "", sizes: "", flavors: "" });
+  const [menuItemPriceInput, setMenuItemPriceInput] = useState("");
   const [linkCopied,       setLinkCopied]       = useState(false);
   const [isPro,            setIsPro]            = useState(false);
   const [maxOrdersPerDay,  setMaxOrdersPerDay]  = useState("");
@@ -763,6 +764,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [declineModalOrder,  setDeclineModalOrder]  = useState(null);
   const [declineReasonInput, setDeclineReasonInput] = useState("");
   const [decisionSending,    setDecisionSending]    = useState(false);
+  const [acceptModalOrder,   setAcceptModalOrder]   = useState(null);
+  const [acceptPrices,       setAcceptPrices]       = useState([]);
   const [invoicePrintOrder, setInvoicePrintOrder] = useState(null);
   const [pdfGenerating,     setPdfGenerating]     = useState(false);
   const [labelPrintOrder,   setLabelPrintOrder]   = useState(null);
@@ -987,8 +990,16 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   };
   const removeMenuOption = (list, setList, value) => setList(list.filter(v => v !== value));
 
+  const addMenuItem = (name, price) => {
+    const n = name.trim();
+    if (!n || orderFormItems.some(i => i.name.toLowerCase() === n.toLowerCase())) return;
+    const basePrice = price !== "" && !isNaN(parseFloat(price)) ? parseFloat(price) : null;
+    setOrderFormItems([...orderFormItems, { name: n, basePrice }]);
+  };
+  const removeMenuItem = (name) => setOrderFormItems(orderFormItems.filter(i => i.name !== name));
+
   // Repeatable line-item rows, shared by the New Order and Edit Order forms.
-  const addItemRow = (setOrder) => setOrder(o => ({ ...o, items: [...o.items, { item: "", size: "", flavor: "", quantity: "1" }] }));
+  const addItemRow = (setOrder) => setOrder(o => ({ ...o, items: [...o.items, { item: "", size: "", flavor: "", quantity: "1", price: "" }] }));
   const removeItemRow = (setOrder, idx) => setOrder(o => ({ ...o, items: o.items.length <= 1 ? o.items : o.items.filter((_, i) => i !== idx) }));
   const updateItemRow = (setOrder, idx, field, value) => setOrder(o => ({ ...o, items: o.items.map((it, i) => i === idx ? { ...it, [field]: value } : it) }));
 
@@ -1198,7 +1209,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       validItems.map(it => ({ order_id: orderData.id, user_id: uid, item: it.item.trim(), size: it.size || null, flavor: it.flavor || null, quantity: parseInt(it.quantity) || 1 }))
     ).select();
     if (itemsErr) alert("Order saved, but items could not be saved: " + itemsErr.message);
-    const fullOrder = { ...orderData, items: (itemsData || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity })) };
+    const fullOrder = { ...orderData, items: (itemsData || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity, price: li.price })) };
     setOrders(prev => [...prev, fullOrder]);
     // Auto-generate tasks (5 per line item)
     const tasks = generateTasksFromOrder(fullOrder);
@@ -1236,7 +1247,17 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     }
   };
 
-  const acceptOrder = async (order) => {
+  const openAcceptModal = (order) => {
+    const prices = order.items.map(li => {
+      if (li.price != null) return String(li.price);
+      const match = orderFormItems.find(m => m.name.toLowerCase() === (li.item || "").trim().toLowerCase());
+      return (match && match.basePrice != null) ? String(match.basePrice) : "";
+    });
+    setAcceptModalOrder(order);
+    setAcceptPrices(prices);
+  };
+
+  const acceptOrder = async (order, prices) => {
     if (decisionSending) return;
     // Capacity is per-ORDER regardless of item count (known limitation: a heavy
     // multi-item order still only consumes one slot, undercounting real production
@@ -1256,9 +1277,15 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       }
     }
     setDecisionSending(true);
-    const { error } = await supabase.from("orders").update({ status: "In Progress" }).eq("id", order.id);
+    const priceValues = order.items.map((_, i) => { const p = parseFloat(prices[i]); return isNaN(p) ? null : p; });
+    const total = priceValues.reduce((s, p) => s + (p || 0), 0);
+    const { error } = await supabase.from("orders").update({ status: "In Progress", total }).eq("id", order.id);
     if (error) { alert("Order could not be accepted: " + error.message); setDecisionSending(false); return; }
-    const updatedOrder = { ...order, status: "In Progress" };
+    for (let i = 0; i < order.items.length; i++) {
+      await supabase.from("order_items").update({ price: priceValues[i] }).eq("id", order.items[i].id);
+    }
+    const updatedItems = order.items.map((li, i) => ({ ...li, price: priceValues[i] }));
+    const updatedOrder = { ...order, status: "In Progress", total, items: updatedItems };
     setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
     const tasks = generateTasksFromOrder(updatedOrder);
     for (const t of tasks) {
@@ -1294,10 +1321,10 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     // Replace line items wholesale (same pattern as auto-task regeneration below).
     await supabase.from("order_items").delete().eq("order_id", editingOrder);
     const { data: itemsData, error: itemsErr } = await supabase.from("order_items").insert(
-      validItems.map(it => ({ order_id: editingOrder, user_id: uid, item: it.item.trim(), size: it.size || null, flavor: it.flavor || null, quantity: parseInt(it.quantity) || 1 }))
+      validItems.map(it => ({ order_id: editingOrder, user_id: uid, item: it.item.trim(), size: it.size || null, flavor: it.flavor || null, quantity: parseInt(it.quantity) || 1, price: it.price !== "" && !isNaN(parseFloat(it.price)) ? parseFloat(it.price) : null }))
     ).select();
     if (itemsErr) alert("Order updated, but items could not be saved: " + itemsErr.message);
-    const newItems = (itemsData || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity }));
+    const newItems = (itemsData || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity, price: li.price }));
     setOrders(prev => prev.map(o => o.id === editingOrder ? { ...o, ...updates, items: newItems } : o));
 
     // Link-submitted orders don't get production tasks until accepted (see acceptOrder);
@@ -1479,12 +1506,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   // ── Dashboard metrics ─────────────────────────────────────────────────────
   const deliveredRev   = orders.filter(o => o.status === "Delivered").reduce((s, o) => s + (o.total || 0), 0);
   const pendingRev     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").reduce((s, o) => s + (o.total || 0), 0);
+  const totalRevenue   = deliveredRev + pendingRev;
   const openOrders     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length;
   const todayStr       = new Date().toISOString().split("T")[0];
   const todayTasks     = schedule.filter(t => !t.done && t.date === todayStr);
   const scheduledPosts = social.filter(p => p.status === "Scheduled").length;
-  // Order-count per item (not revenue) — there's no per-item price, so revenue can't be
-  // split or attributed per line item. Revisit if/when per-item pricing exists.
+  // Order-count per item (frequency) — how many orders included this item at least once.
   const itemOrderCountMap = {};
   orders.forEach(o => {
     if (o.status === "Declined") return;
@@ -1497,8 +1524,17 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     });
   });
   const itemOrderCountEntries = Object.entries(itemOrderCountMap).sort((a, b) => b[1] - a[1]);
-  // Top Revenue Order — order-level total only, no per-item attribution.
-  const topRevenueOrder = orders.filter(o => o.status !== "Declined").sort((a, b) => (b.total || 0) - (a.total || 0))[0] || null;
+  // Real per-item revenue, now that line items can carry their own accepted price.
+  const itemRevenueMap = {};
+  orders.forEach(o => {
+    if (o.status === "Declined") return;
+    (o.items || []).forEach(li => {
+      if (li.item && li.price != null) itemRevenueMap[li.item] = (itemRevenueMap[li.item] || 0) + (parseFloat(li.price) || 0);
+    });
+  });
+  const itemRevenueEntries = Object.entries(itemRevenueMap).sort((a, b) => b[1] - a[1]);
+  const topRevenueItem    = itemRevenueEntries[0] || null;
+  const topRevenueItemPct = totalRevenue > 0 && topRevenueItem ? Math.round(topRevenueItem[1] / totalRevenue * 100) : null;
 
   if (dbLoading) return (
     <div style={{ minHeight: "100vh", background: "var(--color-background)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "var(--color-foreground)", fontSize: 16 }}>
@@ -1647,17 +1683,19 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                  ))
                }
              </div>
-             {topRevenueOrder && topRevenueOrder.total > 0 && (
+             {topRevenueItem && (
                <div className="bf-card" style={{ ...s.card, padding: 18, background: C.bg, border: `2px solid ${C.dark}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                    <div style={{ fontSize: 18 }}>📊</div>
                    <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
                  </div>
                  <div style={{ background: C.card, borderRadius: 12, padding: "12px 14px", border: `1px solid ${C.border}` }}>
-                   <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Order</div>
-                   <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>${topRevenueOrder.total} — {topRevenueOrder.customer}</div>
+                   <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Item</div>
+                   <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topRevenueItem[0]}</div>
                    <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
-                     Your biggest order{topRevenueOrder.due ? ` (due ${topRevenueOrder.due})` : ""} — nice work! 🎉
+                     {topRevenueItemPct !== null
+                       ? `${topRevenueItem[0]} generated ${topRevenueItemPct}% of your total revenue — your top earner! 🎉`
+                       : `Your top revenue generator — keep it on the menu!`}
                    </div>
                  </div>
                </div>
@@ -2662,6 +2700,59 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
             )}
 
+            {acceptModalOrder && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center">
+                <div className="bg-card rounded-t-2xl p-5 w-full max-w-[520px] max-h-[85vh] flex flex-col shadow-2xl">
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <div className="font-display font-bold text-base text-foreground">Accept Request</div>
+                      <div className="text-xs text-foreground/50 mt-0.5">For {acceptModalOrder.customer} · {acceptModalOrder.due}</div>
+                    </div>
+                    <button onClick={() => setAcceptModalOrder(null)} className="bg-background rounded-full w-8 h-8 shrink-0 text-foreground/60 hover:text-foreground">✕</button>
+                  </div>
+                  <div className="text-xs text-foreground/50 mb-3">Set a price for each item — pre-filled from your menu where matched. This is a starting point; adjust as needed for add-ons or complexity.</div>
+                  <div className="flex-1 overflow-y-auto flex flex-col gap-2">
+                    {acceptModalOrder.items.map((li, idx) => (
+                      <div key={li.id || idx} className="bg-background rounded-lg p-2.5 flex items-center gap-2.5">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-bold text-foreground truncate">{li.item}</div>
+                          <div className="text-xs text-foreground/50">
+                            {[li.quantity && li.quantity !== 1 && `Qty ${li.quantity}`, li.size, li.flavor].filter(Boolean).join(" · ") || "—"}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-foreground/40 text-sm">$</span>
+                          <input
+                            type="number" min="0" step="0.01"
+                            value={acceptPrices[idx] ?? ""}
+                            onChange={e => setAcceptPrices(prev => prev.map((p, i) => i === idx ? e.target.value : p))}
+                            placeholder="0.00"
+                            className={`${tw.input} !w-24`}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center border-t border-border/60 mt-3 pt-3">
+                    <span className="text-sm font-bold text-foreground">Order Total</span>
+                    <span className="font-mono font-bold text-lg text-foreground">
+                      ${acceptPrices.reduce((s, p) => s + (parseFloat(p) || 0), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={async () => { const o = acceptModalOrder; const p = acceptPrices; setAcceptModalOrder(null); await acceptOrder(o, p); }}
+                      disabled={decisionSending}
+                      className={`${tw.btn} flex-1 disabled:opacity-50`}
+                    >
+                      {decisionSending ? "Accepting..." : "Confirm Accept"}
+                    </button>
+                    <button onClick={() => setAcceptModalOrder(null)} className={`${tw.btnSec} bg-background text-foreground border-border`}>Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-accent" />
@@ -2779,6 +2870,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                             <input placeholder="Size (optional)" value={it.size} onChange={e => updateItemRow(setEditOrder, idx, "size", e.target.value)} className={`${tw.input} !flex-1`} />
                             <input placeholder="Flavor (optional)" value={it.flavor} onChange={e => updateItemRow(setEditOrder, idx, "flavor", e.target.value)} className={`${tw.input} !flex-1`} />
                             <input type="number" min="1" placeholder="Qty" value={it.quantity} onChange={e => updateItemRow(setEditOrder, idx, "quantity", e.target.value)} className={`${tw.input} !w-20`} />
+                            <input type="number" min="0" step="0.01" placeholder="Price" value={it.price ?? ""} onChange={e => updateItemRow(setEditOrder, idx, "price", e.target.value)} className={`${tw.input} !w-24`} />
                           </div>
                         </div>
                       ))}
@@ -2851,7 +2943,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       {_pendingLink ? (
                         <div className="flex gap-2">
-                          <button onClick={() => acceptOrder(o)} disabled={decisionSending} className={`${tw.btn} px-4 py-1.5 flex items-center gap-1.5 disabled:opacity-50`}>
+                          <button onClick={() => openAcceptModal(o)} disabled={decisionSending} className={`${tw.btn} px-4 py-1.5 flex items-center gap-1.5 disabled:opacity-50`}>
                             <Check className="h-3.5 w-3.5" /><span>Accept</span>
                           </button>
                           <button onClick={() => { setDeclineModalOrder(o); setDeclineReasonInput(""); }} disabled={decisionSending} className="px-4 py-1.5 rounded-lg border border-danger/40 text-danger text-xs font-bold hover:bg-danger/10 transition-colors disabled:opacity-50">
@@ -2866,7 +2958,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         </div>
                       )}
                       <div className="ml-auto flex items-center gap-1.5">
-                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, items: (o.items && o.items.length > 0) ? o.items.map(li => ({ item: li.item || "", size: li.size || "", flavor: li.flavor || "", quantity: li.quantity || "1" })) : [{ item: "", size: "", flavor: "", quantity: "1" }], due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", allergyNote: o.allergy_note || "", phone: o.phone || "", email: o.email || "", source: o.source }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
+                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, items: (o.items && o.items.length > 0) ? o.items.map(li => ({ item: li.item || "", size: li.size || "", flavor: li.flavor || "", quantity: li.quantity || "1", price: li.price ?? "" })) : [{ item: "", size: "", flavor: "", quantity: "1", price: "" }], due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", allergyNote: o.allergy_note || "", phone: o.phone || "", email: o.email || "", source: o.source }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
                           <Edit3 className="h-3.5 w-3.5" /><span>Edit</span>
                         </button>
                         <button onClick={() => printInvoice(o)} className={`${tw.btn} px-3 py-1.5 flex items-center gap-1.5`}>
@@ -3709,8 +3801,38 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               <div className="text-sm font-bold text-foreground mb-1">Menu Options (optional)</div>
               <div className="text-xs text-foreground/50 mb-3">Define dropdown choices for item, size, and flavor — leave any of these blank and customers get a free-text field instead.</div>
 
+              <div className="mb-3">
+                <label className={tw.eyebrow}>Items</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {orderFormItems.map(i => (
+                    <span key={i.name} className="inline-flex items-center gap-1 text-xs bg-background border border-border rounded-full px-2.5 py-1 text-foreground/70">
+                      {i.name}{i.basePrice != null && ` — $${i.basePrice.toFixed(2)}`}
+                      <button onClick={() => removeMenuItem(i.name)} className="text-foreground/30 hover:text-danger leading-none">×</button>
+                    </span>
+                  ))}
+                  {orderFormItems.length === 0 && <span className="text-xs text-foreground/30">None set — falls back to free text.</span>}
+                </div>
+                <div className="flex gap-1.5">
+                  <input
+                    value={menuOptionInput.items}
+                    onChange={e => setMenuOptionInput(m => ({ ...m, items: e.target.value }))}
+                    placeholder="New item"
+                    className={`${tw.input} flex-1`}
+                  />
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={menuItemPriceInput}
+                    onChange={e => setMenuItemPriceInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addMenuItem(menuOptionInput.items, menuItemPriceInput); setMenuOptionInput(m => ({ ...m, items: "" })); setMenuItemPriceInput(""); } }}
+                    placeholder="Price (optional)"
+                    className={`${tw.input} !w-32`}
+                  />
+                  <button onClick={() => { addMenuItem(menuOptionInput.items, menuItemPriceInput); setMenuOptionInput(m => ({ ...m, items: "" })); setMenuItemPriceInput(""); }} className={`${tw.btnSec} bg-background text-accent border-accent shrink-0`}>Add</button>
+                </div>
+                <div className="text-xs text-foreground/40 mt-1.5">Price is a starting/minimum — you can always adjust it up when accepting a specific order.</div>
+              </div>
+
               {[
-                { label: "Items", list: orderFormItems, setList: setOrderFormItems, key: "items" },
                 { label: "Sizes", list: orderFormSizes, setList: setOrderFormSizes, key: "sizes" },
                 { label: "Flavors", list: orderFormFlavors, setList: setOrderFormFlavors, key: "flavors" },
               ].map(({ label, list, setList, key }) => (
@@ -3992,20 +4114,26 @@ CREATE POLICY "owner_only" ON gifted_users
                     </tr>
                   </thead>
                   <tbody>
-                    {(ord.items && ord.items.length > 0 ? ord.items : [{ item: "", size: "", flavor: "", quantity: null }]).map((li, idx) => {
-                      const detail = [li.quantity && li.quantity !== 1 && `Qty ${li.quantity}`, li.size, li.flavor].filter(Boolean).join(" · ");
-                      return (
-                        <tr key={li.id || idx}>
-                          <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, verticalAlign: "top" }}>
-                            <strong>{li.item}</strong>
-                            {detail && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>{detail}</div>}
-                            {idx === 0 && ord.notes && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 5 }}>{ord.notes}</div>}
-                          </td>
-                          <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 13, color: "#6b7280", verticalAlign: "top" }}>{idx === 0 ? due : ""}</td>
-                          <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, fontWeight: "bold", textAlign: "right", verticalAlign: "top" }}>{idx === 0 ? `$${total}` : ""}</td>
-                        </tr>
-                      );
-                    })}
+                    {(() => {
+                      const _items = ord.items && ord.items.length > 0 ? ord.items : [{ item: "", size: "", flavor: "", quantity: null, price: null }];
+                      const _anyPriced = _items.some(i => i.price != null);
+                      return _items.map((li, idx) => {
+                        const detail = [li.quantity && li.quantity !== 1 && `Qty ${li.quantity}`, li.size, li.flavor].filter(Boolean).join(" · ");
+                        return (
+                          <tr key={li.id || idx}>
+                            <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, verticalAlign: "top" }}>
+                              <strong>{li.item}</strong>
+                              {detail && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>{detail}</div>}
+                              {idx === 0 && ord.notes && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 5 }}>{ord.notes}</div>}
+                            </td>
+                            <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 13, color: "#6b7280", verticalAlign: "top" }}>{idx === 0 ? due : ""}</td>
+                            <td style={{ padding: 16, borderBottom: "1px solid " + BORDER, fontSize: 14, fontWeight: "bold", textAlign: "right", verticalAlign: "top" }}>
+                              {li.price != null ? `$${Number(li.price).toFixed(2)}` : (idx === 0 && !_anyPriced ? `$${total}` : "")}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
                   </tbody>
                   <tfoot>
                     <tr style={{ background: CREAM }}>
