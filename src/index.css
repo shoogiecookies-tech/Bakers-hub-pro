@@ -61,6 +61,14 @@
   --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.85;
+}
+:root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.9);
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
