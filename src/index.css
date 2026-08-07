@@ -61,21 +61,6 @@
   --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
-:root[data-theme="light"] {
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-primary: #eb5c33;
-  --color-accent: #eb5c33;
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
-  --color-info: #2563eb;
-  --color-card: #ffffff;
-  --color-border: #e2e8f0;
-  --radius-card: 1rem;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);

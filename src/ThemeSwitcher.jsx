@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Moon, Cookie, Sun } from 'lucide-react';
+import { Moon, Cookie } from 'lucide-react';
 
 const STORAGE_KEY = 'bakeflo_theme';
 
 const THEMES = [
   { id: 'dark', label: 'Dark', Icon: Moon },
   { id: 'cozy', label: 'Cozy', Icon: Cookie },
-  { id: 'light', label: 'Light', Icon: Sun },
 ];
 
 export default function ThemeSwitcher() {
-  const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_KEY) || 'cozy');
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === 'dark' || stored === 'cozy' ? stored : 'cozy';
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
