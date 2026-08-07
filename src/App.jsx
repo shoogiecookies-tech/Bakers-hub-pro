@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3, Crown } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3, Crown, Clock } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
@@ -1634,64 +1634,71 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
            ];
            return (
            <div>
-             <div style={{ marginBottom: 18 }}>
-               <div style={{ fontSize: 22, fontWeight: "700", color: C.dark, letterSpacing: "-0.3px" }}>{timeGreet}, {bakeryName.split(" ")[0]}! 👋</div>
-               <div style={{ fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>{dayMessages[dow]}</div>
+             <div className="mb-4.5">
+               <div className="text-[22px] font-display font-bold text-foreground tracking-tight">{timeGreet}, {bakeryName.split(" ")[0]}!</div>
+               <div className="text-[13px] text-foreground/60 mt-0.5 leading-relaxed">{dayMessages[dow]}</div>
              </div>
              {guideVisible ? (
-               <div style={{ background: "#fff", borderRadius: "0 12px 12px 0", borderLeft: `4px solid ${C.accent}`, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
-                 <div style={{ fontSize: 20, flexShrink: 0 }}>📖</div>
-                 <div style={{ flex: 1, minWidth: 0 }}>
-                   <div style={{ fontSize: 13, fontWeight: "700", color: C.dark }}>Quick Start Guide</div>
-                   <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>New to BakeFlo? Set up your bakery in minutes.</div>
+               <div className="bg-card rounded-r-xl border-l-4 border-accent px-3.5 py-3 mb-3.5 flex items-center gap-3">
+                 <BookOpen className="h-5 w-5 text-accent shrink-0" />
+                 <div className="flex-1 min-w-0">
+                   <div className="text-[13px] font-bold text-foreground">Quick Start Guide</div>
+                   <div className="text-[11px] text-foreground/60 mt-0.5">New to BakeFlo? Set up your bakery in minutes.</div>
                  </div>
-                 <a href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" style={{ background: "none", border: "none", color: C.accent, fontSize: 12, fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer" }}>Open Guide</a>
-                 <button onClick={() => { localStorage.setItem("qsg_dismissed", "1"); setGuideVisible(false); }} style={{ background: "none", border: "none", color: C.muted, width: 24, height: 24, borderRadius: "50%", cursor: "pointer", fontSize: 15, lineHeight: "24px", flexShrink: 0, fontFamily: "'Inter', sans-serif" }}>×</button>
+                 <a href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" className="text-accent text-xs font-bold no-underline whitespace-nowrap shrink-0 cursor-pointer">Open Guide</a>
+                 <button onClick={() => { localStorage.setItem("qsg_dismissed", "1"); setGuideVisible(false); }} className="text-foreground/60 w-6 h-6 rounded-full cursor-pointer text-[15px] leading-6 shrink-0 font-body hover:bg-foreground/10">×</button>
                </div>
              ) : (
-               <a href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.accent, textDecoration: "none", fontWeight: "600", marginBottom: 14 }}>📖 Quick Start Guide</a>
+               <a href="https://www.bakeflo.io/quickstart.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-accent no-underline font-semibold mb-3.5">
+                 <BookOpen className="h-4 w-4" /> Quick Start Guide
+               </a>
              )}
-             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+             <div className="grid grid-cols-2 gap-2.5 mb-3.5">
                {[
-                 { label: "DELIVERED", sub: "revenue", value: `$${deliveredRev.toFixed(2)}`, icon: "💰", color: "#2d6a4f", bg: C.card, iconBg: C.border },
-                 { label: "PENDING",   sub: "revenue", value: `$${pendingRev.toFixed(2)}`,   icon: "⏳", color: "#2d6a4f", bg: C.card, iconBg: C.border },
-                 { label: "OPEN",      sub: "orders",  value: openOrders,                    icon: "📦", color: C.dark,   bg: C.card, iconBg: C.border },
-                 { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                icon: "📱", color: C.dark,   bg: C.card, iconBg: C.border },
+                 { label: "DELIVERED", sub: "revenue", value: `$${deliveredRev.toFixed(2)}`, Icon: DollarSign,  tone: "success" },
+                 { label: "PENDING",   sub: "revenue", value: `$${pendingRev.toFixed(2)}`,   Icon: Clock,        tone: "success" },
+                 { label: "OPEN",      sub: "orders",  value: openOrders,                    Icon: ShoppingBag,  tone: "foreground" },
+                 { label: "SCHEDULED", sub: "posts",   value: scheduledPosts,                Icon: Send,         tone: "foreground" },
                ].map(k => (
-                 <div key={k.label} className="bf-kpi" style={{ background: k.bg, borderRadius: 16, padding: "14px 14px 12px", border: `1px solid ${k.color}18`, boxShadow: "0 0 0 1px rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.12)" }}>
-                   <div style={{ width: 36, height: 36, borderRadius: 10, background: k.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 10 }}>{k.icon}</div>
-                   <div style={{ fontSize: 26, fontWeight: "700", color: k.color, lineHeight: 1 }}>{k.value}</div>
-                   <div style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase", color: k.color, opacity: 0.75, marginTop: 4 }}>{k.label} <span style={{ opacity: 0.6 }}>{k.sub}</span></div>
+                 <div key={k.label} className={`bf-kpi rounded-2xl pt-3.5 px-3.5 pb-3 bg-card border shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_4px_24px_rgba(0,0,0,0.12)] ${k.tone === "success" ? "border-success/10" : "border-foreground/10"}`}>
+                   <div className="w-9 h-9 rounded-[10px] bg-background flex items-center justify-center mb-2.5">
+                     <k.Icon className={`h-4.5 w-4.5 ${k.tone === "success" ? "text-success" : "text-foreground"}`} />
+                   </div>
+                   <div className={`text-[26px] font-bold leading-none ${k.tone === "success" ? "text-success" : "text-foreground"}`}>{k.value}</div>
+                   <div className={`text-[10px] font-bold uppercase tracking-wider opacity-75 mt-1 ${k.tone === "success" ? "text-success" : "text-foreground"}`}>{k.label} <span className="opacity-60">{k.sub}</span></div>
                  </div>
                ))}
              </div>
-             <div style={{ ...s.card, padding: 18, border: `2px solid ${C.accent}`, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                 <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>📅 Today's Tasks</div>
-                 {todayTasks.length > 0 && <span style={{ background: C.accent, color: "#fff", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: "700" }}>{todayTasks.length}</span>}
+             <div className={`${tw.card} !p-4.5 !mt-3.5 !border-2 !border-accent`}>
+               <div className="flex items-center justify-between mb-3.5">
+                 <div className="flex items-center gap-2">
+                   <Calendar className="h-4.5 w-4.5 text-accent" />
+                   <h3 className="font-body font-semibold text-foreground text-sm">Today's Tasks</h3>
+                 </div>
+                 {todayTasks.length > 0 && <span className="bg-accent text-white rounded-full px-2.5 py-0.5 text-[11px] font-bold">{todayTasks.length}</span>}
                </div>
                {todayTasks.length === 0
-                 ? <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>No tasks today — enjoy the day! 🎉</div>
+                 ? <div className="text-foreground/60 text-[13px] leading-relaxed">No tasks today — enjoy the day! 🎉</div>
                  : todayTasks.map(t => (
-                   <div key={t.id} onClick={() => toggleTask(t.id)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
-                     <div className="bf-task-check" style={{ width: 20, height: 20, borderRadius: 4, border: `2.5px solid ${C.accent}`, background: t.done ? C.accent : "transparent", flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                   <div key={t.id} onClick={() => toggleTask(t.id)} className="flex gap-2.5 items-start py-2.5 border-b border-border cursor-pointer">
+                     <div className={`bf-task-check w-5 h-5 rounded shrink-0 mt-0.5 flex items-center justify-center cursor-pointer border-[2.5px] border-accent ${t.done ? "bg-accent" : "bg-transparent"}`}>
                        {t.done && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                      </div>
-                     <span className={`bf-task-text${t.done ? " done" : ""}`} style={{ fontSize: 13, lineHeight: 1.5, color: t.done ? C.muted : C.text, textDecoration: t.done ? "line-through" : "none" }}>{t.task}</span>
+                     <span className={`bf-task-text${t.done ? " done" : ""} text-[13px] leading-relaxed ${t.done ? "text-foreground/60 line-through" : "text-foreground"}`}>{t.task}</span>
                    </div>
                  ))
                }
              </div>
              {topRevenueItem && (
-               <div className="bf-card" style={{ ...s.card, padding: 18, background: C.bg, border: `2px solid ${C.dark}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                   <div style={{ fontSize: 18 }}>📊</div>
-                   <div style={{ fontSize: 14, fontWeight: "700", color: C.dark, letterSpacing: "-0.2px" }}>Business Health Insights</div>
+               <div className={`bf-card ${tw.card} !p-4.5 !mt-3.5 !bg-background !border-2 !border-foreground`}>
+                 <div className="flex items-center gap-2 mb-3.5">
+                   <BarChart3 className="h-4.5 w-4.5 text-foreground" />
+                   <h3 className="font-body font-bold text-foreground text-sm">Business Health Insights</h3>
                  </div>
-                 <div style={{ background: C.card, borderRadius: 12, padding: "12px 14px", border: `1px solid ${C.border}` }}>
-                   <div style={{ fontSize: 12, fontWeight: "700", color: "#065f46", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Top Revenue Item</div>
-                   <div style={{ fontSize: 16, fontWeight: "800", color: "#059669" }}>{topRevenueItem[0]}</div>
-                   <div style={{ fontSize: 12, color: "#047857", marginTop: 4, lineHeight: 1.5 }}>
+                 <div className="bg-card rounded-xl px-3.5 py-3 border border-border">
+                   <div className="text-xs font-bold text-success tracking-wide uppercase mb-1">Top Revenue Item</div>
+                   <div className="text-base font-extrabold text-success">{topRevenueItem[0]}</div>
+                   <div className="text-xs text-success/80 mt-1 leading-relaxed">
                      {topRevenueItemPct !== null
                        ? `${topRevenueItem[0]} generated ${topRevenueItemPct}% of your total revenue — your top earner! 🎉`
                        : `Your top revenue generator — keep it on the menu!`}
@@ -1699,27 +1706,30 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                  </div>
                </div>
              )}
-             <div style={{ ...s.card, padding: 18 }}>
-               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                 <div style={{ fontSize: 14, fontWeight: "600", color: C.dark, letterSpacing: "-0.2px" }}>🚨 Upcoming Orders</div>
+             <div className={`${tw.card} !p-4.5 !mt-3.5`}>
+               <div className="flex items-center justify-between mb-3.5">
+                 <div className="flex items-center gap-2">
+                   <AlertCircle className="h-4.5 w-4.5 text-accent" />
+                   <h3 className="font-body font-semibold text-foreground text-sm">Upcoming Orders</h3>
+                 </div>
                  {orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length > 0 && (
-                   <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: "700" }}>{orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length}</span>
+                   <span className="bg-warning/15 text-warning rounded-full px-2.5 py-0.5 text-[11px] font-bold">{orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length}</span>
                  )}
                </div>
                {orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length === 0
-                 ? <div style={{ color: C.muted, fontSize: 13 }}>No open orders 🎉</div>
+                 ? <div className="text-foreground/60 text-[13px]">No open orders 🎉</div>
                  : orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").slice(0, 5).map(o => {
                      const initials = (o.customer || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
                      const sc = STATUS_COLORS[o.status] || C.accent;
                      return (
-                       <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
-                         <div style={{ width: 36, height: 36, borderRadius: "50%", background: sc + "22", color: sc, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "800", flexShrink: 0, letterSpacing: 0.5 }}>{initials}</div>
-                         <div style={{ flex: 1, minWidth: 0 }}>
-                           <div style={{ fontWeight: "700", fontSize: 13, color: C.dark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.customer}</div>
-                           <div style={{ fontSize: 12, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{orderItemsSummary(o)}</div>
+                       <div key={o.id} className="flex items-center gap-3 py-2.5 border-b border-border">
+                         <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold tracking-wide shrink-0" style={{ background: sc + "22", color: sc }}>{initials}</div>
+                         <div className="flex-1 min-w-0">
+                           <div className="font-bold text-[13px] text-foreground whitespace-nowrap overflow-hidden text-ellipsis">{o.customer}</div>
+                           <div className="text-xs text-foreground/60 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">{orderItemsSummary(o)}</div>
                          </div>
-                         <div style={{ textAlign: "right", flexShrink: 0 }}>
-                           {o.due && <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{o.due}</div>}
+                         <div className="text-right shrink-0">
+                           {o.due && <div className="text-[11px] text-foreground/60 mb-0.5">{o.due}</div>}
                            <span style={s.tag(sc)}>{o.status}</span>
                          </div>
                        </div>
