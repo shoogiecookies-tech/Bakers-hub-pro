@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3, Crown, Clock } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3, Crown, Clock, ListX } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
@@ -1226,8 +1226,22 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   };
 
   const deleteOrder = async (id) => {
+    await supabase.from("schedule").delete().eq("order_id", id);
     await supabase.from("orders").delete().eq("id", id);
     setOrders(prev => prev.filter(o => o.id !== id));
+    setSchedule(prev => prev.filter(t => t.order_id !== id));
+  };
+
+  const clearOrderTasks = async (orderId) => {
+    if (!window.confirm("Clear all scheduled tasks for this order?")) return;
+    await supabase.from("schedule").delete().eq("order_id", orderId);
+    setSchedule(prev => prev.filter(t => t.order_id !== orderId));
+  };
+
+  const clearDateTasks = async (date) => {
+    if (!window.confirm("Delete all tasks for this day?")) return;
+    await supabase.from("schedule").delete().eq("date", date).eq("user_id", uid);
+    setSchedule(prev => prev.filter(t => t.date !== date));
   };
 
   // Accept/Decline — for Pending, link-submitted orders only. Accept generates
@@ -2979,6 +2993,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         <button onClick={() => genEmail(o)} className="px-3 py-1.5 rounded-lg border border-border text-foreground/50 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
                           <Mail className="h-3.5 w-3.5" /><span>Email</span>
                         </button>
+                        {schedule.some(t => t.order_id === o.id) && (
+                          <button onClick={() => clearOrderTasks(o.id)} className="p-1.5 rounded-lg text-foreground/30 hover:text-danger transition-colors" title="Clear scheduled tasks for this order">
+                            <ListX className="h-4 w-4" />
+                          </button>
+                        )}
                         {!_pendingLink && !_declined && (
                           <button onClick={() => deleteOrder(o.id)} className="p-1.5 rounded-lg text-foreground/30 hover:text-danger transition-colors">
                             <Trash2 className="h-4 w-4" />
@@ -3122,6 +3141,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                                 ? <span className="text-[11px] text-success font-bold shrink-0">✓ All done{_isPast ? (_collapsed ? " ▸" : " ▾") : ""}</span>
                                 : <span className="text-[11px] text-foreground/50 font-bold shrink-0">{_incomplete.length} task{_incomplete.length !== 1 ? "s" : ""}</span>
                               }
+                              {date !== "Undated" && (
+                                <button onClick={e => { e.stopPropagation(); clearDateTasks(date); }} className="text-foreground/30 hover:text-danger transition-colors shrink-0" title="Delete all tasks for this day">
+                                  <ListX className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                             {!_collapsed && (
                               <div className="pl-[42px] flex flex-col gap-2">
