@@ -710,6 +710,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [slugStatus,       setSlugStatus]       = useState(""); // "", "checking", "available", "taken", "error"
   const [menuOptionInput,  setMenuOptionInput]  = useState({ items: "", sizes: "", flavors: "" });
   const [menuItemPriceInput, setMenuItemPriceInput] = useState("");
+  const [variantInput,     setVariantInput]     = useState({}); // { [itemName]: draft label text }
   const [linkCopied,       setLinkCopied]       = useState(false);
   const [isPro,            setIsPro]            = useState(false);
   const [maxOrdersPerDay,  setMaxOrdersPerDay]  = useState("");
@@ -910,7 +911,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         setOrderSlug(profileData.slug || "");
         setSlugInput(profileData.slug || "");
         setOrderLeadDays(profileData.order_lead_days ?? 3);
-        setOrderFormItems(profileData.order_form_items || []);
+        setOrderFormItems((profileData.order_form_items || []).map(i => ({
+          name: i.name,
+          basePrice: i.basePrice ?? null,
+          category: i.category || "",
+          recipeId: i.recipeId ?? null,
+          variants: Array.isArray(i.variants) ? i.variants.map(v => ({ label: v.label, recipeId: v.recipeId ?? null })) : [],
+        })));
         setOrderFormSizes(profileData.order_form_sizes || []);
         setOrderFormFlavors(profileData.order_form_flavors || []);
         setIsPro(!!profileData.is_pro);
@@ -993,9 +1000,17 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     const n = name.trim();
     if (!n || orderFormItems.some(i => i.name.toLowerCase() === n.toLowerCase())) return;
     const basePrice = price !== "" && !isNaN(parseFloat(price)) ? parseFloat(price) : null;
-    setOrderFormItems([...orderFormItems, { name: n, basePrice }]);
+    setOrderFormItems([...orderFormItems, { name: n, basePrice, category: "", recipeId: null, variants: [] }]);
   };
   const removeMenuItem = (name) => setOrderFormItems(orderFormItems.filter(i => i.name !== name));
+  const updateMenuItem = (name, patch) => setOrderFormItems(prev => prev.map(i => i.name === name ? { ...i, ...patch } : i));
+  const addMenuItemVariant = (name, label) => {
+    const l = label.trim();
+    if (!l) return;
+    setOrderFormItems(prev => prev.map(i => i.name === name ? { ...i, variants: [...i.variants, { label: l, recipeId: null }] } : i));
+  };
+  const removeMenuItemVariant = (name, idx) => setOrderFormItems(prev => prev.map(i => i.name === name ? { ...i, variants: i.variants.filter((_, vi) => vi !== idx) } : i));
+  const updateMenuItemVariant = (name, idx, patch) => setOrderFormItems(prev => prev.map(i => i.name === name ? { ...i, variants: i.variants.map((v, vi) => vi === idx ? { ...v, ...patch } : v) } : i));
 
   // Repeatable line-item rows, shared by the New Order and Edit Order forms.
   const addItemRow = (setOrder) => setOrder(o => ({ ...o, items: [...o.items, { item: "", size: "", flavor: "", quantity: "1", price: "" }] }));
@@ -3836,12 +3851,62 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
               <div className="mb-3">
                 <label className={tw.eyebrow}>Items</label>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {orderFormItems.map(i => (
-                    <span key={i.name} className="inline-flex items-center gap-1 text-xs bg-background border border-border rounded-full px-2.5 py-1 text-foreground/70">
-                      {i.name}{i.basePrice != null && ` — $${i.basePrice.toFixed(2)}`}
-                      <button onClick={() => removeMenuItem(i.name)} className="text-foreground/30 hover:text-danger leading-none">×</button>
-                    </span>
+                <datalist id="menu-item-categories">
+                  {[...new Set([...orderFormItems.map(i => i.category).filter(Boolean), ...recipes.map(r => r.category).filter(Boolean)])].map(c => <option key={c} value={c} />)}
+                </datalist>
+                <div className="flex flex-col gap-2 mb-2">
+                  {orderFormItems.map(item => (
+                    <div key={item.name} className="bg-background rounded-lg p-3 flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-bold text-foreground truncate">{item.name}{item.basePrice != null && ` — $${item.basePrice.toFixed(2)}`}</span>
+                        <button onClick={() => removeMenuItem(item.name)} className="text-foreground/30 hover:text-danger leading-none shrink-0">×</button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <input
+                          value={item.category}
+                          onChange={e => updateMenuItem(item.name, { category: e.target.value })}
+                          placeholder="Category"
+                          list="menu-item-categories"
+                          className={`${tw.input} !bg-card text-xs !py-1.5`}
+                        />
+                        <select
+                          value={item.recipeId ?? ""}
+                          onChange={e => updateMenuItem(item.name, { recipeId: e.target.value ? parseInt(e.target.value) : null })}
+                          className={`${tw.input} !bg-card text-xs !py-1.5`}
+                        >
+                          <option value="">— none —</option>
+                          {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="pl-2 border-l-2 border-border flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-foreground/40">Variants (flavors)</span>
+                        {item.variants.map((v, vi) => (
+                          <div key={vi} className="flex items-center gap-1.5">
+                            <span className="text-xs text-foreground/70 flex-1 truncate">{v.label}</span>
+                            <select
+                              value={v.recipeId ?? ""}
+                              onChange={e => updateMenuItemVariant(item.name, vi, { recipeId: e.target.value ? parseInt(e.target.value) : null })}
+                              className={`${tw.input} !bg-card text-xs !py-1 !w-32`}
+                            >
+                              <option value="">— none —</option>
+                              {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                            </select>
+                            <button onClick={() => removeMenuItemVariant(item.name, vi)} className="text-foreground/30 hover:text-danger leading-none">×</button>
+                          </div>
+                        ))}
+                        {item.variants.length === 0 && <span className="text-[11px] text-foreground/30">No variants yet.</span>}
+                        <div className="flex gap-1.5">
+                          <input
+                            value={variantInput[item.name] || ""}
+                            onChange={e => setVariantInput(vi => ({ ...vi, [item.name]: e.target.value }))}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addMenuItemVariant(item.name, variantInput[item.name] || ""); setVariantInput(vi => ({ ...vi, [item.name]: "" })); } }}
+                            placeholder="New variant (e.g. Chocolate)"
+                            className={`${tw.input} !bg-card text-xs !py-1 flex-1`}
+                          />
+                          <button onClick={() => { addMenuItemVariant(item.name, variantInput[item.name] || ""); setVariantInput(vi => ({ ...vi, [item.name]: "" })); }} className={`${tw.btnSec} bg-card text-accent border-accent !px-2 !py-1 text-xs shrink-0`}>+</button>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                   {orderFormItems.length === 0 && <span className="text-xs text-foreground/30">None set — falls back to free text.</span>}
                 </div>
@@ -3867,7 +3932,6 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
               {[
                 { label: "Sizes", list: orderFormSizes, setList: setOrderFormSizes, key: "sizes" },
-                { label: "Flavors", list: orderFormFlavors, setList: setOrderFormFlavors, key: "flavors" },
               ].map(({ label, list, setList, key }) => (
                 <div key={key} className="mb-3">
                   <label className={tw.eyebrow}>{label}</label>
