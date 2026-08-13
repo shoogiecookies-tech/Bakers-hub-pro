@@ -132,10 +132,66 @@ function daysWaiting(createdAt) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   return Math.round((today - start) / 86400000);
 }
+const WEIGHT_G = { g: 1, kg: 1000, oz: 28.3495, lbs: 453.592 };
+const VOLUME_CUP = { cups: 1, tbsp: 1/16, tsp: 1/48, ml: 1/236.588, l: 1000/236.588 };
+const COUNT_PCS = { pcs: 1, dozen: 12 };
+function unitFamily(u) {
+  if (WEIGHT_G[u] != null) return "weight";
+  if (VOLUME_CUP[u] != null) return "volume";
+  if (COUNT_PCS[u] != null) return "count";
+  return null;
+}
+function unitToBase(amount, unit) {
+  if (WEIGHT_G[unit] != null) return amount * WEIGHT_G[unit];   // grams
+  if (VOLUME_CUP[unit] != null) return amount * VOLUME_CUP[unit]; // cups
+  if (COUNT_PCS[unit] != null) return amount * COUNT_PCS[unit];  // pcs
+  return null;
+}
+const SEED_DENSITY = [
+  { match: ["bread flour"], g: 120 },
+  { match: ["cake flour"], g: 114 },
+  { match: ["powdered sugar", "confectioner"], g: 120 },
+  { match: ["brown sugar"], g: 220 },
+  { match: ["granulated sugar", "white sugar"], g: 200 },
+  { match: ["cocoa"], g: 85 },
+  { match: ["sourdough starter", "starter"], g: 240 },
+  { match: ["butter"], g: 227 },
+  { match: ["water"], g: 237 },
+  { match: ["milk"], g: 240 },
+  { match: ["oil"], g: 218 },
+  { match: ["honey"], g: 340 },
+  { match: ["chocolate chip", "choc chip"], g: 170 },
+  { match: ["sugar"], g: 200 },
+  { match: ["flour"], g: 120 },
+];
+function suggestDensity(name) {
+  if (!name) return null;
+  const n = name.trim().toLowerCase();
+  for (const s of SEED_DENSITY) if (s.match.some(m => n.includes(m))) return s.g;
+  return null;
+}
 function calcIngCost(ing, pantry) {
   const item = pantry.find(p => Number(p.id) === Number(ing.pantryId))
     || pantry.find(p => p.name && ing.name && p.name.trim().toLowerCase() === ing.name.trim().toLowerCase());
-  return item ? item.costPer * ing.amount : null;
+  if (!item) return null;
+  const costPer = item.costPer;
+  const pantryUnit = item.unit;
+  const recipeUnit = ing.unit || item.unit;
+  const density = item.gramsPerCup ?? item.grams_per_cup ?? null;
+  const rf = unitFamily(recipeUnit), pf = unitFamily(pantryUnit);
+  if (!rf || !pf) return null;
+  const baseR = unitToBase(ing.amount, recipeUnit);
+  const baseP = unitToBase(1, pantryUnit);
+  if (baseR == null || baseP == null || baseP === 0) return null;
+  if (rf === pf) return costPer * (baseR / baseP);
+  // crossing families: count can't cross to weight/volume
+  if ((rf === "count") !== (pf === "count")) return null;
+  // one weight, one volume -> needs density
+  if (!density) return null;
+  const toG = (base, fam) => fam === "weight" ? base : base * density; // weight base already grams; volume base is cups
+  const rG = toG(baseR, rf), pG = toG(baseP, pf);
+  if (pG === 0) return null;
+  return costPer * (rG / pG);
 }
 function calcRecipeCost(recipe, pantry) {
   return recipe.ingredients.reduce((sum, ing) => sum + (calcIngCost(ing, pantry) || 0), 0);
@@ -726,7 +782,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [editPantryForm, setEditPantryForm] = useState({});
   const [pantryFilter,  setPantryFilter]  = useState("All");
   const [pantrySearch,  setPantrySearch]  = useState("");
-  const [newPantry,     setNewPantry]     = useState({ name: "", category: "Flour & Grains", storeCost: "", yields: "", unit: "cups", storeUnit: "" });
+  const [newPantry,     setNewPantry]     = useState({ name: "", category: "Flour & Grains", storeCost: "", yields: "", unit: "cups", storeUnit: "", gramsPerCup: "" });
 
   // Recipes UI
   const [recipeSearch, setRecipeSearch] = useState("");
@@ -841,7 +897,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       ]);
 
       // Map snake_case DB fields to camelCase for the app
-      const loadedPantry = (pantryData || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost }));
+      const loadedPantry = (pantryData || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost, gramsPerCup: p.grams_per_cup }));
       const loadedRecipes = (recipesData || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" }));
 
       if (loadedPantry.length === 0) {
@@ -873,12 +929,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
           setSeedMsg("⚠️ Could not load starter data: " + seedError);
         }
         if (serverPantry && serverPantry.length > 0) {
-          setPantry(serverPantry.map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
+          setPantry(serverPantry.map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost, gramsPerCup: p.grams_per_cup })));
           setRecipes((serverRecipes || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
         } else {
           const { data: freshPantry }  = await supabase.from("pantry").select("*").eq("user_id", uid).order("name");
           const { data: freshRecipes } = await supabase.from("recipes").select("*").eq("user_id", uid).order("name");
-          setPantry((freshPantry || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
+          setPantry((freshPantry || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost, gramsPerCup: p.grams_per_cup })));
           setRecipes((freshRecipes || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
         }
       } else {
@@ -1121,22 +1177,24 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     const { data } = await supabase.from("pantry").insert([{
       user_id: uid, name: newPantry.name, category: newPantry.category,
       cost_per: costPer, unit: newPantry.unit, store_unit: newPantry.storeUnit,
-      store_cost: parseFloat(newPantry.storeCost), yields: parseFloat(newPantry.yields)
+      store_cost: parseFloat(newPantry.storeCost), yields: parseFloat(newPantry.yields),
+      grams_per_cup: newPantry.gramsPerCup ? parseFloat(newPantry.gramsPerCup) : null
     }]).select().single();
-    if (data) setPantry(p => [...p, { ...data, costPer: data.cost_per, storeUnit: data.store_unit, storeCost: data.store_cost }]);
-    setNewPantry({ name: "", category: "Flour & Grains", storeCost: "", yields: "", unit: "cups", storeUnit: "" });
+    if (data) setPantry(p => [...p, { ...data, costPer: data.cost_per, storeUnit: data.store_unit, storeCost: data.store_cost, gramsPerCup: data.grams_per_cup }]);
+    setNewPantry({ name: "", category: "Flour & Grains", storeCost: "", yields: "", unit: "cups", storeUnit: "", gramsPerCup: "" });
     setShowNewPantry(false);
   };
 
   const savePantryEdit = async () => {
-    const { id, name, category, storeCost, yields, unit, storeUnit } = editPantryForm;
+    const { id, name, category, storeCost, yields, unit, storeUnit, gramsPerCup } = editPantryForm;
     const costPer = parseFloat(storeCost) / parseFloat(yields);
     await supabase.from("pantry").update({
       name, category, unit, store_unit: storeUnit,
       store_cost: parseFloat(storeCost), yields: parseFloat(yields), cost_per: costPer,
+      grams_per_cup: gramsPerCup ? parseFloat(gramsPerCup) : null,
     }).eq("id", id);
     setPantry(p => p.map(x => Number(x.id) === Number(id)
-      ? { ...x, name, category, unit, storeUnit, storeCost: parseFloat(storeCost), yields: parseFloat(yields), costPer }
+      ? { ...x, name, category, unit, storeUnit, storeCost: parseFloat(storeCost), yields: parseFloat(yields), costPer, gramsPerCup: gramsPerCup ? parseFloat(gramsPerCup) : null }
       : x));
     setEditingPantry(null);
     setEditPantryForm({});
@@ -1988,7 +2046,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                                 <div className="text-[10px] text-foreground/40">per {item.unit}</div>
                               </div>
                               <div className="flex items-center gap-1">
-                                <button onClick={() => { setEditingPantry(item.id); setEditPantryForm({ id: item.id, name: item.name, category: item.category, storeCost: item.storeCost, yields: item.yields, unit: item.unit, storeUnit: item.storeUnit || "" }); }} className="p-1.5 rounded-lg text-foreground/40 hover:text-accent hover:bg-background transition-colors">
+                                <button onClick={() => { setEditingPantry(item.id); setEditPantryForm({ id: item.id, name: item.name, category: item.category, storeCost: item.storeCost, yields: item.yields, unit: item.unit, storeUnit: item.storeUnit || "", gramsPerCup: (item.gramsPerCup ?? item.grams_per_cup ?? "") }); }} className="p-1.5 rounded-lg text-foreground/40 hover:text-accent hover:bg-background transition-colors">
                                   <Edit3 className="h-3.5 w-3.5" />
                                 </button>
                                 <button onClick={() => deletePantryItem(item.id)} className="p-1.5 rounded-lg text-foreground/40 hover:text-danger hover:bg-background transition-colors">
@@ -2086,6 +2144,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                           <label className={tw.eyebrow}>Yields ({editPantryForm.unit})</label>
                           <input type="number" step="0.1" value={editPantryForm.yields || ""} onChange={e => setEditPantryForm(f => ({ ...f, yields: e.target.value }))} className={tw.input} />
                         </div>
+                        <div>
+                          <label className={tw.eyebrow}>Grams per cup (only for cups↔grams)</label>
+                          <input type="number" step="1" placeholder={suggestDensity(editPantryForm.name) ? `e.g. ${suggestDensity(editPantryForm.name)}` : "leave blank if never measured both ways"} value={editPantryForm.gramsPerCup || ""} onChange={e => setEditPantryForm(f => ({ ...f, gramsPerCup: e.target.value }))} className={tw.input} />
+                          {!editPantryForm.gramsPerCup && suggestDensity(editPantryForm.name) && (
+                            <button type="button" onClick={() => setEditPantryForm(f => ({ ...f, gramsPerCup: String(suggestDensity(editPantryForm.name)) }))} className="mt-1 text-xs text-accent hover:underline">Use suggested {suggestDensity(editPantryForm.name)} g/cup</button>
+                          )}
+                        </div>
                         {editPantryForm.storeCost && editPantryForm.yields && (
                           <div className="bg-background rounded-lg px-3.5 py-2.5 text-xs text-foreground/70">
                             💡 Cost per {editPantryForm.unit}: <strong className="text-foreground">${(parseFloat(editPantryForm.storeCost) / parseFloat(editPantryForm.yields)).toFixed(2)}</strong>
@@ -2125,6 +2190,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         <div>
                           <label className={tw.eyebrow}>Yields ({newPantry.unit})</label>
                           <input type="number" step="0.1" value={newPantry.yields} onChange={e => setNewPantry(p => ({ ...p, yields: e.target.value }))} className={tw.input} />
+                        </div>
+                        <div>
+                          <label className={tw.eyebrow}>Grams per cup (only for cups↔grams)</label>
+                          <input type="number" step="1" placeholder={suggestDensity(newPantry.name) ? `e.g. ${suggestDensity(newPantry.name)}` : "leave blank if never measured both ways"} value={newPantry.gramsPerCup} onChange={e => setNewPantry(p => ({ ...p, gramsPerCup: e.target.value }))} className={tw.input} />
+                          {!newPantry.gramsPerCup && suggestDensity(newPantry.name) && (
+                            <button type="button" onClick={() => setNewPantry(p => ({ ...p, gramsPerCup: String(suggestDensity(newPantry.name)) }))} className="mt-1 text-xs text-accent hover:underline">Use suggested {suggestDensity(newPantry.name)} g/cup</button>
+                          )}
                         </div>
                         {newPantry.storeCost && newPantry.yields && (
                           <div className="bg-background rounded-lg px-3.5 py-2.5 text-xs text-foreground/70">
