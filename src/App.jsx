@@ -48,7 +48,9 @@ function matchesOrderStatusFilter(status, filter) {
   if (filter === "Declined") return status === "Declined";
   return false;
 }
-const CATEGORIES = ["Cookies", "Cakes", "Bread", "Pastries", "Cupcakes", "Other"];
+const CATEGORIES = ["Cookies", "Cakes & Cupcakes", "Bars", "Breads", "Pastries", "Candy & Confections", "Other"];
+const CATEGORY_REMAP = { Cakes: "Cakes & Cupcakes", Cupcakes: "Cakes & Cupcakes", Bread: "Breads" };
+const normalizeRecipeCategory = (cat) => CATEGORY_REMAP[cat] || cat;
 const PLATFORMS = ["Instagram", "Facebook", "TikTok", "Pinterest"];
 const POST_TYPES = ["Product Photo", "Behind the Scenes", "Recipe Tip", "Testimonial", "Promo/Sale", "Seasonal"];
 const PANTRY_CATS = ["Flour & Grains", "Dairy", "Eggs & Fats", "Sweeteners", "Leavening", "Flavoring", "Chocolate", "Fruits & Nuts", "Packaging", "Other"];
@@ -840,7 +842,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
       // Map snake_case DB fields to camelCase for the app
       const loadedPantry = (pantryData || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost }));
-      const loadedRecipes = (recipesData || []).map(r => ({ ...r, ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" }));
+      const loadedRecipes = (recipesData || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" }));
 
       if (loadedPantry.length === 0) {
         // Client-side SELECT returned 0 — call server endpoint (service role bypasses RLS)
@@ -872,12 +874,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         }
         if (serverPantry && serverPantry.length > 0) {
           setPantry(serverPantry.map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
-          setRecipes((serverRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
+          setRecipes((serverRecipes || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
         } else {
           const { data: freshPantry }  = await supabase.from("pantry").select("*").eq("user_id", uid).order("name");
           const { data: freshRecipes } = await supabase.from("recipes").select("*").eq("user_id", uid).order("name");
           setPantry((freshPantry || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost })));
-          setRecipes((freshRecipes || []).map(r => ({ ...r, ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
+          setRecipes((freshRecipes || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
         }
       } else {
         setPantry(loadedPantry);
@@ -3853,7 +3855,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               <div className="mb-3">
                 <label className={tw.eyebrow}>Items</label>
                 <datalist id="menu-item-categories">
-                  {[...new Set([...orderFormItems.map(i => i.category).filter(Boolean), ...recipes.map(r => r.category).filter(Boolean)])].map(c => <option key={c} value={c} />)}
+                  {CATEGORIES.map(c => <option key={c} value={c} />)}
                 </datalist>
                 <div className="flex flex-col gap-2 mb-2">
                   {orderFormItems.map(item => (
