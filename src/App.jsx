@@ -38,12 +38,13 @@ const tw = {
 const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Bakery Profile", "Settings", "Admin"];
 const STATUS_COLORS = { Pending: "#b87d3a", "In Progress": "#c0653d", Complete: "#5a7a5c", Invoiced: "#7a6a58", Delivered: "#5c4f3d", Declined: "#8a8a8a" };
 const STATUS_LIST = ["Pending", "In Progress", "Complete", "Invoiced", "Delivered"];
-const ACTIVE_STATUSES = ["In Progress", "Complete", "Invoiced", "Delivered"];
-const ORDER_STATUS_FILTERS = ["Pending", "Active", "Declined", "All"];
+const ACTIVE_STATUSES = ["In Progress", "Complete", "Invoiced"];
+const ORDER_STATUS_FILTERS = ["Pending", "Active", "Completed", "Declined", "All"];
 function matchesOrderStatusFilter(status, filter) {
   if (filter === "All") return true;
   if (filter === "Pending") return status === "Pending";
   if (filter === "Active") return ACTIVE_STATUSES.includes(status);
+  if (filter === "Completed") return status === "Delivered";
   if (filter === "Declined") return status === "Declined";
   return false;
 }
