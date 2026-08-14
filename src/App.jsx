@@ -2432,8 +2432,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                               </div>
                             ))}
                           </div>
-                          <div className="flex gap-1.5 mt-2">
-                            <select value={editIngInput.pantryId} onChange={e => { const item = pantry.find(p => p.id === parseInt(e.target.value)); setEditIngInput(x => ({ ...x, pantryId: e.target.value, unit: item?.unit || "cups" })); }} className={`${tw.input} flex-1`}>
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            <select value={editIngInput.pantryId} onChange={e => { const item = pantry.find(p => p.id === parseInt(e.target.value)); setEditIngInput(x => ({ ...x, pantryId: e.target.value, unit: item?.unit || "cups" })); }} className={`${tw.input} flex-1 min-w-[140px]`}>
                               <option value="">— Add ingredient —</option>
                               {pantry.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
@@ -2497,8 +2497,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                               {newRec.ingredients.map((ing, i) => <div key={i} className="text-xs text-foreground/70">• {ing.amount} {ing.unit} {ing.name}</div>)}
                             </div>
                           )}
-                          <div className="flex gap-1.5">
-                            <select value={recIngInput.pantryId} onChange={e => { const item = pantry.find(p => p.id === parseInt(e.target.value)); setRecIngInput(x => ({ ...x, pantryId: e.target.value, unit: item?.unit || "cups" })); }} className={`${tw.input} flex-1`}>
+                          <div className="flex flex-wrap gap-1.5">
+                            <select value={recIngInput.pantryId} onChange={e => { const item = pantry.find(p => p.id === parseInt(e.target.value)); setRecIngInput(x => ({ ...x, pantryId: e.target.value, unit: item?.unit || "cups" })); }} className={`${tw.input} flex-1 min-w-[140px]`}>
                               <option value="">— Select ingredient —</option>
                               {pantry.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
