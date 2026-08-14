@@ -38,6 +38,7 @@ const tw = {
 const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Bakery Profile", "Settings", "Admin"];
 const STATUS_COLORS = { Pending: "#b87d3a", "In Progress": "#c0653d", Complete: "#5a7a5c", Invoiced: "#7a6a58", Delivered: "#5c4f3d", Declined: "#8a8a8a" };
 const STATUS_LIST = ["Pending", "In Progress", "Complete", "Invoiced", "Delivered"];
+const ORDER_TYPES = ["Real", "Test", "Comped", "Donation"];
 const ACTIVE_STATUSES = ["In Progress", "Complete", "Invoiced"];
 const ORDER_STATUS_FILTERS = ["Pending", "Active", "Completed", "Declined", "All"];
 function matchesOrderStatusFilter(status, filter) {
@@ -815,7 +816,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [orderSearch,  setOrderSearch]  = useState("");
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orderStatusFilter, setOrderStatusFilter] = useState("Pending"); // Pending | Active | Declined | All — strictly single-select, no combined state
-  const [newOrder,     setNewOrder]     = useState({ customer: "", items: [{ item: "", size: "", flavor: "", quantity: "1" }], due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
+  const [newOrder,     setNewOrder]     = useState({ customer: "", items: [{ item: "", size: "", flavor: "", quantity: "1" }], due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "", type: "Real" });
   const [editingOrder, setEditingOrder] = useState(null); // order being edited
   const [editOrder,    setEditOrder]    = useState(null); // edit form state
   const [emailModal,   setEmailModal]   = useState(null);
@@ -1288,7 +1289,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     const { data: orderData, error: insertErr } = await supabase.from("orders").insert([{
       user_id: uid, customer: newOrder.customer,
       due: newOrder.due || null, status: newOrder.status,
-      total: parseFloat(newOrder.total) || 0, notes: newOrder.notes, allergy_note: newOrder.allergyNote || null, phone: newOrder.phone, email: newOrder.email || null
+      total: parseFloat(newOrder.total) || 0, notes: newOrder.notes, allergy_note: newOrder.allergyNote || null, phone: newOrder.phone, email: newOrder.email || null,
+      type: newOrder.type || "Real"
     }]).select().single();
     if (insertErr) {
       alert("Order could not be saved: " + insertErr.message);
@@ -1306,7 +1308,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       const { data: taskData } = await supabase.from("schedule").insert([{ user_id: uid, ...t, order_id: fullOrder.id }]).select().single();
       if (taskData) setSchedule(prev => [...prev, { ...taskData, auto: true, aiSuggested: false }]);
     }
-    setNewOrder({ customer: "", items: [{ item: "", size: "", flavor: "", quantity: "1" }], due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "" });
+    setNewOrder({ customer: "", items: [{ item: "", size: "", flavor: "", quantity: "1" }], due: "", status: "Pending", total: "", notes: "", allergyNote: "", phone: "", email: "", type: "Real" });
     setShowNewOrder(false);
   };
 
@@ -1416,7 +1418,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     const updates = {
       customer: editOrder.customer,
       due: editOrder.due || null, status: editOrder.status,
-      total: parseFloat(editOrder.total) || 0, notes: editOrder.notes, allergy_note: editOrder.allergyNote || null, phone: editOrder.phone, email: editOrder.email || null
+      total: parseFloat(editOrder.total) || 0, notes: editOrder.notes, allergy_note: editOrder.allergyNote || null, phone: editOrder.phone, email: editOrder.email || null,
+      type: editOrder.type || "Real"
     };
     const { error: updateErr } = await supabase.from("orders").update(updates).eq("id", editingOrder);
     if (updateErr) { alert("Order could not be updated: " + updateErr.message); return; }
@@ -1609,8 +1612,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   };
 
   // ── Dashboard metrics ─────────────────────────────────────────────────────
-  const deliveredRev   = orders.filter(o => o.status === "Delivered").reduce((s, o) => s + (o.total || 0), 0);
-  const pendingRev     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").reduce((s, o) => s + (o.total || 0), 0);
+  const deliveredRev   = orders.filter(o => o.status === "Delivered" && (o.type || "Real") === "Real").reduce((s, o) => s + (o.total || 0), 0);
+  const pendingRev     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined" && (o.type || "Real") === "Real").reduce((s, o) => s + (o.total || 0), 0);
   const totalRevenue   = deliveredRev + pendingRev;
   const openOrders     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length;
   const todayStr       = new Date().toISOString().split("T")[0];
@@ -1620,6 +1623,11 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const itemOrderCountMap = {};
   orders.forEach(o => {
     if (o.status === "Declined") return;
+    // Donation orders are excluded from revenue/best-sellers here. Intended future behavior
+    // (blocked on order_items.recipe_id): Donation should contribute ingredient + labor COST
+    // against $0 revenue, so comped-away cost is visible. Until recipe_id linkage lands,
+    // Donation is simply excluded like Test/Comped.
+    if ((o.type || "Real") !== "Real") return;
     const seenInOrder = new Set();
     (o.items || []).forEach(li => {
       if (li.item && !seenInOrder.has(li.item)) {
@@ -1633,6 +1641,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const itemRevenueMap = {};
   orders.forEach(o => {
     if (o.status === "Declined") return;
+    if ((o.type || "Real") !== "Real") return;
     (o.items || []).forEach(li => {
       if (li.item && li.price != null) itemRevenueMap[li.item] = (itemRevenueMap[li.item] || 0) + (parseFloat(li.price) || 0);
     });
@@ -1857,7 +1866,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                </div>
 
                {reportsOpen && (() => {
-                 const _ordersWithDates = orders.filter(o => o.created_at && o.status !== "Declined");
+                 const _ordersWithDates = orders.filter(o => o.created_at && o.status !== "Declined" && (o.type || "Real") === "Real");
                  let _trendData = [];
                  let _granularity = "day";
                  if (_ordersWithDates.length > 0) {
@@ -2999,6 +3008,10 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   <input type="number" placeholder="Total $" value={newOrder.total} onChange={e => setNewOrder(o => ({ ...o, total: e.target.value }))} className={`${tw.input} !w-24`} />
                   <select value={newOrder.status} onChange={e => setNewOrder(o => ({ ...o, status: e.target.value }))} className={`${tw.input} !w-36`}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>
                 </div>
+                <div>
+                  <label className={tw.eyebrow}>Order type</label>
+                  <select value={newOrder.type} onChange={e => setNewOrder(o => ({ ...o, type: e.target.value }))} className={`${tw.input} !w-36`}>{ORDER_TYPES.map(t => <option key={t}>{t}</option>)}</select>
+                </div>
                 <textarea placeholder="Allergy / dietary note (optional)" value={newOrder.allergyNote} onChange={e => setNewOrder(o => ({ ...o, allergyNote: e.target.value }))} className={`${tw.input} h-12 resize-y`} />
                 <textarea placeholder="Customer notes..." value={newOrder.notes} onChange={e => setNewOrder(o => ({ ...o, notes: e.target.value }))} className={`${tw.input} h-16 resize-y`} />
                 <div className="flex gap-2">
@@ -3064,6 +3077,10 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         ? <span className="text-xs font-bold px-2.5 py-2 rounded-lg self-center" style={{ background: STATUS_COLORS[editOrder.status] + "22", color: STATUS_COLORS[editOrder.status] }}>{editOrder.status === "Pending" ? "Awaiting Accept/Decline" : editOrder.status}</span>
                         : <select value={editOrder.status} onChange={e => setEditOrder(x => ({ ...x, status: e.target.value }))} className={`${tw.input} !w-36`}>{STATUS_LIST.map(st => <option key={st}>{st}</option>)}</select>}
                     </div>
+                    <div>
+                      <label className={tw.eyebrow}>Order type</label>
+                      <select value={editOrder.type} onChange={e => setEditOrder(x => ({ ...x, type: e.target.value }))} className={`${tw.input} !w-36`}>{ORDER_TYPES.map(t => <option key={t}>{t}</option>)}</select>
+                    </div>
                     <textarea placeholder="Allergy / dietary note (optional)" value={editOrder.allergyNote} onChange={e => setEditOrder(x => ({ ...x, allergyNote: e.target.value }))} className={`${tw.input} h-12 resize-y`} />
                     <textarea placeholder="Notes..." value={editOrder.notes} onChange={e => setEditOrder(x => ({ ...x, notes: e.target.value }))} className={`${tw.input} h-16 resize-y`} />
                     <div className="flex gap-2">
@@ -3075,7 +3092,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                   <>
                     <div className="flex justify-between gap-3 border-b border-border/60 pb-3">
                       <div>
-                        <h3 className="font-display font-bold text-foreground text-base">{o.customer}</h3>
+                        <h3 className="font-display font-bold text-foreground text-base flex items-center gap-1.5">
+                          {o.customer}
+                          {(o.type || "Real") !== "Real" && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-foreground/10 text-foreground/60 uppercase tracking-wide">{o.type}</span>
+                          )}
+                        </h3>
                         <div className="text-xs text-foreground/60 mt-0.5">{orderItemsSummary(o)}</div>
                         {_placedStr && (
                           <div className="text-xs text-foreground/50 mt-0.5">
@@ -3139,7 +3161,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         </div>
                       )}
                       <div className="ml-auto flex items-center gap-1.5">
-                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, items: (o.items && o.items.length > 0) ? o.items.map(li => ({ item: li.item || "", size: li.size || "", flavor: li.flavor || "", quantity: li.quantity || "1", price: li.price ?? "" })) : [{ item: "", size: "", flavor: "", quantity: "1", price: "" }], due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", allergyNote: o.allergy_note || "", phone: o.phone || "", email: o.email || "", source: o.source }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
+                        <button onClick={() => { setEditingOrder(o.id); setEditOrder({ customer: o.customer, items: (o.items && o.items.length > 0) ? o.items.map(li => ({ item: li.item || "", size: li.size || "", flavor: li.flavor || "", quantity: li.quantity || "1", price: li.price ?? "" })) : [{ item: "", size: "", flavor: "", quantity: "1", price: "" }], due: o.due || "", status: o.status, total: o.total, notes: o.notes || "", allergyNote: o.allergy_note || "", phone: o.phone || "", email: o.email || "", source: o.source, type: o.type || "Real" }); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
                           <Edit3 className="h-3.5 w-3.5" /><span>Edit</span>
                         </button>
                         <button onClick={() => printInvoice(o)} className={`${tw.btn} px-3 py-1.5 flex items-center gap-1.5`}>
