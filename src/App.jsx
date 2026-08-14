@@ -809,6 +809,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [sellingPrice,    setSellingPrice]    = useState("");
   const [suggestedPrice,  setSuggestedPrice]  = useState(null);
   const [priceResult,     setPriceResult]     = useState(null);
+  const [pricingSaveMsg,  setPricingSaveMsg]  = useState("");
 
   // Orders UI
   const [orderSearch,  setOrderSearch]  = useState("");
@@ -901,7 +902,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
       // Map snake_case DB fields to camelCase for the app
       const loadedPantry = (pantryData || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost, gramsPerCup: p.grams_per_cup }));
-      const loadedRecipes = (recipesData || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" }));
+      const loadedRecipes = (recipesData || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "", laborMinutes: r.labor_minutes ?? null, sellPrice: r.sell_price ?? null }));
 
       if (loadedPantry.length === 0) {
         // Client-side SELECT returned 0 — call server endpoint (service role bypasses RLS)
@@ -933,12 +934,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         }
         if (serverPantry && serverPantry.length > 0) {
           setPantry(serverPantry.map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost, gramsPerCup: p.grams_per_cup })));
-          setRecipes((serverRecipes || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
+          setRecipes((serverRecipes || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "", laborMinutes: r.labor_minutes ?? null, sellPrice: r.sell_price ?? null })));
         } else {
           const { data: freshPantry }  = await supabase.from("pantry").select("*").eq("user_id", uid).order("name");
           const { data: freshRecipes } = await supabase.from("recipes").select("*").eq("user_id", uid).order("name");
           setPantry((freshPantry || []).map(p => ({ ...p, costPer: p.cost_per, storeUnit: p.store_unit, storeCost: p.store_cost, gramsPerCup: p.grams_per_cup })));
-          setRecipes((freshRecipes || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "" })));
+          setRecipes((freshRecipes || []).map(r => ({ ...r, category: normalizeRecipeCategory(r.category), ingredients: r.ingredients || [], allergens: r.allergens || [], ingredientsList: r.ingredients_list || "", laborMinutes: r.labor_minutes ?? null, sellPrice: r.sell_price ?? null })));
         }
       } else {
         setPantry(loadedPantry);
@@ -1216,7 +1217,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       servings: newRec.servings, notes: newRec.notes, photo: newRec.photo,
       ingredients: newRec.ingredients, allergens: newRec.allergens, ingredients_list: newRec.ingredientsList
     }]).select().single();
-    if (data) setRecipes(r => [...r, { ...data, ingredients: data.ingredients || [], allergens: data.allergens || [], ingredientsList: data.ingredients_list || "" }]);
+    if (data) setRecipes(r => [...r, { ...data, ingredients: data.ingredients || [], allergens: data.allergens || [], ingredientsList: data.ingredients_list || "", laborMinutes: data.labor_minutes ?? null, sellPrice: data.sell_price ?? null }]);
     setNewRec({ name: "", category: "Cookies", servings: 12, ingredients: [], notes: "", photo: null, allergens: [], ingredientsList: "" });
     setShowNewRec(false);
   };
@@ -1267,6 +1268,16 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     setSuggestedPrice(suggested > 0 ? suggested : null);
     setSellingPrice(suggested > 0 ? String(suggested) : "");
     setPriceResult(result);
+  };
+  const saveRecipePricing = async () => {
+    const price = parseFloat(sellingPrice);
+    if (!pricingRecId || !(price > 0)) return;
+    const id = parseInt(pricingRecId);
+    const laborMinutes = (parseFloat(laborHrs) || 0) * 60;
+    await supabase.from("recipes").update({ labor_minutes: laborMinutes, sell_price: price }).eq("id", id);
+    setRecipes(prev => prev.map(x => x.id === id ? { ...x, laborMinutes, sellPrice: price } : x));
+    const rec = recipes.find(r => r.id === id);
+    setPricingSaveMsg(`Saved to ${rec ? rec.name : "recipe"}`);
   };
 
   // ── Orders ────────────────────────────────────────────────────────────────
@@ -1883,6 +1894,28 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
                  const _bestSellers = itemOrderCountEntries.slice(0, 5).map(([name, orderCount]) => ({ name, orders: orderCount }));
 
+                 // Most profitable recipes (profit per hour) — only recipes with saved pricing data.
+                 const _normalizeRecName = (s) => (s || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "").replace(/s$/, "");
+                 const _eligibleRecipes = recipes.filter(r => r.sellPrice != null && typeof r.laborMinutes === "number" && r.laborMinutes > 0);
+                 const _profitRows = _eligibleRecipes.map(r => {
+                   const laborHours = r.laborMinutes / 60;
+                   const ingredientCost = calcRecipeCost(r, pantry);
+                   const overheadAmt = ingredientCost * (defaultOverhead / 100);
+                   const laborCost = laborHours * defaultLaborRate;
+                   const profit = r.sellPrice - ingredientCost - overheadAmt - laborCost;
+                   const profitPerHour = profit / laborHours;
+                   return { id: r.id, name: r.name, profit, profitPerHour };
+                 }).sort((a, b) => b.profitPerHour - a.profitPerHour);
+                 const _profitVerdict = (() => {
+                   if (itemOrderCountEntries.length === 0) return null;
+                   const normTop = _normalizeRecName(itemOrderCountEntries[0][0]);
+                   const matches = _profitRows.filter(row => _normalizeRecName(row.name) === normTop);
+                   if (matches.length !== 1) return null;
+                   const rank = _profitRows.findIndex(row => row.id === matches[0].id) + 1;
+                   if (rank <= 1) return null;
+                   return `Your most-ordered item, ${matches[0].name}, is your #${rank} most profitable by the hour.`;
+                 })();
+
                  const _trendTooltip = ({ active, payload }) => {
                    if (!active || !payload || !payload.length) return null;
                    const p = payload[0].payload;
@@ -1948,6 +1981,29 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                          </div>
                        ) : (
                          <div className="mt-2.5 py-8 text-center text-sm text-foreground/50 font-body">Add more orders to see your best sellers.</div>
+                       )}
+                     </div>
+
+                     <div>
+                       <h4 className={tw.section}>Most Profitable Recipes (per hour)</h4>
+                       <p className="text-xs text-foreground/40 mt-1 mb-0.5">Based on your numbers — your saved time and price, and your current profile rate and overhead.</p>
+                       {_profitRows.length >= 3 ? (
+                         <div className="mt-2">
+                           {_profitVerdict && (
+                             <div className="text-xs text-foreground/70 italic mb-2.5">{_profitVerdict}</div>
+                           )}
+                           {_profitRows.slice(0, 8).map(row => (
+                             <div key={row.id} className="flex justify-between items-center py-2 border-b border-border last:border-b-0">
+                               <span className="text-sm text-foreground truncate pr-2">{row.name}</span>
+                               <span className="text-right shrink-0">
+                                 <span className="font-bold text-accent text-sm">${row.profitPerHour.toFixed(2)}/hr</span>
+                                 <span className="block text-[11px] text-foreground/40">${row.profit.toFixed(2)}/batch</span>
+                               </span>
+                             </div>
+                           ))}
+                         </div>
+                       ) : (
+                         <div className="mt-2.5 py-8 text-center text-sm text-foreground/50 font-body">Price a few recipes to see which ones actually pay. Open a recipe → Pricing → Save to recipe.</div>
                        )}
                      </div>
                    </div>
@@ -2565,7 +2621,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
 
               <div className={`${tw.section} mb-2`}>Step 1 — Link a Recipe (optional)</div>
-              <select value={pricingRecId} onChange={e => { setPricingRecId(e.target.value); if (e.target.value) { const r = recipes.find(r => r.id === parseInt(e.target.value)); if (r) { setPricingSvgs(r.servings); setSellQty(r.servings); } } }} className={tw.input}>
+              <select value={pricingRecId} onChange={e => { setPricingRecId(e.target.value); setPricingSaveMsg(""); if (e.target.value) { const r = recipes.find(r => r.id === parseInt(e.target.value)); if (r) { setPricingSvgs(r.servings); setSellQty(r.servings); if (r.laborMinutes != null) setLaborHrs(r.laborMinutes / 60); if (r.sellPrice != null) setSellingPrice(String(r.sellPrice)); } } }} className={tw.input}>
                 <option value="">— No recipe, enter costs manually —</option>
                 {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
@@ -2629,7 +2685,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 <input
                   type="number" step="0.01" placeholder="0.00"
                   value={sellingPrice}
-                  onChange={e => setSellingPrice(e.target.value)}
+                  onChange={e => { setSellingPrice(e.target.value); setPricingSaveMsg(""); }}
                   className={`${tw.input} text-base font-bold text-center`}
                 />
               </div>
@@ -2744,6 +2800,13 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       </div>
                     )}
                   </div>
+
+                  {pricingRecId && (
+                    <div className="mt-3.5 flex items-center gap-3">
+                      <button onClick={saveRecipePricing} disabled={!(sp > 0)} className={`${tw.btnSec} bg-background text-accent border-accent disabled:opacity-40 disabled:cursor-not-allowed`}>Save to recipe</button>
+                      {pricingSaveMsg && <span className="text-xs text-success font-semibold">✓ {pricingSaveMsg}</span>}
+                    </div>
+                  )}
                 </div>
               );
             })()}
