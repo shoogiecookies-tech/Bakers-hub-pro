@@ -57,11 +57,12 @@ const PANTRY_CATS = ["Flour & Grains", "Dairy", "Eggs & Fats", "Sweeteners", "Le
 const UNITS = ["cups", "tbsp", "tsp", "oz", "lbs", "g", "kg", "ml", "l", "pcs", "dozen", "bag", "box"];
 const ALLERGENS = ["Milk", "Eggs", "Fish", "Crustacean Shellfish", "Tree Nuts", "Peanuts", "Wheat", "Soybeans", "Sesame"];
 const LABEL_SIZES = [
-  { value: "round", label: '2" x 2" or 3" x 3" Round',           desc: "Perfect for cookie bags, jar tops, and round treats.",                                       w: "3in", h: "3in", radius: "50%" },
   { value: "mini",  label: '2.25" x 1.25" (Mini Label)',         desc: "Compact label for allergens and required disclosures.",                                     w: "2.25in", h: "1.25in", radius: "8px" },
   { value: "rect",  label: '3" x 2" or 4" x 3" Rectangular',     desc: "Full-size label with room for an optional ingredient list, allergen declaration, and disclosures.", w: "4in", h: "3in", radius: "8px" },
   { value: "box",   label: '4" x 6" Detailed Box Label',         desc: "Fits pastry box lids and larger packaging with full compliance details.",                    w: "4in", h: "6in", radius: "8px" },
 ];
+const LABEL_REFRIGERATE = "KEEP REFRIGERATED AT 41°F OR BELOW.";
+const LABEL_SAFE_HANDLING = "SAFE HANDLING INSTRUCTIONS: To prevent illness from bacteria, keep this food refrigerated or frozen until the food is prepared for consumption.";
 const QUICK_ID_FONT_SIZES = [
   { value: "small",  label: "Small",  px: 14 },
   { value: "medium", label: "Medium", px: 18 },
@@ -835,6 +836,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [labelQuickIdText, setLabelQuickIdText] = useState(null); // null = show auto default; string = baker-edited (may be empty)
   const [labelQuickIdFontSize, setLabelQuickIdFontSize] = useState("medium");
   const [labelQuickIdBold, setLabelQuickIdBold] = useState(true);
+  const [labelTcs,          setLabelTcs]          = useState(false);
+  const [labelMadeOn,       setLabelMadeOn]       = useState("");
 
 
 
@@ -1466,6 +1469,8 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     setLabelQuickIdText(null);
     setLabelQuickIdFontSize("medium");
     setLabelQuickIdBold(true);
+    setLabelTcs(false);
+    setLabelMadeOn("");
     setLabelPrintOrder(order);
   };
 
@@ -4428,6 +4433,19 @@ CREATE POLICY "owner_only" ON gifted_users
                   Include ingredient list on label
                 </label>
               )}
+              <div>
+                <label className="flex items-center gap-2 text-sm text-foreground/70 cursor-pointer">
+                  <input type="checkbox" checked={labelTcs} onChange={e => setLabelTcs(e.target.checked)} />
+                  Refrigerated / TCS food (cheesecake, custard, cream-filled, etc.)
+                </label>
+                {labelTcs && (
+                  <div className="mt-2">
+                    <label className={tw.eyebrow}>Made on date</label>
+                    <input value={labelMadeOn} onChange={e => setLabelMadeOn(e.target.value)} placeholder="Made 07/15/2026" className={tw.input} />
+                    <div className="text-xs text-warning mt-1">Required for TCS foods under SB 541.</div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Preview */}
@@ -4457,6 +4475,15 @@ CREATE POLICY "owner_only" ON gifted_users
                           ? registrationLine
                           : <span style={{ color: "#c0522a", fontWeight: "700" }}>⚠ Producer address/registration missing — do not distribute this label</span>}
                       </div>
+                      {labelTcs && (
+                        <>
+                          {labelMadeOn && (
+                            <div style={{ marginTop: 4, fontSize: labelSize === "mini" ? 8 : 11 }}>{labelMadeOn}</div>
+                          )}
+                          <div style={{ marginTop: 4, fontSize: labelSize === "mini" ? 8 : 11, fontWeight: "700", color: C.dark }}>{LABEL_REFRIGERATE}</div>
+                          <div style={{ marginTop: 4, fontSize: labelSize === "mini" ? 6 : 8, fontWeight: "700", color: C.dark }}>{LABEL_SAFE_HANDLING}</div>
+                        </>
+                      )}
                       <div style={{ marginTop: 6, fontSize: labelSize === "mini" ? 6 : 8, fontWeight: "700", color: C.dark }}>
                         THIS PRODUCT WAS PRODUCED IN A PRIVATE RESIDENCE THAT IS NOT SUBJECT TO GOVERNMENTAL LICENSING OR INSPECTION.
                       </div>
