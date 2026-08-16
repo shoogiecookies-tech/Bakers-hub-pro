@@ -137,13 +137,35 @@ function daysWaiting(createdAt) {
 const WEIGHT_G = { g: 1, kg: 1000, oz: 28.3495, lbs: 453.592 };
 const VOLUME_CUP = { cups: 1, tbsp: 1/16, tsp: 1/48, ml: 1/236.588, l: 1000/236.588 };
 const COUNT_PCS = { pcs: 1, dozen: 12 };
+const UNIT_SYNONYMS = {
+  cup: "cups",
+  tablespoon: "tbsp", tablespoons: "tbsp",
+  teaspoon: "tsp", teaspoons: "tsp",
+  ounce: "oz", ounces: "oz",
+  lb: "lbs", pound: "lbs", pounds: "lbs",
+  gram: "g", grams: "g",
+  kilogram: "kg", kilograms: "kg",
+  milliliter: "ml", milliliters: "ml",
+  liter: "l", liters: "l", litre: "l",
+  pc: "pcs", piece: "pcs", pieces: "pcs",
+  doz: "dozen",
+  bags: "bag",
+  boxes: "box",
+};
+function normalizeUnit(u) {
+  if (!u) return u;
+  const n = String(u).trim().toLowerCase();
+  return UNIT_SYNONYMS[n] || n;
+}
 function unitFamily(u) {
+  u = normalizeUnit(u);
   if (WEIGHT_G[u] != null) return "weight";
   if (VOLUME_CUP[u] != null) return "volume";
   if (COUNT_PCS[u] != null) return "count";
   return null;
 }
 function unitToBase(amount, unit) {
+  unit = normalizeUnit(unit);
   if (WEIGHT_G[unit] != null) return amount * WEIGHT_G[unit];   // grams
   if (VOLUME_CUP[unit] != null) return amount * VOLUME_CUP[unit]; // cups
   if (COUNT_PCS[unit] != null) return amount * COUNT_PCS[unit];  // pcs
@@ -189,14 +211,18 @@ function calcIngCost(ing, pantry) {
   // crossing families: count can't cross to weight/volume
   if ((rf === "count") !== (pf === "count")) return null;
   // one weight, one volume -> needs density
-  if (!density) return null;
-  const toG = (base, fam) => fam === "weight" ? base : base * density; // weight base already grams; volume base is cups
+  const resolvedDensity = density ?? suggestDensity(item.name);
+  if (!resolvedDensity) return null;
+  const toG = (base, fam) => fam === "weight" ? base : base * resolvedDensity; // weight base already grams; volume base is cups
   const rG = toG(baseR, rf), pG = toG(baseP, pf);
   if (pG === 0) return null;
   return costPer * (rG / pG);
 }
 function calcRecipeCost(recipe, pantry) {
   return recipe.ingredients.reduce((sum, ing) => sum + (calcIngCost(ing, pantry) || 0), 0);
+}
+function ingDisplayName(ing, pantry) {
+  return ing.name || pantry.find(p => Number(p.id) === Number(ing.pantryId))?.name || "";
 }
 function orderDayLabel(due) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -2432,7 +2458,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                           const uc = calcIngCost(ing, pantry);
                           return (
                             <div key={i} className="flex justify-between items-center py-2 border-b border-border/50 text-sm">
-                              <span className="text-foreground/80">{ing.name}</span>
+                              <span className="text-foreground/80">{ingDisplayName(ing, pantry)}</span>
                               <div className="text-right">
                                 <span className="font-mono font-bold text-foreground">{Math.round(ing.amount * scale * 100) / 100} {ing.unit}</span>
                                 {uc !== null && <span className="text-foreground/40 text-[11px] ml-1.5">(${(uc * scale).toFixed(2)})</span>}
@@ -2646,7 +2672,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       <input type="number" value={pricingSvgs} onChange={e => { setPricingSvgs(+e.target.value); setSellQty(+e.target.value); }} className={`${tw.input} w-32`} />
                     </div>
                     <div className="text-sm">
-                      {r.ingredients.map((ing, i) => { const c = calcIngCost(ing, pantry); return <div key={i} className="flex justify-between py-0.5 text-xs text-foreground/50"><span>{+(ing.amount * sf).toFixed(2)} {ing.unit} {ing.name}</span><span>{c !== null ? `$${(c * sf).toFixed(2)}` : "—"}</span></div>; })}
+                      {r.ingredients.map((ing, i) => { const c = calcIngCost(ing, pantry); return <div key={i} className="flex justify-between py-0.5 text-xs text-foreground/50"><span>{+(ing.amount * sf).toFixed(2)} {ing.unit} {ingDisplayName(ing, pantry)}</span><span>{c !== null ? `$${(c * sf).toFixed(2)}` : "—"}</span></div>; })}
                       <div className="flex justify-between py-1.5 font-bold text-foreground mt-1 border-t border-border">
                         <span>Scaled ingredient cost</span><span>${(batchCost * sf).toFixed(2)}</span>
                       </div>
