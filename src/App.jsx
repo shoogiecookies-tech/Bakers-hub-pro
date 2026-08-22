@@ -4566,9 +4566,10 @@ CREATE POLICY "owner_only" ON gifted_users
                   </tfoot>
                 </table>
 
-                {/* Status badge */}
-                <div style={{ marginTop: 20, marginBottom: 36 }}>
+                {/* Status badges */}
+                <div style={{ marginTop: 20, marginBottom: 36, display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ display: "inline-block", background: "#fef0e8", color: RUST, padding: "5px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{ord.status}</span>
+                  <span style={{ display: "inline-block", background: "transparent", border: "1.5px solid " + PAYMENT_STATUS_COLORS[_paySummary.status], color: PAYMENT_STATUS_COLORS[_paySummary.status], padding: "5px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{_paySummary.status}</span>
                 </div>
 
                 {/* How to Pay */}
