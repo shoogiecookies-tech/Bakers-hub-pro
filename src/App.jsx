@@ -38,6 +38,11 @@ const tw = {
 const TABS = ["Dashboard", "Pantry", "Recipes", "Pricing", "Orders", "Schedule", "Social", "Bakery Profile", "Settings", "Admin"];
 const STATUS_COLORS = { Pending: "#b87d3a", "In Progress": "#BC3B52", Complete: "#5a7a5c", Invoiced: "#7a6a58", Delivered: "#5c4f3d", Declined: "#8a8a8a" };
 const STATUS_LIST = ["Pending", "In Progress", "Complete", "Invoiced", "Delivered"];
+
+// Payment tracking (deposits/balance) is a SEPARATE system from fulfillment status above —
+// never merge these into STATUS_LIST/STATUS_COLORS.
+const PAYMENT_STATUS_COLORS = { "Unpaid": "#8a8a8a", "Deposit Paid": "#b87d3a", "Paid in Full": "#5a7a5c" };
+const PAYMENT_METHODS = ["Venmo", "PayPal", "Zelle", "Cash", "Other"];
 const ORDER_TYPES = ["Real", "Test", "Comped", "Donation"];
 const ACTIVE_STATUSES = ["In Progress", "Complete", "Invoiced"];
 const ORDER_STATUS_FILTERS = ["Pending", "Active", "Completed", "Declined", "All"];
@@ -111,6 +116,13 @@ function mapOrderWithItems(o) {
     ...o,
     items: (o.order_items || []).map(li => ({ id: li.id, item: li.item, size: li.size, flavor: li.flavor, quantity: li.quantity, price: li.price })),
   };
+}
+function groupPaymentsByOrder(payments) {
+  const map = {};
+  for (const p of payments || []) {
+    (map[p.order_id] = map[p.order_id] || []).push(p);
+  }
+  return map;
 }
 function orderItemsSummary(order) {
   return (order.items || []).map(li => li.item).filter(Boolean).join(", ");
@@ -758,6 +770,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [pantry,   setPantry]   = useState([]);
   const [recipes,  setRecipes]  = useState([]);
   const [orders,   setOrders]   = useState([]);
+  const [paymentsByOrder, setPaymentsByOrder] = useState({}); // { [order_id]: Payment[] }
   const [social,   setSocial]   = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [dbLoading, setDbLoading] = useState(true);
@@ -857,6 +870,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [acceptPrices,       setAcceptPrices]       = useState([]);
   const [invoicePrintOrder, setInvoicePrintOrder] = useState(null);
   const [pdfGenerating,     setPdfGenerating]     = useState(false);
+  const [logPaymentOrder, setLogPaymentOrder] = useState(null); // order being logged against
+  const [paymentAmount,   setPaymentAmount]   = useState("");
+  const [paymentMethod,   setPaymentMethod]   = useState("");
+  const [paymentDate,     setPaymentDate]     = useState(() => new Date().toISOString().slice(0, 10));
+  const [paymentNote,     setPaymentNote]     = useState("");
+  const [paymentSaving,   setPaymentSaving]   = useState(false);
   const [labelPrintOrder,   setLabelPrintOrder]   = useState(null);
   const [labelRecipeId,     setLabelRecipeId]     = useState("");
   const [labelSize,         setLabelSize]         = useState(LABEL_SIZES[0].value);
@@ -919,6 +938,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         { data: scheduleData },
         { data: socialData },
         { data: profileData },
+        { data: paymentsData },
       ] = await Promise.all([
         supabase.from("pantry").select("*").eq("user_id", uid).order("name"),
         supabase.from("recipes").select("*").eq("user_id", uid).order("name"),
@@ -926,6 +946,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         supabase.from("schedule").select("*").eq("user_id", uid).order("date"),
         supabase.from("social_posts").select("*").eq("user_id", uid).order("date"),
         supabase.from("profiles").select("*").eq("id", uid).single(),
+        supabase.from("payments").select("*").eq("user_id", uid),
       ]);
 
       // Map snake_case DB fields to camelCase for the app
@@ -974,6 +995,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         setRecipes(loadedRecipes);
       }
       setOrders((ordersData || []).map(mapOrderWithItems));
+      setPaymentsByOrder(groupPaymentsByOrder(paymentsData));
       setSchedule((scheduleData || []).map(t => ({ ...t, orderId: t.order_id, aiSuggested: t.ai_suggested })));
       setSocial((socialData || []).map(p => ({ ...p, type: p.type })));
       if (profileData) {
@@ -1022,10 +1044,14 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
 
   // ── Orders polling — pick up new pending order-requests without a full reload ──
   const refreshOrders = useCallback(async () => {
-    const { data, error } = await supabase.from("orders").select("*, order_items(*)").eq("user_id", uid).order("due");
+    const [{ data, error }, { data: paymentsData }] = await Promise.all([
+      supabase.from("orders").select("*, order_items(*)").eq("user_id", uid).order("due"),
+      supabase.from("payments").select("*").eq("user_id", uid),
+    ]);
     if (error) return;
     const mapped = (data || []).map(mapOrderWithItems);
     setOrders(mapped);
+    setPaymentsByOrder(groupPaymentsByOrder(paymentsData));
     const pendingLinkIds = mapped.filter(o => o.status === "Pending" && o.source === "link").map(o => o.id);
     setNewPendingCount(pendingLinkIds.filter(id => !seenPendingLinkIds.current.has(id)).length);
   }, [uid]);
@@ -1349,6 +1375,32 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     await supabase.from("orders").delete().eq("id", id);
     setOrders(prev => prev.filter(o => o.id !== id));
     setSchedule(prev => prev.filter(t => t.order_id !== id));
+  };
+
+  const getPaymentSummary = (orderId, total) => {
+    const list = paymentsByOrder[orderId] || [];
+    const amountPaid = list.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const balanceDue = Math.max(0, (total || 0) - amountPaid);
+    const status = amountPaid <= 0 ? "Unpaid" : balanceDue <= 0 ? "Paid in Full" : "Deposit Paid";
+    return { amountPaid, balanceDue, status };
+  };
+
+  const logPayment = async () => {
+    if (!logPaymentOrder) return;
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) { alert("Enter a payment amount greater than $0."); return; }
+    setPaymentSaving(true);
+    const { data, error } = await supabase.from("payments").insert([{
+      order_id: logPaymentOrder.id, user_id: uid, amount,
+      method: paymentMethod || null, paid_at: paymentDate || new Date().toISOString().slice(0, 10),
+      note: paymentNote.trim() || null,
+    }]).select().single();
+    setPaymentSaving(false);
+    if (error) { alert("Payment could not be saved: " + error.message); return; }
+    setPaymentsByOrder(prev => ({ ...prev, [logPaymentOrder.id]: [...(prev[logPaymentOrder.id] || []), data] }));
+    setLogPaymentOrder(null);
+    setPaymentAmount(""); setPaymentMethod(""); setPaymentNote("");
+    setPaymentDate(new Date().toISOString().slice(0, 10));
   };
 
   const clearOrderTasks = async (orderId) => {
@@ -2970,6 +3022,53 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
               </div>
             )}
 
+            {logPaymentOrder && (() => {
+              const _availableMethods = [venmo && "Venmo", paypal && "PayPal", zelle && "Zelle", acceptsCash && "Cash", otherPay && "Other"].filter(Boolean);
+              const _methodOptions = _availableMethods.length > 0 ? _availableMethods : PAYMENT_METHODS;
+              return (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center">
+                <div className="bg-card rounded-t-2xl p-5 w-full max-w-[480px] shadow-2xl">
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <div className="font-display font-bold text-base text-foreground">Log Payment</div>
+                      <div className="text-xs text-foreground/50 mt-0.5">For {logPaymentOrder.customer} · {logPaymentOrder.due}</div>
+                    </div>
+                    <button onClick={() => setLogPaymentOrder(null)} className="bg-background rounded-full w-8 h-8 shrink-0 text-foreground/60 hover:text-foreground">✕</button>
+                  </div>
+                  <div className="flex flex-col gap-2.5">
+                    <div>
+                      <label className={tw.eyebrow}>Amount</label>
+                      <input type="number" min="0" step="0.01" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder="0.00" className={tw.input} />
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className={tw.eyebrow}>Method</label>
+                        <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={tw.input}>
+                          <option value="">Select…</option>
+                          {_methodOptions.map(m => <option key={m}>{m}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className={tw.eyebrow}>Date</label>
+                        <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} className={tw.input} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={tw.eyebrow}>Note (optional)</label>
+                      <input value={paymentNote} onChange={e => setPaymentNote(e.target.value)} placeholder="e.g. Deposit" className={tw.input} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={logPayment} disabled={paymentSaving} className={`${tw.btn} flex-1 disabled:opacity-50`}>
+                      {paymentSaving ? "Saving..." : "Save Payment"}
+                    </button>
+                    <button onClick={() => setLogPaymentOrder(null)} className={`${tw.btnSec} bg-background text-foreground border-border`}>Cancel</button>
+                  </div>
+                </div>
+              </div>
+              );
+            })()}
+
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-accent" />
@@ -3068,6 +3167,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 const _declined = o.status === "Declined";
                 const _placedStr = formatPlacedDate(o.created_at);
                 const _waitDays = o.status === "Pending" ? daysWaiting(o.created_at) : null;
+                const _pay = getPaymentSummary(o.id, o.total);
                 return (
               <div key={o.id} className={`${tw.card} flex flex-col gap-4`} style={{ borderLeft: `4px solid ${_ov ? "#A83248" : "var(--color-accent)"}` }}>
                 {editingOrder === o.id ? (
@@ -3138,6 +3238,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       <div className="text-right shrink-0">
                         <div className="font-mono font-bold text-lg text-foreground">${o.total}</div>
                         <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block mt-1" style={{ background: STATUS_COLORS[o.status] + "22", color: STATUS_COLORS[o.status] }}>{o.status}</span>
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block mt-1 ml-1 border" style={{ background: "transparent", borderColor: PAYMENT_STATUS_COLORS[_pay.status], color: PAYMENT_STATUS_COLORS[_pay.status] }}>{_pay.status}</span>
                       </div>
                     </div>
 
@@ -3194,6 +3295,9 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         <button onClick={() => printInvoice(o)} className={`${tw.btn} px-3 py-1.5 flex items-center gap-1.5`}>
                           <FileText className="h-3.5 w-3.5" /><span>Invoice</span>
                         </button>
+                        <button onClick={() => { setLogPaymentOrder(o); setPaymentAmount(_pay.balanceDue > 0 ? String(_pay.balanceDue) : ""); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground/70 hover:text-foreground text-xs font-bold flex items-center gap-1.5 transition-colors">
+                          <CreditCard className="h-3.5 w-3.5" /><span>Log Payment</span>
+                        </button>
                         <button onClick={() => printLabel(o)} className={`${tw.btnSec} bg-background text-accent border-accent px-3 py-1.5 flex items-center gap-1.5`}>
                           <Printer className="h-3.5 w-3.5" /><span>Label</span>
                         </button>
@@ -3212,6 +3316,17 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                         )}
                       </div>
                     </div>
+                    {(paymentsByOrder[o.id] || []).length > 0 && (
+                      <div className="flex flex-col gap-1 pt-1 -mt-1">
+                        <div className={tw.section}>Payment History</div>
+                        {(paymentsByOrder[o.id] || []).slice().sort((a, b) => (b.paid_at || "").localeCompare(a.paid_at || "")).map(p => (
+                          <div key={p.id} className="flex justify-between text-xs text-foreground/60">
+                            <span>{p.paid_at}{p.method && ` · ${p.method}`}{p.note && ` · ${p.note}`}</span>
+                            <span className="font-mono font-bold text-foreground/80">${Number(p.amount).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -4340,6 +4455,8 @@ CREATE POLICY "owner_only" ON gifted_users
           ? new Date(ord.due + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
           : "Upon delivery";
         const total = parseFloat(ord.total || 0).toFixed(2);
+        const _paySummary = getPaymentSummary(ord.id, ord.total);
+        const _hasPaymentActivity = _paySummary.amountPaid > 0;
         const NAVY = invoiceHeaderColor; const RUST = invoiceAccentColor; const CREAM = "#F9FAFB"; const BORDER = "#e2e8f0";
         return (
           <div id="bfinv" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "var(--color-background)", overflowY: "auto", fontFamily: "Georgia, serif", color: NAVY }}>
@@ -4425,10 +4542,27 @@ CREATE POLICY "owner_only" ON gifted_users
                     })()}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: CREAM }}>
-                      <td colSpan={2} style={{ padding: "18px 16px", borderTop: "2px solid " + RUST, fontSize: 16, fontWeight: "bold" }}><strong>Total Due</strong></td>
-                      <td style={{ padding: "18px 16px", borderTop: "2px solid " + RUST, fontSize: 16, fontWeight: "bold", textAlign: "right" }}>${total}</td>
-                    </tr>
+                    {_hasPaymentActivity ? (
+                      <>
+                        <tr style={{ background: CREAM }}>
+                          <td colSpan={2} style={{ padding: "10px 16px", borderTop: "2px solid " + RUST, fontSize: 13 }}>Total</td>
+                          <td style={{ padding: "10px 16px", borderTop: "2px solid " + RUST, fontSize: 13, textAlign: "right" }}>${total}</td>
+                        </tr>
+                        <tr style={{ background: CREAM }}>
+                          <td colSpan={2} style={{ padding: "6px 16px", fontSize: 13, color: "#5a7a5c" }}>Amount Paid</td>
+                          <td style={{ padding: "6px 16px", fontSize: 13, textAlign: "right", color: "#5a7a5c" }}>−${_paySummary.amountPaid.toFixed(2)}</td>
+                        </tr>
+                        <tr style={{ background: CREAM }}>
+                          <td colSpan={2} style={{ padding: "12px 16px 18px", fontSize: 16, fontWeight: "bold" }}><strong>Balance Due</strong></td>
+                          <td style={{ padding: "12px 16px 18px", fontSize: 16, fontWeight: "bold", textAlign: "right" }}>${_paySummary.balanceDue.toFixed(2)}</td>
+                        </tr>
+                      </>
+                    ) : (
+                      <tr style={{ background: CREAM }}>
+                        <td colSpan={2} style={{ padding: "18px 16px", borderTop: "2px solid " + RUST, fontSize: 16, fontWeight: "bold" }}><strong>Total Due</strong></td>
+                        <td style={{ padding: "18px 16px", borderTop: "2px solid " + RUST, fontSize: 16, fontWeight: "bold", textAlign: "right" }}>${total}</td>
+                      </tr>
+                    )}
                   </tfoot>
                 </table>
 
