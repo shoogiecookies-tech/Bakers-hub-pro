@@ -4,7 +4,7 @@
 
 create table payments (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references orders(id) on delete cascade,
+  order_id bigint not null references orders(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   amount numeric not null,
   method text, -- 'Venmo' | 'PayPal' | 'Zelle' | 'Cash' | 'Other'
