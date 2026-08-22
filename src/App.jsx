@@ -1694,6 +1694,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const deliveredRev   = orders.filter(o => o.status === "Delivered" && (o.type || "Real") === "Real").reduce((s, o) => s + (o.total || 0), 0);
   const pendingRev     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined" && (o.type || "Real") === "Real").reduce((s, o) => s + (o.total || 0), 0);
   const totalRevenue   = deliveredRev + pendingRev;
+  const outstandingBalance = orders
+    .filter(o => o.status !== "Delivered" && o.status !== "Declined" && (o.type || "Real") === "Real")
+    .reduce((s, o) => s + getPaymentSummary(o.id, o.total).balanceDue, 0);
+  const outstandingCount = orders
+    .filter(o => o.status !== "Delivered" && o.status !== "Declined" && (o.type || "Real") === "Real")
+    .filter(o => getPaymentSummary(o.id, o.total).balanceDue > 0).length;
   const openOrders     = orders.filter(o => o.status !== "Delivered" && o.status !== "Declined").length;
   const todayStr       = new Date().toISOString().split("T")[0];
   const todayTasks     = schedule.filter(t => !t.done && t.date === todayStr);
@@ -1863,6 +1869,21 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                  </div>
                ))}
              </div>
+             {outstandingBalance > 0 && (
+               <div className="bf-kpi rounded-2xl pt-3.5 px-3.5 pb-3 bg-card border shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_4px_24px_rgba(0,0,0,0.12)] border-warning/20 mb-3.5 flex items-center justify-between">
+                 <div className="flex items-center gap-3">
+                   <div className="w-9 h-9 rounded-[10px] bg-background flex items-center justify-center">
+                     <DollarSign className="h-4.5 w-4.5 text-warning" />
+                   </div>
+                   <div>
+                     <div className="text-[22px] font-bold leading-none text-warning">${outstandingBalance.toFixed(2)}</div>
+                     <div className="text-[10px] font-bold uppercase tracking-wider opacity-75 mt-1 text-warning">
+                       Outstanding <span className="opacity-60">across {outstandingCount} order{outstandingCount === 1 ? "" : "s"}</span>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             )}
              <div className={`${tw.card} !p-4.5 !mt-3.5 !border-2 !border-accent`}>
                <div className="flex items-center justify-between mb-3.5">
                  <div className="flex items-center gap-2">
