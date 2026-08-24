@@ -1043,6 +1043,10 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [labelMadeOn,       setLabelMadeOn]       = useState("");
   const [labelPcf,          setLabelPcf]          = useState(false); // pickled / canned / fermented
   const [labelBatchNo,      setLabelBatchNo]      = useState("");
+  const [savedLabels,       setSavedLabels]       = useState([]);
+  const [labelEditingId,    setLabelEditingId]    = useState(null); // set when the open label came from a saved row
+  const [labelSaveMsg,      setLabelSaveMsg]      = useState("");
+  const [showSavedLabels,   setShowSavedLabels]   = useState(false);
 
 
 
@@ -1096,6 +1100,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         { data: socialData },
         { data: profileData },
         { data: paymentsData },
+        { data: labelsData },
       ] = await Promise.all([
         supabase.from("pantry").select("*").eq("user_id", uid).order("name"),
         supabase.from("recipes").select("*").eq("user_id", uid).order("name"),
@@ -1104,6 +1109,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         supabase.from("social_posts").select("*").eq("user_id", uid).order("date"),
         supabase.from("profiles").select("*").eq("id", uid).single(),
         supabase.from("payments").select("*").eq("user_id", uid),
+        supabase.from("labels").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
       ]);
 
       // Map snake_case DB fields to camelCase for the app
@@ -1153,6 +1159,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       }
       setOrders((ordersData || []).map(mapOrderWithItems));
       setPaymentsByOrder(groupPaymentsByOrder(paymentsData));
+      setSavedLabels(labelsData || []);
       setSchedule((scheduleData || []).map(t => ({ ...t, orderId: t.order_id, aiSuggested: t.ai_suggested })));
       setSocial((socialData || []).map(p => ({ ...p, type: p.type })));
       if (profileData) {
@@ -1723,7 +1730,72 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     setLabelMadeOn("");
     setLabelPcf(false);
     setLabelBatchNo("");
+    setLabelEditingId(null);
+    setLabelSaveMsg("");
+    setShowSavedLabels(false);
     setLabelPrintOrder(order);
+  };
+
+  // ── Saved labels ──────────────────────────────────────────────────────────
+  const saveLabel = async (payload) => {
+    if (!uid) return;
+    const row = {
+      user_id: uid,
+      recipe_id: labelRecipeId ? Number(labelRecipeId) : null,
+      order_id: labelPrintOrder && labelPrintOrder.id ? labelPrintOrder.id : null,
+      name: payload.name,
+      size: labelSize,
+      description: labelDescription,
+      include_ingredients: labelIncludeIngredients,
+      tcs: labelTcs,
+      made_on: labelMadeOn,
+      pcf: labelPcf,
+      batch_no: labelBatchNo,
+      quick_id_mode: labelQuickIdMode,
+      quick_id_text: labelQuickIdText,
+      quick_id_bold: labelQuickIdBold,
+      snapshot_product: payload.snapshotProduct,
+      snapshot_business: payload.snapshotBusiness,
+      snapshot_idline: payload.snapshotIdline,
+      snapshot_allergens: payload.snapshotAllergens || [],
+    };
+    if (labelEditingId) {
+      const { data, error } = await supabase.from("labels").update(row).eq("id", labelEditingId).select().single();
+      if (error) { setLabelSaveMsg("Couldn't save — " + error.message); return; }
+      setSavedLabels(prev => prev.map(l => l.id === labelEditingId ? data : l));
+      setLabelSaveMsg("Saved");
+    } else {
+      const { data, error } = await supabase.from("labels").insert([row]).select().single();
+      if (error) { setLabelSaveMsg("Couldn't save — " + error.message); return; }
+      setSavedLabels(prev => [data, ...prev]);
+      setLabelEditingId(data.id);
+      setLabelSaveMsg("Saved");
+    }
+    setTimeout(() => setLabelSaveMsg(""), 2500);
+  };
+
+  const openSavedLabel = (row) => {
+    setLabelRecipeId(row.recipe_id ? String(row.recipe_id) : "");
+    setLabelSize(row.size);
+    setLabelDescription(row.description || "");
+    setLabelIncludeIngredients(!!row.include_ingredients);
+    setLabelTcs(!!row.tcs);
+    setLabelMadeOn(row.made_on || "");
+    setLabelPcf(!!row.pcf);
+    setLabelBatchNo(row.batch_no || "");
+    setLabelQuickIdMode(!!row.quick_id_mode);
+    setLabelQuickIdText(row.quick_id_text ?? null);
+    setLabelQuickIdBold(row.quick_id_bold !== false);
+    setLabelEditingId(row.id);
+    setShowSavedLabels(false);
+    setLabelSaveMsg("");
+    if (!labelPrintOrder) setLabelPrintOrder({ standalone: true, items: [] });
+  };
+
+  const deleteSavedLabel = async (id) => {
+    await supabase.from("labels").delete().eq("id", id);
+    setSavedLabels(prev => prev.filter(l => l.id !== id));
+    if (labelEditingId === id) setLabelEditingId(null);
   };
 
   const downloadInvoicePdf = async () => {
@@ -4854,6 +4926,18 @@ CREATE POLICY "owner_only" ON gifted_users
               <div className="font-bold text-accent font-display">🏷 Compliance Label Proofer</div>
               <div className="flex gap-2.5">
                 <button onClick={() => setLabelPrintOrder(null)} className="border border-border bg-background text-foreground text-sm rounded-lg px-4 py-2 font-body">✕ Close</button>
+                {labelSaveMsg && <span className="text-xs text-foreground/60 self-center">{labelSaveMsg}</span>}
+                <button
+                  onClick={() => saveLabel({
+                    name: (recipe ? recipe.name : "Untitled label") + " — " + spec.label.replace(/\s*\(.*\)$/, ""),
+                    snapshotProduct: labelData.food,
+                    snapshotBusiness: labelData.op,
+                    snapshotIdline: labelData.idline,
+                    snapshotAllergens: labelData.allergens,
+                  })}
+                  disabled={!recipe}
+                  className={`${tw.btnSec} bg-background text-accent border-accent ${recipe ? "" : "opacity-40 cursor-not-allowed"}`}
+                >{labelEditingId ? "💾 Update saved" : "💾 Save label"}</button>
                 <button onClick={downloadPng} disabled={!canExport} className={`${tw.btnSec} bg-background text-accent border-accent ${canExport ? "" : "opacity-40 cursor-not-allowed"}`}>⬇ PNG (300 DPI)</button>
                 <button onClick={downloadPdf} disabled={!canExport} className={`${tw.btn} ${canExport ? "" : "opacity-40 cursor-not-allowed"}`}>
                   {spec.mode === "sheet" ? "⬇ PDF (Avery sheet)" : "⬇ PDF (single label)"}
@@ -4863,6 +4947,34 @@ CREATE POLICY "owner_only" ON gifted_users
 
             {/* Controls */}
             <div className="np bg-card border-b border-border flex flex-col gap-3" style={{ padding: "16px 24px", maxWidth: 700, margin: "0 auto" }}>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowSavedLabels(v => !v)}
+                  className="w-full text-left text-xs font-bold text-accent border border-border rounded-lg px-3 py-2 bg-background"
+                >
+                  {showSavedLabels ? "▾" : "▸"} Saved labels ({savedLabels.length})
+                </button>
+                {showSavedLabels && (
+                  <div className="mt-2 border border-border rounded-lg divide-y divide-border max-h-56 overflow-y-auto">
+                    {savedLabels.length === 0 && (
+                      <div className="text-xs text-foreground/40 px-3 py-3">Nothing saved yet. Build a label, then hit Save.</div>
+                    )}
+                    {savedLabels.map(l => (
+                      <div key={l.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                        <button type="button" onClick={() => openSavedLabel(l)} className="text-left flex-1 min-w-0">
+                          <div className="text-sm text-foreground truncate">{l.name}</div>
+                          <div className="text-xs text-foreground/40 truncate">
+                            {l.snapshot_business}{l.snapshot_idline ? " · " + l.snapshot_idline : ""}
+                          </div>
+                        </button>
+                        <button type="button" onClick={() => deleteSavedLabel(l.id)} className="text-xs text-danger px-2 py-1 shrink-0">Delete</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className={tw.eyebrow}>Recipe</label>
                 <select value={labelRecipeId} onChange={e => { setLabelRecipeId(e.target.value); setLabelQuickIdText(null); }} className={tw.input}>
