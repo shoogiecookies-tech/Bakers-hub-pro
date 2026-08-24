@@ -62,18 +62,161 @@ const POST_TYPES = ["Product Photo", "Behind the Scenes", "Recipe Tip", "Testimo
 const PANTRY_CATS = ["Flour & Grains", "Dairy", "Eggs & Fats", "Sweeteners", "Leavening", "Flavoring", "Chocolate", "Fruits & Nuts", "Packaging", "Other"];
 const UNITS = ["cups", "tbsp", "tsp", "oz", "lbs", "g", "kg", "ml", "l", "pcs", "dozen", "bag", "box"];
 const ALLERGENS = ["Milk", "Eggs", "Fish", "Crustacean Shellfish", "Tree Nuts", "Peanuts", "Wheat", "Soybeans", "Sesame"];
+// ─── COMPLIANCE LABEL ENGINE ─────────────────────────────────────────────────
+// Ported from the public bakeflo.io/texas-label-generator so the paid app is a
+// superset of the free tool. mode 'sheet' tiles across a Letter page at exact
+// Avery die coordinates; mode 'single' emits one label sized to the stock.
 const LABEL_SIZES = [
-  { value: "mini",  label: '2.25" x 1.25" (Mini Label)',         desc: "Compact label for allergens and required disclosures.",                                     w: "2.25in", h: "1.25in", radius: "8px" },
-  { value: "rect",  label: '3" x 2" or 4" x 3" Rectangular',     desc: "Full-size label with room for an optional ingredient list, allergen declaration, and disclosures.", w: "4in", h: "3in", radius: "8px" },
-  { value: "box",   label: '4" x 6" Detailed Box Label',         desc: "Fits pastry box lids and larger packaging with full compliance details.",                    w: "4in", h: "6in", radius: "8px" },
+  { value: "5163",    group: "Avery sheet labels (tiled PDF)",              label: 'Avery 5163 / 8163 / 5263 — 2" × 4" (10 per sheet)', mode: "sheet",  w: 4,    h: 2,    cols: 2, rows: 5, left: 0.15625, top: 0.5, hpitch: 4.1875, vpitch: 2.0,  round: false, desc: "PDF tiles your label onto a full Avery 5163 / 8163 sheet — 10 per page. PNG is a single 300 DPI sticker." },
+  { value: "5164",    group: "Avery sheet labels (tiled PDF)",              label: 'Avery 5164 / 8164 — 3⅓" × 4" (6 per sheet)',        mode: "sheet",  w: 4,    h: 3.33, cols: 2, rows: 3, left: 0.15625, top: 0.5, hpitch: 4.1875, vpitch: 3.33, round: false, desc: "PDF tiles your label onto a full Avery 5164 / 8164 sheet — 6 per page. PNG is a single 300 DPI sticker." },
+  { value: "th4x2",   group: "Thermal / roll / cut-your-own (single label)", label: 'Thermal roll — 4" × 2" (Rollo / Zebra)',            mode: "single", w: 4,    h: 2,    round: false, desc: "One 4″×2″ label sized for your thermal roll (Rollo / Zebra)." },
+  { value: "th3x2",   group: "Thermal / roll / cut-your-own (single label)", label: 'Thermal roll — 3" × 2"',                            mode: "single", w: 3,    h: 2,    round: false, desc: "One 3″×2″ label sized for your thermal roll." },
+  { value: "th2x2",   group: "Thermal / roll / cut-your-own (single label)", label: 'Thermal roll — 2" × 2"',                            mode: "single", w: 2,    h: 2,    round: false, desc: "One 2″×2″ label sized for your thermal roll." },
+  { value: "th225",   group: "Thermal / roll / cut-your-own (single label)", label: 'Thermal roll — 2.25" × 1.25"',                      mode: "single", w: 2.25, h: 1.25, round: false, desc: "One 2.25″×1.25″ label for your thermal roll. Tight — text auto-shrinks." },
+  { value: "round2",  group: "Thermal / roll / cut-your-own (single label)", label: 'Round sticker — 2" (Cricut / cut-your-own)',        mode: "single", w: 2,    h: 2,    round: true,  desc: "One 2″ round sticker. Best for Cricut print-then-cut or cut-your-own." },
+  { value: "round25", group: "Thermal / roll / cut-your-own (single label)", label: 'Round sticker — 2.5" (Cricut / cut-your-own)',      mode: "single", w: 2.5,  h: 2.5,  round: true,  desc: "One 2.5″ round sticker. Best for Cricut print-then-cut or cut-your-own." },
+  { value: "box",     group: "Thermal / roll / cut-your-own (single label)", label: '4" × 6" Detailed Box Label',                        mode: "single", w: 4,    h: 6,    round: false, desc: "Fits pastry box lids and larger packaging with full compliance details." },
 ];
+const LABEL_SIZE_GROUPS = [...new Set(LABEL_SIZES.map(s => s.group))];
+const LABEL_DPI = 300;
+const LABEL_NONINSPECTION = "THIS PRODUCT WAS PRODUCED IN A PRIVATE RESIDENCE THAT IS NOT SUBJECT TO GOVERNMENTAL LICENSING OR INSPECTION.";
 const LABEL_REFRIGERATE = "KEEP REFRIGERATED AT 41°F OR BELOW.";
 const LABEL_SAFE_HANDLING = "SAFE HANDLING INSTRUCTIONS: To prevent illness from bacteria, keep this food refrigerated or frozen until the food is prepared for consumption.";
-const QUICK_ID_FONT_SIZES = [
-  { value: "small",  label: "Small",  px: 14 },
-  { value: "medium", label: "Medium", px: 18 },
-  { value: "large",  label: "Large",  px: 24 },
-];
+
+function labelWrapLines(ctx, text, maxW) {
+  const out = [];
+  for (const para of String(text).split("\n")) {
+    const words = para.split(/\s+/).filter(Boolean);
+    if (!words.length) { out.push(""); continue; }
+    let line = "";
+    for (const w of words) {
+      const test = line ? line + " " + w : w;
+      if (ctx.measureText(test).width > maxW && line) { out.push(line); line = w; }
+      else line = test;
+    }
+    if (line) out.push(line);
+  }
+  return out;
+}
+
+function labelDrawSpaced(ctx, text, cx, y, sp) {
+  const widths = [...text].map(ch => ctx.measureText(ch).width + sp);
+  const tot = widths.reduce((a, b) => a + b, 0) - sp;
+  let x = cx - tot / 2;
+  const prevAlign = ctx.textAlign; ctx.textAlign = "left";
+  for (let i = 0; i < text.length; i++) { ctx.fillText(text[i], x, y); x += widths[i]; }
+  ctx.textAlign = prevAlign;
+}
+
+// Draw one label onto ctx sized W x H pixels. `d` is the gathered label data.
+function drawComplianceLabel(ctx, W, H, d, spec) {
+  ctx.save();
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#ffffff";
+  if (spec.round) {
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, Math.min(W, H) / 2 - 1, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = Math.max(1.5, W * 0.006); ctx.strokeStyle = "#22303C"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, Math.min(W, H) / 2 - 1, 0, Math.PI * 2); ctx.clip();
+  } else {
+    ctx.fillRect(0, 0, W, H);
+    ctx.lineWidth = Math.max(1.5, W * 0.004); ctx.strokeStyle = "#E2DCD0";
+    ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, W - ctx.lineWidth, H - ctx.lineWidth);
+  }
+  const cx = W / 2;
+  const padX = spec.round ? W * 0.15 : W * 0.06;
+  const padY = spec.round ? H * 0.15 : H * 0.075;
+  const contentW = W - padX * 2;
+  const lh = m => m * 1.2;
+  const setFont = (weight, size) => { ctx.font = `${weight} ${size}px -apple-system,'Segoe UI',Roboto,Arial,sans-serif`; };
+
+  const parts = [];
+  if (d.quickIdOnly) {
+    parts.push({ t: d.quickIdText || "", weight: d.quickIdBold ? "800" : "500", c: "#22303C", rel: 1.00, mt: 0.00, ls: 0 });
+  } else {
+    parts.push({ t: d.food, weight: "800", c: "#22303C", rel: 1.00, mt: 0.00, ls: 0 });
+    parts.push({ t: d.op,   weight: "700", c: "#BC5A34", rel: 0.60, mt: 0.14, ls: 0 });
+    if (d.desc) parts.push({ t: d.desc, weight: "500", c: "#6B7280", rel: 0.46, mt: 0.05, ls: 0 });
+    parts.push({ t: d.idline, weight: "500", c: "#3A4A57", rel: 0.50, mt: 0.05, ls: 0 });
+    if (d.allergens && d.allergens.length) {
+      parts.push({ t: "ALLERGENS: " + d.allergens.join(", ").toUpperCase(), weight: "700", c: "#22303C", rel: 0.50, mt: 0.16, ls: 0.3 });
+    }
+    if (d.ingredients) parts.push({ t: "INGREDIENTS: " + d.ingredients, weight: "500", c: "#4A5A66", rel: 0.40, mt: 0.08, ls: 0 });
+    if (d.tcs) {
+      parts.push({ t: d.madeon || "MADE ON: ______", weight: "700", c: "#9E4626", rel: 0.50, mt: 0.12, ls: 0 });
+      parts.push({ t: LABEL_REFRIGERATE, weight: "700", c: "#9E4626", rel: 0.50, mt: 0.06, ls: 0.2 });
+      parts.push({ t: LABEL_SAFE_HANDLING, weight: "600", c: "#4A5A66", rel: 0.40, mt: 0.08, ls: 0 });
+    } else if (d.madeon) {
+      parts.push({ t: d.madeon, weight: "500", c: "#6B7280", rel: 0.46, mt: 0.06, ls: 0 });
+    }
+    if (d.pcf) parts.push({ t: "BATCH #: " + (d.batch || "______"), weight: "700", c: "#22303C", rel: 0.46, mt: 0.10, ls: 0 });
+    parts.push({ t: LABEL_NONINSPECTION, weight: "600", c: "#4A5A66", rel: 0.42, mt: 0.18, ls: 0.2 });
+  }
+
+  // Auto-fit: shrink the base size until the whole block fits vertically.
+  const availH = H - padY * 2;
+  let base = Math.min(W, H) * (spec.round ? 0.13 : 0.16);
+  const minBase = Math.min(W, H) * 0.035;
+  let layout = [], total = 0;
+  for (let i = 0; i < 60; i++) {
+    total = 0; layout = [];
+    for (const p of parts) {
+      const size = base * p.rel;
+      setFont(p.weight, size);
+      const lines = labelWrapLines(ctx, p.t, contentW);
+      const blockH = lines.length * lh(size);
+      total += base * p.mt + blockH;
+      layout.push({ p, size, lines });
+    }
+    if (total <= availH || base <= minBase) break;
+    base *= 0.94;
+  }
+
+  let y = padY + Math.max(0, (availH - total) / 2);
+  for (const L of layout) {
+    y += base * L.p.mt;
+    setFont(L.p.weight, L.size);
+    ctx.fillStyle = L.p.c; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (const ln of L.lines) {
+      if (L.p.ls) labelDrawSpaced(ctx, ln, cx, y, L.p.ls * (L.size / 16));
+      else ctx.fillText(ln, cx, y);
+      y += lh(L.size);
+    }
+  }
+  ctx.restore();
+}
+
+// Offscreen 300 DPI bitmap of the current label, for PNG/PDF export.
+function labelBitmap(d, spec) {
+  const pxW = Math.round(spec.w * LABEL_DPI), pxH = Math.round(spec.h * LABEL_DPI);
+  const c = document.createElement("canvas"); c.width = pxW; c.height = pxH;
+  drawComplianceLabel(c.getContext("2d"), pxW, pxH, d, spec);
+  return c;
+}
+
+// Live 300 DPI preview of the current label.
+function LabelCanvas({ data, spec }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const cv = ref.current;
+    if (!cv) return;
+    const pxW = Math.round(spec.w * LABEL_DPI), pxH = Math.round(spec.h * LABEL_DPI);
+    cv.width = pxW; cv.height = pxH;
+    drawComplianceLabel(cv.getContext("2d"), pxW, pxH, data, spec);
+  });
+  const cssW = Math.min(420, spec.w * 120);
+  return (
+    <canvas
+      ref={ref}
+      style={{
+        width: cssW,
+        height: cssW * (spec.h / spec.w),
+        boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+        background: "#fff",
+        borderRadius: spec.round ? "50%" : 8,
+      }}
+    />
+  );
+}
 
 // ─── PASSWORD TOGGLE ─────────────────────────────────────────────────────────
 function EyeIcon()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>; }
@@ -882,10 +1025,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const [labelDescription,  setLabelDescription]  = useState("");
   const [labelIncludeIngredients, setLabelIncludeIngredients] = useState(false);
   const [labelQuickIdText, setLabelQuickIdText] = useState(null); // null = show auto default; string = baker-edited (may be empty)
-  const [labelQuickIdFontSize, setLabelQuickIdFontSize] = useState("medium");
+  const [labelQuickIdMode, setLabelQuickIdMode] = useState(false); // round stickers only: quick-ID, no statutory content
   const [labelQuickIdBold, setLabelQuickIdBold] = useState(true);
   const [labelTcs,          setLabelTcs]          = useState(false);
   const [labelMadeOn,       setLabelMadeOn]       = useState("");
+  const [labelPcf,          setLabelPcf]          = useState(false); // pickled / canned / fermented
+  const [labelBatchNo,      setLabelBatchNo]      = useState("");
 
 
 
@@ -1556,14 +1701,16 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
       .filter(Boolean);
     const firstMatch = matches[0] || null;
     setLabelRecipeId(firstMatch ? String(firstMatch.id) : "");
-    setLabelSize("mini"); // compliant default for an order label — round is quick-ID only, no statutory content
+    setLabelSize("5163"); // Avery 5163 — same default as the free generator
     setLabelDescription("");
     setLabelIncludeIngredients(false);
     setLabelQuickIdText(null);
-    setLabelQuickIdFontSize("medium");
+    setLabelQuickIdMode(false);
     setLabelQuickIdBold(true);
     setLabelTcs(false);
     setLabelMadeOn("");
+    setLabelPcf(false);
+    setLabelBatchNo("");
     setLabelPrintOrder(order);
   };
 
@@ -4627,14 +4774,65 @@ CREATE POLICY "owner_only" ON gifted_users
 
       {labelPrintOrder && (() => {
         const recipe = recipes.find(r => String(r.id) === String(labelRecipeId)) || null;
-        const sizeDef = LABEL_SIZES.find(sz => sz.value === labelSize) || LABEL_SIZES[0];
-        const allowIngredients = labelSize === "rect" || labelSize === "box";
-        const allergenLine = recipe && recipe.allergens && recipe.allergens.length > 0 ? `Contains: ${recipe.allergens.join(", ")}` : "No major allergens declared";
+        const spec = LABEL_SIZES.find(sz => sz.value === labelSize) || LABEL_SIZES[0];
+        const isRound = !!spec.round;
+        const allowIngredients = spec.w >= 3 && spec.h >= 2;
         const registrationLine = dshsRegistrationNumber || physicalAddress || null;
-        const isRound = labelSize === "round";
         const quickIdDefault = recipe ? `${bakeryName} — ${recipe.name}` : "";
         const quickIdValue = labelQuickIdText !== null ? labelQuickIdText : quickIdDefault;
-        const quickIdFontPx = (QUICK_ID_FONT_SIZES.find(fs => fs.value === labelQuickIdFontSize) || QUICK_ID_FONT_SIZES[1]).px;
+        const quickIdOnly = isRound && labelQuickIdMode;
+
+        // Blockers that make a label non-distributable under SB 541.
+        const blockers = [];
+        if (!recipe) blockers.push("Select a recipe.");
+        if (!registrationLine) blockers.push("Producer address or DSHS registration number is missing — add it in Settings.");
+        if (labelTcs && !labelMadeOn.trim()) blockers.push('A "made on" date is required for refrigerated / TCS foods.');
+        if (labelPcf && !labelBatchNo.trim()) blockers.push("A batch # is required for pickled, canned, or fermented foods.");
+        const canExport = blockers.length === 0;
+
+        const labelData = {
+          food: recipe ? recipe.name : "Product Name",
+          op: bakeryName || "Your Business Name",
+          desc: labelDescription.trim(),
+          idline: registrationLine || "⚠ ADDRESS OR DSHS ID MISSING",
+          allergens: (recipe && recipe.allergens) || [],
+          ingredients: (allowIngredients && labelIncludeIngredients && recipe && recipe.ingredientsList) ? recipe.ingredientsList : "",
+          tcs: labelTcs,
+          madeon: labelMadeOn.trim(),
+          pcf: labelPcf,
+          batch: labelBatchNo.trim(),
+          quickIdOnly,
+          quickIdText: quickIdValue,
+          quickIdBold: labelQuickIdBold,
+        };
+
+        const downloadPng = () => {
+          const c = labelBitmap(labelData, spec);
+          const a = document.createElement("a");
+          a.download = `bakeflo-label-${spec.w}x${spec.h}in-300dpi.png`;
+          a.href = c.toDataURL("image/png");
+          a.click();
+        };
+
+        const downloadPdf = () => {
+          const { jsPDF } = window.jspdf || {};
+          if (!jsPDF) return;
+          const img = labelBitmap(labelData, spec).toDataURL("image/png");
+          if (spec.mode === "sheet") {
+            const doc = new jsPDF({ unit: "in", format: "letter", orientation: "portrait" });
+            for (let r = 0; r < spec.rows; r++) {
+              for (let col = 0; col < spec.cols; col++) {
+                doc.addImage(img, "PNG", spec.left + col * spec.hpitch, spec.top + r * spec.vpitch, spec.w, spec.h);
+              }
+            }
+            doc.save(`bakeflo-avery-${spec.value}-sheet.pdf`);
+          } else {
+            const doc = new jsPDF({ unit: "in", format: [spec.w, spec.h] });
+            doc.addImage(img, "PNG", 0, 0, spec.w, spec.h);
+            doc.save(`bakeflo-label-${spec.w}x${spec.h}in.pdf`);
+          }
+        };
+
         return (
           <div id="bflabel" style={{ position: "fixed", inset: 0, zIndex: 9999, background: "var(--color-background)", overflowY: "auto", fontFamily: "'Inter', sans-serif", color: C.dark }}>
             <style>{`@media print { body > *:not(#bflabel){display:none!important} #bflabel{position:static!important;overflow:visible!important} .np{display:none!important} }`}</style>
@@ -4644,7 +4842,10 @@ CREATE POLICY "owner_only" ON gifted_users
               <div className="font-bold text-accent font-display">🏷 Compliance Label Proofer</div>
               <div className="flex gap-2.5">
                 <button onClick={() => setLabelPrintOrder(null)} className="border border-border bg-background text-foreground text-sm rounded-lg px-4 py-2 font-body">✕ Close</button>
-                <button onClick={() => window.print()} className={tw.btn}>🖨 Print</button>
+                <button onClick={downloadPng} disabled={!canExport} className={`${tw.btnSec} ${canExport ? "" : "opacity-40 cursor-not-allowed"}`}>⬇ PNG (300 DPI)</button>
+                <button onClick={downloadPdf} disabled={!canExport} className={`${tw.btn} ${canExport ? "" : "opacity-40 cursor-not-allowed"}`}>
+                  {spec.mode === "sheet" ? "⬇ PDF (Avery sheet)" : "⬇ PDF (single label)"}
+                </button>
               </div>
             </div>
 
@@ -4656,109 +4857,116 @@ CREATE POLICY "owner_only" ON gifted_users
                   <option value="">— Select a recipe —</option>
                   {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
+                <div className="text-xs text-foreground/50 mt-1">Allergens, ingredients, and your producer info fill in automatically from this recipe and your Settings.</div>
               </div>
+
               <div>
-                <label className={tw.eyebrow}>Label Size</label>
-                <select value={labelSize} onChange={e => { setLabelSize(e.target.value); if (e.target.value !== "rect" && e.target.value !== "box") setLabelIncludeIngredients(false); }} className={tw.input}>
-                  {LABEL_SIZES.map(sz => <option key={sz.value} value={sz.value}>{sz.label}</option>)}
+                <label className={tw.eyebrow}>Your label product</label>
+                <select value={labelSize} onChange={e => {
+                  const next = e.target.value;
+                  setLabelSize(next);
+                  // Round stickers are too small for full statutory content — default them to quick-ID.
+                  const nextSpec = LABEL_SIZES.find(sz => sz.value === next);
+                  setLabelQuickIdMode(!!(nextSpec && nextSpec.round));
+                }} className={tw.input}>
+                  {LABEL_SIZE_GROUPS.map(g => (
+                    <optgroup key={g} label={g}>
+                      {LABEL_SIZES.filter(sz => sz.group === g).map(sz => <option key={sz.value} value={sz.value}>{sz.label}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
-                <div className="text-xs text-foreground/50 mt-1">{sizeDef.desc}</div>
-                {isRound && (
-                  <div className="text-xs text-danger bg-danger/10 border border-danger/25 rounded-lg px-2.5 py-2 mt-2">
-                    ⚠ Quick-ID label only — must be paired with a fully compliant label elsewhere on the packaging (e.g. the container itself).
+                <div className="text-xs text-foreground/50 mt-1">{spec.desc}</div>
+                {labelTcs && (
+                  <div className="text-xs text-warning bg-warning/10 border border-warning/25 rounded-lg px-2.5 py-2 mt-2">
+                    TCS foods: the safe-handling statement must print at 12&nbsp;pt or larger. On smaller labels it may render below that — use the 3⅓&nbsp;×&nbsp;4&nbsp;in label, or include that statement on your receipt/invoice, which SB 541 allows.
                   </div>
                 )}
               </div>
-              {isRound ? (
+
+              {isRound && (
                 <div>
-                  <label className={tw.eyebrow}>Quick-ID Label Text</label>
-                  <textarea value={quickIdValue} onChange={e => setLabelQuickIdText(e.target.value)} placeholder="e.g. Business Name — Recipe Name" rows={3} className={`${tw.input} resize-y`} />
-                  <div className="text-xs text-foreground/50 mt-1">Press Enter to control exactly where lines break.</div>
-                  <div className="flex gap-5 mt-3 flex-wrap">
-                    <div>
-                      <label className={tw.eyebrow}>Font Size</label>
-                      <div className="flex gap-1.5">
-                        {QUICK_ID_FONT_SIZES.map(fs => (
-                          <button key={fs.value} type="button" onClick={() => setLabelQuickIdFontSize(fs.value)} className={`${tw.btnSec} ${labelQuickIdFontSize === fs.value ? "bg-accent text-white border-accent" : "bg-background text-accent border-accent"}`}>{fs.label}</button>
-                        ))}
+                  <label className="flex items-center gap-2 text-sm text-foreground/70 cursor-pointer">
+                    <input type="checkbox" checked={labelQuickIdMode} onChange={e => setLabelQuickIdMode(e.target.checked)} />
+                    Quick-ID sticker only (no statutory content)
+                  </label>
+                  {labelQuickIdMode && (
+                    <>
+                      <div className="text-xs text-danger bg-danger/10 border border-danger/25 rounded-lg px-2.5 py-2 mt-2">
+                        ⚠ Quick-ID label only — must be paired with a fully compliant label elsewhere on the packaging.
                       </div>
-                    </div>
-                    <div>
-                      <label className={tw.eyebrow}>Bold</label>
-                      <button type="button" onClick={() => setLabelQuickIdBold(b => !b)} className={`${tw.btnSec} ${labelQuickIdBold ? "bg-accent text-white border-accent" : "bg-background text-accent border-accent"}`}>{labelQuickIdBold ? "On" : "Off"}</button>
-                    </div>
-                  </div>
+                      <label className={`${tw.eyebrow} mt-3 block`}>Quick-ID Label Text</label>
+                      <textarea value={quickIdValue} onChange={e => setLabelQuickIdText(e.target.value)} placeholder="e.g. Business Name — Recipe Name" rows={3} className={`${tw.input} resize-y`} />
+                      <div className="flex gap-5 mt-3 flex-wrap">
+                        <div>
+                          <label className={tw.eyebrow}>Bold</label>
+                          <button type="button" onClick={() => setLabelQuickIdBold(b => !b)} className={`${tw.btnSec} ${labelQuickIdBold ? "bg-accent text-white border-accent" : "bg-background text-accent border-accent"}`}>{labelQuickIdBold ? "On" : "Off"}</button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-              ) : (
+              )}
+
+              {!quickIdOnly && (
                 <div>
                   <label className={tw.eyebrow}>Label Description (optional)</label>
                   <input value={labelDescription} onChange={e => setLabelDescription(e.target.value)} placeholder="e.g. Best enjoyed same day" className={tw.input} />
                 </div>
               )}
-              {allowIngredients && recipe && recipe.ingredientsList && (
+
+              {!quickIdOnly && allowIngredients && recipe && recipe.ingredientsList && (
                 <label className="flex items-center gap-2 text-sm text-foreground/70 cursor-pointer">
                   <input type="checkbox" checked={labelIncludeIngredients} onChange={e => setLabelIncludeIngredients(e.target.checked)} />
-                  Include ingredient list on label
+                  Include ingredient list on label <span className="text-foreground/40">(not required in Texas)</span>
                 </label>
               )}
-              <div>
-                <label className="flex items-center gap-2 text-sm text-foreground/70 cursor-pointer">
-                  <input type="checkbox" checked={labelTcs} onChange={e => setLabelTcs(e.target.checked)} />
-                  Refrigerated / TCS food (cheesecake, custard, cream-filled, etc.)
-                </label>
-                {labelTcs && (
-                  <div className="mt-2">
-                    <label className={tw.eyebrow}>Made on date</label>
-                    <input value={labelMadeOn} onChange={e => setLabelMadeOn(e.target.value)} placeholder="Made 07/15/2026" className={tw.input} />
-                    <div className="text-xs text-warning mt-1">Required for TCS foods under SB 541.</div>
-                  </div>
-                )}
-              </div>
+
+              {!quickIdOnly && (
+                <div>
+                  <label className="flex items-center gap-2 text-sm text-foreground/70 cursor-pointer">
+                    <input type="checkbox" checked={labelTcs} onChange={e => setLabelTcs(e.target.checked)} />
+                    Refrigerated / TCS food (cheesecake, custard, cream-filled, etc.)
+                  </label>
+                  {labelTcs && (
+                    <div className="mt-2">
+                      <label className={tw.eyebrow}>Made on date <span className="text-danger">(required)</span></label>
+                      <input value={labelMadeOn} onChange={e => setLabelMadeOn(e.target.value)} placeholder="Made 07/15/2026" className={tw.input} style={!labelMadeOn.trim() ? { borderColor: "#A83248" } : undefined} />
+                      <div className="text-xs text-warning mt-1">SB 541 requires the date the food was made on the label.</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!quickIdOnly && (
+                <div>
+                  <label className="flex items-center gap-2 text-sm text-foreground/70 cursor-pointer">
+                    <input type="checkbox" checked={labelPcf} onChange={e => setLabelPcf(e.target.checked)} />
+                    Pickled, canned, or fermented food
+                  </label>
+                  {labelPcf && (
+                    <div className="mt-2">
+                      <label className={tw.eyebrow}>Batch # <span className="text-danger">(required)</span></label>
+                      <input value={labelBatchNo} onChange={e => setLabelBatchNo(e.target.value)} placeholder="e.g. 20260824" className={tw.input} style={!labelBatchNo.trim() ? { borderColor: "#A83248" } : undefined} />
+                      <div className="text-xs text-warning mt-1">Adds a batch # so a specific batch can be traced. Many bakers use the date.</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {blockers.length > 0 && (
+                <div className="text-xs text-danger bg-danger/10 border border-danger/25 rounded-lg px-2.5 py-2">
+                  <div className="font-bold mb-1">⚠ Do not distribute this label yet:</div>
+                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                    {blockers.map((b, i) => <li key={i}>{b}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Preview */}
-            <div style={{ display: "flex", justifyContent: "center", padding: "32px 20px" }}>
-              <div id="bflabel-content" style={{ width: sizeDef.w, height: isRound ? sizeDef.w : sizeDef.h, borderRadius: sizeDef.radius, border: `2px solid ${C.dark}`, background: "#fff", padding: isRound ? "0.55in 0.5in" : (labelSize === "mini" ? 10 : 16), display: "flex", flexDirection: "column", justifyContent: isRound ? "center" : "space-between", alignItems: "stretch", textAlign: isRound ? "center" : "left", gap: isRound ? 14 : 0, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden", boxSizing: "border-box" }}>
-                {!recipe ? (
-                  <div style={{ margin: "auto", color: C.muted, fontSize: 13, textAlign: "center" }}>Select a recipe above to preview the label.</div>
-                ) : isRound ? (
-                  <div style={{ fontWeight: labelQuickIdBold ? "bold" : "400", fontSize: quickIdFontPx, color: C.dark, whiteSpace: "pre-wrap", overflowWrap: "break-word" }}>{quickIdValue}</div>
-                ) : (
-                  <>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, marginBottom: 6 }}>
-                        {bakeryLogo && <img src={bakeryLogo} alt="" style={{ height: labelSize === "mini" ? 20 : 30, width: "auto", objectFit: "contain" }} />}
-                        <div style={{ fontWeight: "bold", fontSize: labelSize === "mini" ? 10 : 13, color: C.dark }}>{bakeryName}</div>
-                      </div>
-                      <div style={{ fontWeight: "bold", fontSize: labelSize === "mini" ? 12 : 16, color: C.dark }}>{recipe.name}</div>
-                      {labelDescription && <div style={{ fontSize: labelSize === "mini" ? 9 : 12, color: C.mid, marginTop: 2 }}>{labelDescription}</div>}
-                    </div>
-                    <div style={{ fontSize: labelSize === "mini" ? 8 : 11, lineHeight: 1.5 }}>
-                      <div style={{ fontWeight: "700", color: C.dark }}>{allergenLine}</div>
-                      {allowIngredients && labelIncludeIngredients && recipe.ingredientsList && (
-                        <div style={{ marginTop: 4, color: C.mid }}><strong>Ingredients:</strong> {recipe.ingredientsList}</div>
-                      )}
-                      <div style={{ marginTop: 4 }}>
-                        {registrationLine
-                          ? registrationLine
-                          : <span style={{ color: "#A83248", fontWeight: "700" }}>⚠ Producer address/registration missing — do not distribute this label</span>}
-                      </div>
-                      {labelTcs && (
-                        <>
-                          {labelMadeOn && (
-                            <div style={{ marginTop: 4, fontSize: labelSize === "mini" ? 8 : 11 }}>{labelMadeOn}</div>
-                          )}
-                          <div style={{ marginTop: 4, fontSize: labelSize === "mini" ? 8 : 11, fontWeight: "700", color: C.dark }}>{LABEL_REFRIGERATE}</div>
-                          <div style={{ marginTop: 4, fontSize: labelSize === "mini" ? 6 : 8, fontWeight: "700", color: C.dark }}>{LABEL_SAFE_HANDLING}</div>
-                        </>
-                      )}
-                      <div style={{ marginTop: 6, fontSize: labelSize === "mini" ? 6 : 8, fontWeight: "700", color: C.dark }}>
-                        THIS PRODUCT WAS PRODUCED IN A PRIVATE RESIDENCE THAT IS NOT SUBJECT TO GOVERNMENTAL LICENSING OR INSPECTION.
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 20px", gap: 12 }}>
+              <LabelCanvas data={labelData} spec={spec} />
+              <div className="np text-xs text-foreground/40">Preview renders at 300 DPI — what you download is what prints.</div>
             </div>
           </div>
         );
