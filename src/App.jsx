@@ -79,6 +79,18 @@ const LABEL_SIZES = [
 ];
 const LABEL_SIZE_GROUPS = [...new Set(LABEL_SIZES.map(s => s.group))];
 const LABEL_DPI = 300;
+// Texas requires the TCS safe-handling statement at 12pt minimum. It may live on
+// the label, the invoice, or the receipt — so when a label is too small to carry
+// it legibly, we omit it rather than print it at an illegal size.
+const LABEL_SAFE_MIN_PT = 12;
+const LABEL_SAFE_MIN_PX = LABEL_SAFE_MIN_PT / 72 * 300;
+// Pinning safe-handling at 12pt on small stock squeezes everything else — including
+// the statutory disclosure — down to an unreadable smear. Texas sets no minimum for
+// those lines, but a label nobody can read is a bad label. So we only keep the
+// safe-handling statement when the rest still renders at 6pt or better.
+const LABEL_STMT_MIN_PT = 6;
+const LABEL_STMT_REL = 0.42; // the statutory line's size relative to base
+const LABEL_MIN_BASE_PX = (LABEL_STMT_MIN_PT / 72 * 300) / LABEL_STMT_REL;
 const LABEL_NONINSPECTION = "THIS PRODUCT WAS PRODUCED IN A PRIVATE RESIDENCE THAT IS NOT SUBJECT TO GOVERNMENTAL LICENSING OR INSPECTION.";
 const LABEL_REFRIGERATE = "KEEP REFRIGERATED AT 41°F OR BELOW.";
 const LABEL_SAFE_HANDLING = "SAFE HANDLING INSTRUCTIONS: To prevent illness from bacteria, keep this food refrigerated or frozen until the food is prepared for consumption.";
@@ -152,7 +164,7 @@ function drawComplianceLabel(ctx, W, H, d, spec) {
     if (d.tcs) {
       parts.push({ t: d.madeon || "MADE ON: ______", weight: "700", c: "#9E4626", rel: 0.50, mt: 0.12, ls: 0 });
       parts.push({ t: LABEL_REFRIGERATE, weight: "700", c: "#9E4626", rel: 0.50, mt: 0.06, ls: 0.2 });
-      parts.push({ t: LABEL_SAFE_HANDLING, weight: "600", c: "#4A5A66", rel: 0.40, mt: 0.08, ls: 0 });
+      parts.push({ key: "safe", t: LABEL_SAFE_HANDLING, weight: "600", c: "#4A5A66", rel: 0.40, mt: 0.08, ls: 0, minPx: LABEL_SAFE_MIN_PX });
     } else if (d.madeon) {
       parts.push({ t: d.madeon, weight: "500", c: "#6B7280", rel: 0.46, mt: 0.06, ls: 0 });
     }
@@ -161,23 +173,38 @@ function drawComplianceLabel(ctx, W, H, d, spec) {
   }
 
   // Auto-fit: shrink the base size until the whole block fits vertically.
+  // A part with minPx never shrinks below that floor.
   const availH = H - padY * 2;
-  let base = Math.min(W, H) * (spec.round ? 0.13 : 0.16);
+  const startBase = Math.min(W, H) * (spec.round ? 0.13 : 0.16);
   const minBase = Math.min(W, H) * 0.035;
-  let layout = [], total = 0;
-  for (let i = 0; i < 60; i++) {
-    total = 0; layout = [];
-    for (const p of parts) {
-      const size = base * p.rel;
-      setFont(p.weight, size);
-      const lines = labelWrapLines(ctx, p.t, contentW);
-      const blockH = lines.length * lh(size);
-      total += base * p.mt + blockH;
-      layout.push({ p, size, lines });
+  const fitParts = (list) => {
+    let b = startBase, lay = [], tot = 0;
+    for (let i = 0; i < 60; i++) {
+      tot = 0; lay = [];
+      for (const p of list) {
+        const size = Math.max(b * p.rel, p.minPx || 0);
+        setFont(p.weight, size);
+        const lines = labelWrapLines(ctx, p.t, contentW);
+        tot += b * p.mt + lines.length * lh(size);
+        lay.push({ p, size, lines });
+      }
+      if (tot <= availH || b <= minBase) break;
+      b *= 0.94;
     }
-    if (total <= availH || base <= minBase) break;
-    base *= 0.94;
+    return { layout: lay, total: tot, base: b, fits: tot <= availH };
+  };
+
+  let res = fitParts(parts);
+  let safeHandlingOmitted = false;
+  const hasSafe = parts.some(p => p.key === "safe");
+  // Keep the safe-handling statement only if it fits at 12pt AND the rest of the
+  // label stays readable. Otherwise drop it — Texas allows it on the invoice or
+  // receipt — rather than print an illegal size or an unreadable label.
+  if (hasSafe && (!res.fits || res.base < LABEL_MIN_BASE_PX)) {
+    res = fitParts(parts.filter(p => p.key !== "safe"));
+    safeHandlingOmitted = true;
   }
+  const { layout, total, base } = res;
 
   let y = padY + Math.max(0, (availH - total) / 2);
   for (const L of layout) {
@@ -191,6 +218,16 @@ function drawComplianceLabel(ctx, W, H, d, spec) {
     }
   }
   ctx.restore();
+  return { safeHandlingOmitted };
+}
+
+// Renders offscreen purely to find out whether this label can legally carry the
+// TCS safe-handling statement at 12pt.
+function labelCarriesSafeHandling(d, spec) {
+  const pxW = Math.round(spec.w * LABEL_DPI), pxH = Math.round(spec.h * LABEL_DPI);
+  const c = document.createElement("canvas"); c.width = pxW; c.height = pxH;
+  const r = drawComplianceLabel(c.getContext("2d"), pxW, pxH, d, spec);
+  return !(r && r.safeHandlingOmitted);
 }
 
 // Offscreen 300 DPI bitmap of the current label, for PNG/PDF export.
@@ -4890,6 +4927,10 @@ CREATE POLICY "owner_only" ON gifted_users
           quickIdBold: labelQuickIdBold,
         };
 
+        // Texas wants the TCS safe-handling statement at 12pt minimum. Small stock
+        // can't carry it — the statement then has to go on the invoice or receipt.
+        const safeHandlingOnLabel = !labelTcs || quickIdOnly || labelCarriesSafeHandling(labelData, spec);
+
         const downloadPng = () => {
           const c = labelBitmap(labelData, spec);
           const a = document.createElement("a");
@@ -5000,10 +5041,16 @@ CREATE POLICY "owner_only" ON gifted_users
                   ))}
                 </select>
                 <div className="text-xs text-foreground/50 mt-1">{spec.desc}</div>
-                {labelTcs && (
-                  <div className="text-xs text-warning bg-warning/10 border border-warning/25 rounded-lg px-2.5 py-2 mt-2">
-                    TCS foods: the safe-handling statement must print at 12&nbsp;pt or larger. On smaller labels it may render below that — use the 3⅓&nbsp;×&nbsp;4&nbsp;in label, or include that statement on your receipt/invoice, which SB 541 allows.
-                  </div>
+                {labelTcs && !quickIdOnly && (
+                  safeHandlingOnLabel ? (
+                    <div className="text-xs text-success bg-success/10 border border-success/25 rounded-lg px-2.5 py-2 mt-2">
+                      ✓ This label carries the safe-handling statement at the required 12&nbsp;pt.
+                    </div>
+                  ) : (
+                    <div className="text-xs text-warning bg-warning/10 border border-warning/25 rounded-lg px-2.5 py-2 mt-2">
+                      <strong>This label is too small for the safe-handling statement.</strong> Texas requires it at 12&nbsp;pt or larger. At that size nothing else on this label stays readable, so it has been left off. Put it on the invoice or receipt instead — SB&nbsp;541 allows that — or switch to <strong>Avery 5164 (3⅓&nbsp;×&nbsp;4&nbsp;in)</strong> or the <strong>4&nbsp;×&nbsp;6&nbsp;box label</strong>, the two sizes that carry it.
+                    </div>
+                  )
                 )}
               </div>
 
