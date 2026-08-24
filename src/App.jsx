@@ -114,9 +114,17 @@ function drawComplianceLabel(ctx, W, H, d, spec) {
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = "#ffffff";
   if (spec.round) {
-    ctx.beginPath(); ctx.arc(W / 2, H / 2, Math.min(W, H) / 2 - 1, 0, Math.PI * 2); ctx.fill();
-    ctx.lineWidth = Math.max(1.5, W * 0.006); ctx.strokeStyle = "#22303C"; ctx.stroke();
-    ctx.beginPath(); ctx.arc(W / 2, H / 2, Math.min(W, H) / 2 - 1, 0, Math.PI * 2); ctx.clip();
+    const r = Math.min(W, H) / 2 - 1;
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2); ctx.fill();
+    // Dashed cut line — Cricut print-then-cut reads this, and it makes the
+    // round stock unmistakable on screen without relying on CSS clipping.
+    ctx.save();
+    ctx.lineWidth = Math.max(2, W * 0.008);
+    ctx.strokeStyle = "#22303C";
+    ctx.setLineDash([W * 0.02, W * 0.014]);
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, r - ctx.lineWidth, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2); ctx.clip();
   } else {
     ctx.fillRect(0, 0, W, H);
     ctx.lineWidth = Math.max(1.5, W * 0.004); ctx.strokeStyle = "#E2DCD0";
@@ -204,17 +212,21 @@ function LabelCanvas({ data, spec }) {
     drawComplianceLabel(cv.getContext("2d"), pxW, pxH, data, spec);
   });
   const cssW = Math.min(420, spec.w * 120);
+  const cssH = cssW * (spec.h / spec.w);
   return (
-    <canvas
-      ref={ref}
+    <div
       style={{
         width: cssW,
-        height: cssW * (spec.h / spec.w),
-        boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-        background: "#fff",
+        height: cssH,
         borderRadius: spec.round ? "50%" : 8,
+        overflow: "hidden",
+        background: "#fff",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+        flex: "0 0 auto",
       }}
-    />
+    >
+      <canvas ref={ref} style={{ width: "100%", height: "100%", display: "block" }} />
+    </div>
   );
 }
 
@@ -4842,7 +4854,7 @@ CREATE POLICY "owner_only" ON gifted_users
               <div className="font-bold text-accent font-display">🏷 Compliance Label Proofer</div>
               <div className="flex gap-2.5">
                 <button onClick={() => setLabelPrintOrder(null)} className="border border-border bg-background text-foreground text-sm rounded-lg px-4 py-2 font-body">✕ Close</button>
-                <button onClick={downloadPng} disabled={!canExport} className={`${tw.btnSec} ${canExport ? "" : "opacity-40 cursor-not-allowed"}`}>⬇ PNG (300 DPI)</button>
+                <button onClick={downloadPng} disabled={!canExport} className={`${tw.btnSec} bg-background text-accent border-accent ${canExport ? "" : "opacity-40 cursor-not-allowed"}`}>⬇ PNG (300 DPI)</button>
                 <button onClick={downloadPdf} disabled={!canExport} className={`${tw.btn} ${canExport ? "" : "opacity-40 cursor-not-allowed"}`}>
                   {spec.mode === "sheet" ? "⬇ PDF (Avery sheet)" : "⬇ PDF (single label)"}
                 </button>
