@@ -11,6 +11,7 @@ jobs:
     steps:
       - name: Ping Supabase Auth health endpoint
         run: |
-          curl -s -o /dev/null -w "%{http_code}" \
+          curl -sS --fail --retry 3 --retry-delay 10 --retry-all-errors \
+            -o /dev/null -w "%{http_code}\n" \
             "${{ secrets.SUPABASE_URL }}/auth/v1/health" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
