@@ -1750,13 +1750,10 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
   const printInvoice = (order) => setInvoicePrintOrder(order);
 
   // ── Compliance Label Proofer ─────────────────────────────────────────────
-  const printLabel = (order) => {
-    const itemNames = (order.items || []).map(li => li.item).filter(Boolean);
-    const matches = itemNames
-      .map(name => recipes.find(r => r.name.trim().toLowerCase() === name.trim().toLowerCase()))
-      .filter(Boolean);
-    const firstMatch = matches[0] || null;
-    setLabelRecipeId(firstMatch ? String(firstMatch.id) : "");
+  // Opens the proofer with a fresh form. Works from an order, a recipe, or nothing
+  // (market / retail batches don't have an order behind them).
+  const openLabelProofer = (order, recipeId) => {
+    setLabelRecipeId(recipeId ? String(recipeId) : "");
     setLabelSize("5163"); // Avery 5163 — same default as the free generator
     setLabelDescription("");
     setLabelIncludeIngredients(false);
@@ -1770,8 +1767,16 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     setLabelEditingId(null);
     setLabelSaveMsg("");
     setShowSavedLabels(false);
-    setLabelPrintOrder(order);
+    setLabelPrintOrder(order || { standalone: true, items: [] });
   };
+  const printLabel = (order) => {
+    const itemNames = (order.items || []).map(li => li.item).filter(Boolean);
+    const firstMatch = itemNames
+      .map(name => recipes.find(r => r.name.trim().toLowerCase() === name.trim().toLowerCase()))
+      .find(Boolean) || null;
+    openLabelProofer(order, firstMatch ? firstMatch.id : "");
+  };
+  const labelForRecipe = (recipeId) => openLabelProofer(null, recipeId);
 
   // ── Saved labels ──────────────────────────────────────────────────────────
   const saveLabel = async (payload) => {
@@ -2668,9 +2673,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                 <BookOpen className="h-5 w-5 text-accent" />
                 <h2 className="font-display font-bold text-foreground text-xl">Recipes ({recipes.length})</h2>
               </div>
-              <button onClick={() => setShowNewRec(true)} className={`${tw.btn} flex items-center gap-1.5`}>
-                <Plus className="h-3.5 w-3.5" /><span>Add Recipe</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => labelForRecipe(_selRecipe ? _selRecipe.id : "")} className={`${tw.btnSec} bg-background text-accent border-accent`}>🏷 Labels</button>
+                <button onClick={() => setShowNewRec(true)} className={`${tw.btn} flex items-center gap-1.5`}>
+                  <Plus className="h-3.5 w-3.5" /><span>Add Recipe</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -2723,6 +2731,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                     <div className={`${tw.card} relative`}>
                       <div className="absolute right-5 top-5 flex gap-1.5">
                         <button onClick={() => { setPricingRecId(String(_selRecipe.id)); setPricingSvgs(_selRecipe.servings); setSellQty(_selRecipe.servings); setTab("Pricing"); }} className={`${tw.btnSec} bg-background text-accent border-accent`}>→ Price It</button>
+                        <button onClick={() => labelForRecipe(_selRecipe.id)} className={`${tw.btnSec} bg-background text-accent border-accent`}>🏷 Label</button>
                         <button onClick={() => { setEditRec({ ..._selRecipe }); setEditIngInput({ pantryId: "", amount: "", unit: "cups" }); }} className="p-2 rounded-lg text-foreground/40 hover:text-accent hover:bg-background transition-colors">
                           <Edit3 className="h-4 w-4" />
                         </button>
@@ -2985,9 +2994,12 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
         {/* ══════════ PRICING ══════════ */}
         {tab === "Pricing" && (
           <div className="flex flex-col gap-4">
-            <div>
-              <h2 className="font-display font-bold text-foreground text-xl">Pricing Calculator</h2>
-              <p className="text-xs text-foreground/60 mt-1 leading-relaxed">Enter your recipe costs and labor, then set your selling price or let BakeFlo suggest one.</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display font-bold text-foreground text-xl">Pricing Calculator</h2>
+                <p className="text-xs text-foreground/60 mt-1 leading-relaxed">Enter your recipe costs and labor, then set your selling price or let BakeFlo suggest one.</p>
+              </div>
+              <button onClick={() => labelForRecipe(pricingRecId)} className={`${tw.btnSec} bg-background text-accent border-accent shrink-0`}>🏷 {pricingRecId ? "Label this recipe" : "Labels"}</button>
             </div>
 
             {/* Input parameters card */}
