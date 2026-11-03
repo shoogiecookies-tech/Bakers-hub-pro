@@ -49,8 +49,14 @@ module.exports = async function handler(req, res) {
     // Richer per-item info for the picker. `items` above stays a plain name list for compatibility.
     itemDetails: (profile.order_form_items || [])
       .map(i => (typeof i === "string"
-        ? { name: i, price: null, description: "" }
-        : { name: i && i.name, price: i && i.basePrice != null ? Number(i.basePrice) : null, description: (i && i.description) || "" }))
+        ? { name: i, price: null, description: "", variants: [] }
+        : {
+            name: i && i.name,
+            price: i && i.basePrice != null ? Number(i.basePrice) : null,
+            description: (i && i.description) || "",
+            // Per-item flavor choices; the form uses these instead of the shared flavors list when present.
+            variants: (Array.isArray(i && i.variants) ? i.variants : []).map(v => v && v.label).filter(Boolean),
+          }))
       .filter(i => i.name),
     sizes: profile.order_form_sizes || [],
     flavors: profile.order_form_flavors || [],

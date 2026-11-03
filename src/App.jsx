@@ -902,6 +902,12 @@ function PublicOrderForm({ slug }) {
     return d.toISOString().split("T")[0];
   };
 
+  // An item's own variants win; otherwise fall back to the shared flavors list.
+  const flavorOptionsFor = (itemName) => {
+    const own = (config?.itemDetails || []).find(d => d.name === itemName)?.variants || [];
+    return own.length ? own : (config?.flavors || []);
+  };
+
   const canSubmit = form.items.some(it => it.item.trim()) && form.customer.trim() && (form.phone.trim() || form.email.trim()) && form.due;
 
   const handleSubmit = async () => {
@@ -966,7 +972,11 @@ function PublicOrderForm({ slug }) {
                     {config.items.length > 0 ? (
                       <ItemPicker
                         value={it.item}
-                        onChange={v => updateFormItemRow(idx, "item", v)}
+                        onChange={v => {
+                          // Clear a picked flavor that isn't offered for the newly chosen item.
+                          const next = flavorOptionsFor(v);
+                          setForm(f => ({ ...f, items: f.items.map((row, i) => i !== idx ? row : { ...row, item: v, flavor: next.length && !next.includes(row.flavor) ? "" : row.flavor }) }));
+                        }}
                         options={config.itemDetails || config.items.map(n => ({ name: n, price: null, description: "" }))}
                         label={`Item ${idx + 1}`}
                       />
@@ -988,10 +998,10 @@ function PublicOrderForm({ slug }) {
                     )}
                     <input type="number" min="1" value={it.quantity} onChange={e => updateFormItemRow(idx, "quantity", e.target.value)} placeholder="Qty" className={tw.input} />
                   </div>
-                  {config.flavors.length > 0 ? (
-                    <select value={it.flavor} onChange={e => updateFormItemRow(idx, "flavor", e.target.value)} className={tw.input}>
+                  {flavorOptionsFor(it.item).length > 0 ? (
+                    <select value={it.flavor} onChange={e => updateFormItemRow(idx, "flavor", e.target.value)} aria-label={`Flavor for item ${idx + 1}`} className={tw.input}>
                       <option value="">— Flavor —</option>
-                      {config.flavors.map(fl => <option key={fl} value={fl}>{fl}</option>)}
+                      {flavorOptionsFor(it.item).map(fl => <option key={fl} value={fl}>{fl}</option>)}
                     </select>
                   ) : (
                     <input value={it.flavor} onChange={e => updateFormItemRow(idx, "flavor", e.target.value)} placeholder="Flavor (optional)" className={tw.input} />
@@ -4649,6 +4659,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                       />
                       <div className="pl-2 border-l-2 border-border flex flex-col gap-1.5">
                         <span className="text-[10px] font-bold uppercase tracking-wide text-foreground/40">Variants (flavors)</span>
+                        <span className="text-[11px] text-foreground/40 -mt-1">Customers choose from these when ordering this item. Leave empty to show your general flavor list.</span>
                         {item.variants.map((v, vi) => (
                           <div key={vi} className="flex items-center gap-1.5">
                             <span className="text-xs text-foreground/70 flex-1 truncate">{v.label}</span>
