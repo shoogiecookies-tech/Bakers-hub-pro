@@ -46,6 +46,12 @@ module.exports = async function handler(req, res) {
     bakeryName: profile.bakery_name || "This bakery",
     leadDays: profile.order_lead_days ?? 3,
     items: (profile.order_form_items || []).map(i => (typeof i === "string" ? i : i.name)).filter(Boolean),
+    // Richer per-item info for the picker. `items` above stays a plain name list for compatibility.
+    itemDetails: (profile.order_form_items || [])
+      .map(i => (typeof i === "string"
+        ? { name: i, price: null, description: "" }
+        : { name: i && i.name, price: i && i.basePrice != null ? Number(i.basePrice) : null, description: (i && i.description) || "" }))
+      .filter(i => i.name),
     sizes: profile.order_form_sizes || [],
     flavors: profile.order_form_flavors || [],
     blackoutDates: isPro ? (profile.blackout_dates || []) : [],

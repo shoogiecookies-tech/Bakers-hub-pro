@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3, Crown, Clock, ListX } from "lucide-react";
+import { Store, DollarSign, Palette, ShieldAlert, CreditCard, ShoppingBag, Search, Edit3, FileText, Printer, Mail, Trash2, Calendar, Plus, Check, Filter, Info, Sparkles, Archive, Camera, Heart, Bookmark, Send, Music, Eye, MessageSquare, BookOpen, Scale, Calculator, Coins, AlertCircle, TrendingUp, Settings, Shield, Gift, Users, Database, Download, AlertTriangle, BarChart3, Crown, Clock, ListX, ChevronDown } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
@@ -721,6 +721,156 @@ function OrderDatePicker({ value, onChange, minDateStr, blackoutDates, fullyBook
   );
 }
 
+// Accessible single-select item picker for the public order form (APG "select-only combobox").
+// Focus stays on the trigger; the highlighted option is exposed via aria-activedescendant.
+const formatItemPrice = (p) => (p != null && !isNaN(p) ? `$${Number(p).toFixed(2)}` : "");
+
+function ItemPicker({ value, onChange, options, label }) {
+  const uid = useId();
+  const listId = `${uid}-list`;
+  const optId = (i) => `${uid}-opt-${i}`;
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const rootRef = useRef(null);
+  const btnRef = useRef(null);
+  const typeahead = useRef({ str: "", at: 0 });
+
+  // Index 0 is the "nothing selected" choice, mirroring the old <option value="">.
+  const all = [{ name: "", price: null, description: "" }, ...options];
+  const found = all.findIndex(o => o.name === value);
+  const selectedIdx = Math.max(0, found);
+  const selected = value ? (found >= 0 ? all[found] : { name: value, price: null, description: "" }) : null;
+  const last = all.length - 1;
+
+  const openList = (idx) => { setActive(idx ?? selectedIdx); setOpen(true); };
+  const close = () => setOpen(false);
+  const choose = (i) => { onChange(all[i].name); close(); btnRef.current?.focus(); };
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) document.getElementById(`${uid}-opt-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [open, active, uid]);
+
+  const findByType = (ch) => {
+    const now = Date.now();
+    const t = typeahead.current;
+    t.str = now - t.at > 700 ? ch : t.str + ch;
+    t.at = now;
+    const q = t.str.toLowerCase();
+    const start = open ? active : selectedIdx;
+    // Single char: cycle starting after current. Multi-char: match from current.
+    const offset = t.str.length > 1 ? 0 : 1;
+    for (let k = 0; k < all.length; k++) {
+      const j = (start + offset + k) % all.length;
+      if (all[j].name && all[j].name.toLowerCase().startsWith(q)) return j;
+    }
+    return -1;
+  };
+
+  const onKeyDown = (e) => {
+    const k = e.key;
+    const printable = k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+    if (!open) {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(k)) { e.preventDefault(); openList(); }
+      else if (k === "Home") { e.preventDefault(); openList(0); }
+      else if (k === "End") { e.preventDefault(); openList(last); }
+      else if (printable) { const i = findByType(k); if (i >= 0) openList(i); }
+      return;
+    }
+    if (k === "ArrowDown") { e.preventDefault(); setActive(a => Math.min(a + 1, last)); }
+    else if (k === "ArrowUp") { e.preventDefault(); if (e.altKey) choose(active); else setActive(a => Math.max(a - 1, 0)); }
+    else if (k === "Home") { e.preventDefault(); setActive(0); }
+    else if (k === "End") { e.preventDefault(); setActive(last); }
+    else if (k === "PageDown") { e.preventDefault(); setActive(a => Math.min(a + 10, last)); }
+    else if (k === "PageUp") { e.preventDefault(); setActive(a => Math.max(a - 10, 0)); }
+    else if (k === "Enter" || k === " ") { e.preventDefault(); choose(active); }
+    else if (k === "Escape") { e.preventDefault(); close(); }
+    else if (k === "Tab") { close(); }
+    else if (printable) { const i = findByType(k); if (i >= 0) setActive(i); }
+  };
+
+  return (
+    <div ref={rootRef} className="relative flex-1 min-w-0">
+      <button
+        ref={btnRef}
+        type="button"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-activedescendant={open ? optId(active) : undefined}
+        aria-label={`${label}: ${selected ? selected.name : "none selected"}`}
+        aria-describedby={selected?.description ? `${uid}-desc` : undefined}
+        onClick={() => (open ? close() : openList())}
+        onKeyDown={onKeyDown}
+        className={`${tw.input} !flex items-start gap-2 text-left cursor-pointer min-h-[42px] focus-visible:ring-2 focus-visible:ring-accent/50 ${open ? "!border-accent" : ""}`}
+      >
+        <span className="flex-1 min-w-0">
+          {selected ? (
+            <>
+              <span className="flex items-start justify-between gap-3">
+                <span className="font-bold text-foreground break-words min-w-0">{selected.name}</span>
+                {formatItemPrice(selected.price) && <span className="text-foreground/70 shrink-0 tabular-nums">{formatItemPrice(selected.price)}</span>}
+              </span>
+              {selected.description && <span id={`${uid}-desc`} className="block text-xs text-foreground/60 mt-0.5 leading-snug whitespace-pre-line break-words">{selected.description}</span>}
+            </>
+          ) : (
+            <span className="text-foreground/50">— Select an item —</span>
+          )}
+        </span>
+        <ChevronDown aria-hidden="true" className={`h-4 w-4 mt-0.5 shrink-0 text-foreground/50 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <ul
+          id={listId}
+          role="listbox"
+          aria-label={label}
+          tabIndex={-1}
+          className="absolute left-0 right-0 top-full mt-1 z-30 max-h-[min(60vh,340px)] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card shadow-card py-1"
+        >
+          {all.map((o, i) => {
+            const isSel = i === selectedIdx;
+            return (
+              <li
+                key={o.name || "__none"}
+                id={optId(i)}
+                role="option"
+                aria-selected={isSel}
+                onPointerDown={e => e.preventDefault()}
+                onMouseMove={() => active !== i && setActive(i)}
+                onClick={() => choose(i)}
+                className={`px-3 py-2.5 min-h-[44px] cursor-pointer select-none flex gap-2 items-start ${i === active ? "bg-accent/10" : ""} ${i > 0 ? "border-t border-border/40" : ""}`}
+              >
+                <Check aria-hidden="true" className={`h-4 w-4 mt-0.5 shrink-0 text-accent ${isSel ? "" : "invisible"}`} />
+                <span className="flex-1 min-w-0">
+                  {i === 0 ? (
+                    <span className="text-sm text-foreground/50">— Select an item —</span>
+                  ) : (
+                    <>
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="text-sm font-bold text-foreground break-words min-w-0">{o.name}</span>
+                        {formatItemPrice(o.price) && <span className="text-sm text-foreground/70 shrink-0 tabular-nums">{formatItemPrice(o.price)}</span>}
+                      </span>
+                      {o.description && <span className="block text-xs text-foreground/60 mt-0.5 leading-snug whitespace-pre-line break-words">{o.description}</span>}
+                    </>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function PublicOrderForm({ slug }) {
   const [config,     setConfig]     = useState(null);
   const [loading,    setLoading]    = useState(true);
@@ -812,17 +962,19 @@ function PublicOrderForm({ slug }) {
             <div className="flex flex-col gap-2.5">
               {form.items.map((it, idx) => (
                 <div key={idx} className="bg-background rounded-lg border border-border p-3 flex flex-col gap-2.5">
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-start">
                     {config.items.length > 0 ? (
-                      <select value={it.item} onChange={e => updateFormItemRow(idx, "item", e.target.value)} className={`${tw.input} !flex-1`}>
-                        <option value="">— Select an item —</option>
-                        {config.items.map(i => <option key={i} value={i}>{i}</option>)}
-                      </select>
+                      <ItemPicker
+                        value={it.item}
+                        onChange={v => updateFormItemRow(idx, "item", v)}
+                        options={config.itemDetails || config.items.map(n => ({ name: n, price: null, description: "" }))}
+                        label={`Item ${idx + 1}`}
+                      />
                     ) : (
                       <input value={it.item} onChange={e => updateFormItemRow(idx, "item", e.target.value)} placeholder="What would you like to order?" className={`${tw.input} !flex-1`} />
                     )}
                     {form.items.length > 1 && (
-                      <button type="button" onClick={() => removeFormItemRow(idx)} className="text-foreground/30 hover:text-danger px-1 text-lg leading-none shrink-0">×</button>
+                      <button type="button" onClick={() => removeFormItemRow(idx)} aria-label={`Remove item ${idx + 1}`} className="text-foreground/30 hover:text-danger px-1 text-lg leading-none shrink-0 mt-2">×</button>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2.5">
@@ -1230,6 +1382,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
           basePrice: i.basePrice ?? null,
           category: i.category || "",
           recipeId: i.recipeId ?? null,
+          description: i.description || "",
           variants: Array.isArray(i.variants) ? i.variants.map(v => ({ label: v.label, recipeId: v.recipeId ?? null })) : [],
         })));
         setOrderFormSizes(profileData.order_form_sizes || []);
@@ -1318,7 +1471,7 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
     const n = name.trim();
     if (!n || orderFormItems.some(i => i.name.toLowerCase() === n.toLowerCase())) return;
     const basePrice = price !== "" && !isNaN(parseFloat(price)) ? parseFloat(price) : null;
-    setOrderFormItems([...orderFormItems, { name: n, basePrice, category: "", recipeId: null, variants: [] }]);
+    setOrderFormItems([...orderFormItems, { name: n, basePrice, category: "", recipeId: null, description: "", variants: [] }]);
   };
   const removeMenuItem = (name) => setOrderFormItems(orderFormItems.filter(i => i.name !== name));
   const updateMenuItem = (name, patch) => setOrderFormItems(prev => prev.map(i => i.name === name ? { ...i, ...patch } : i));
@@ -4486,6 +4639,14 @@ function AppInner({ session, onSignOut, initialTab = "Dashboard" }) {
                           {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                         </select>
                       </div>
+                      <textarea
+                        value={item.description || ""}
+                        onChange={e => updateMenuItem(item.name, { description: e.target.value })}
+                        placeholder="Description shown to customers (optional)"
+                        aria-label={`Description for ${item.name}`}
+                        rows={2}
+                        className={`${tw.input} !bg-card text-xs !py-1.5 resize-y`}
+                      />
                       <div className="pl-2 border-l-2 border-border flex flex-col gap-1.5">
                         <span className="text-[10px] font-bold uppercase tracking-wide text-foreground/40">Variants (flavors)</span>
                         {item.variants.map((v, vi) => (
